@@ -1,0 +1,63 @@
+{
+  "name": "Diamond Link - Dental Clinic Management",
+  "short_name": "Diamond Link",
+  "description": "Dental clinic management system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#14b8a6",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/Logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["health", "medical", "business"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View main dashboard",
+      "url": "/dashboard",
+      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+    },
+    {
+      "name": "Patients",
+      "short_name": "Patients",
+      "description": "Manage patients",
+      "url": "/pacientes",
+      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+    },
+    {
+      "name": "Calendar",
+      "short_name": "Calendar",
+      "description": "View calendar",
+      "url": "/calendario",
+      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+    },
+    {
+      "name": "Calendar Widget",
+      "short_name": "Widget",
+      "description": "Quick calendar widget view",
+      "url": "/calendar-widget",
+      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+    }
+  ]
+}

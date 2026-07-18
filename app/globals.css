@@ -1,0 +1,392 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom loading state to prevent white screen during refresh */
+html {
+  background-color: #1f2937; /* charcoal gray */
+}
+
+body {
+  background-color: #1f2937; /* charcoal gray */
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    -webkit-touch-callout: none;
+  }
+  
+  /* Allow orientation changes and prevent lock */
+  @media screen and (orientation: landscape) {
+    html, body {
+      transform: rotate(0deg);
+      transform-origin: center center;
+    }
+  }
+  
+  @media screen and (orientation: portrait) {
+    html, body {
+      transform: rotate(0deg);
+      transform-origin: center center;
+    }
+  }
+  
+  /* Prevent zoom on input focus but allow user interaction */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Smooth scrolling for mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Allow text selection for usability */
+  p, h1, h2, h3, h4, h5, h6, span, div {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Loading overlay for page transitions */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1f2937;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Logo animation for loading state */
+.loading-logo {
+  width: 60px;
+  height: 60px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Signature Section Styles */
+.signature-section {
+  margin: 30px 0 20px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.signature-section h4 {
+  margin: 0 0 15px 0;
+  color: #0a4d4a;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+}
+
+.signature-section h4 i {
+  margin-right: 10px;
+  color: #0a4d4a;
+}
+
+.signature-hint {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.signature-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signature-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+#clear-signature {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 0;
+}
+
+#clear-signature:hover {
+  background: #c0392b;
+}
+
+#clear-signature:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Dark mode signature styles */
+.dark .signature-section {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.dark .signature-section h4 {
+  color: #10b981;
+}
+
+.dark .signature-placeholder {
+  color: #6b7280;
+}
+
+.dark .signature-hint {
+  color: #9ca3af;
+}
+
+/* Print Styles */
+@media print {
+  .print\\:hidden {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .bg-white, .bg-gray-800, .dark\\:bg-gray-800 {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .text-gray-800, .text-white, .dark\\:text-white {
+    color: black !important;
+  }
+  
+  .text-gray-600, .text-gray-400, .dark\\:text-gray-400 {
+    color: #666 !important;
+  }
+  
+  .shadow-lg {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+  
+  .max-w-6xl {
+    max-width: none !important;
+  }
+  
+  .grid {
+    display: block !important;
+  }
+  
+  .lg\\:grid-cols-2 {
+    grid-template-columns: none !important;
+  }
+  
+  .gap-6 {
+    gap: 1rem !important;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Patient Form Styles */
+.input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent;
+}
+
+.dark .input {
+  @apply border-gray-600 bg-gray-700 text-white focus:border-teal-400;
+}
+
+.textarea {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y;
+}
+
+.dark .textarea {
+  @apply border-gray-600 bg-gray-700 text-white focus:border-teal-400;
+}
+
+.btn {
+  @apply font-medium py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-teal-700 text-white hover:bg-teal-800;
+}
+
+.dark .btn-primary {
+  @apply bg-teal-600 hover:bg-teal-700;
+}
+
+/* Dashboard Dark Mode Styles */
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+
+.dark .bg-gray-50 {
+  @apply bg-gray-900;
+}
+
+.dark .bg-gray-100 {
+  @apply bg-gray-800;
+}
+
+.dark .text-gray-900 {
+  @apply text-gray-100;
+}
+
+.dark .text-gray-800 {
+  @apply text-gray-200;
+}
+
+.dark .text-gray-700 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-600 {
+  @apply text-gray-400;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .border-gray-300 {
+  @apply border-gray-600;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  @apply hover:bg-gray-700;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  @apply hover:bg-gray-700;
+}
+
+/* Ensure smooth scrolling on mobile devices */
+html, body {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix iOS Safari scrolling issues */
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Shimmer animation for modern card effects */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  animation-delay: 0.5s;
+}
