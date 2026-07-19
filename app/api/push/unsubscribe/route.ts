@@ -9,9 +9,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { endpoint } = await request.json();
+    const body = await request.json();
+    const endpoint = body.endpoint || `fcm:${body.fcmToken}`;
     if (!endpoint) {
-      return NextResponse.json({ error: 'endpoint is required' }, { status: 400 });
+      return NextResponse.json({ error: 'endpoint or fcmToken is required' }, { status: 400 });
     }
 
     const supabase = await createClient();

@@ -273,18 +273,19 @@ export class CapacitorNotificationService {
     }
   }
 
-  // Send push token to backend
+  // Send FCM push token to backend
   private async sendPushTokenToBackend(token: string): Promise<void> {
     try {
-      // This would integrate with your existing user management system
-      console.log('📤 Sending push token to backend:', token);
-      
-      // Example implementation:
-      // await fetch('/api/push-token', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ token, platform: 'capacitor' })
-      // });
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
+      });
+      if (res.ok) {
+        console.log('📤 FCM token saved to backend');
+      } else {
+        console.error('❌ Failed to save FCM token:', await res.text());
+      }
     } catch (error) {
       console.error('❌ Failed to send push token to backend:', error);
     }

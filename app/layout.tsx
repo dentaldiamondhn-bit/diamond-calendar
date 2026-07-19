@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Diamond Calendar',
-  description: 'Calendar management for Diamond Link dental clinic',
+  description: 'Dental clinic calendar management system',
   manifest: '/manifest.json',
   icons: {
     icon: '/Logo.svg',

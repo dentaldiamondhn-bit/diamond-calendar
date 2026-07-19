@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "659761989628",
+    "project_id": "diamond-calendar-1de34",
+    "storage_bucket": "diamond-calendar-1de34.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:659761989628:android:7df6d65ddf8e4493a49479",
+        "android_client_info": {
+          "package_name": "com.diamondcalendar.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnkSTe6MhTjCI1t4Ii9PnREjEBe-0l-QY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
