@@ -139,21 +139,19 @@ export class CapacitorNotificationService {
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (this.isNative()) {
-        await PushNotifications.register();
-        
         return new Promise((resolve) => {
           PushNotifications.addListener('registration', (token) => {
             console.log('📱 Push registration success:', token.value);
             resolve(token.value);
-            
-            // Send token to backend
             this.sendPushTokenToBackend(token.value);
           });
-          
+
           PushNotifications.addListener('registrationError', (error) => {
             console.error('❌ Push registration error:', error);
             resolve(null);
           });
+
+          PushNotifications.register();
         });
       } else {
         console.log('🌐 Push notifications not supported on web');
