@@ -8,14 +8,17 @@ export function PushAutoSubscribe() {
   const { isLoaded, isSignedIn } = useUser();
   const { isNative, isInitialized, requestPermissions, registerForPushNotifications } = useCapacitorNotifications();
   const [debug, setDebug] = useState<string | null>(null);
+  const [hasRun, setHasRun] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || hasRun) return;
+    setHasRun(true);
     let cancelled = false;
 
     const run = async () => {
       try {
-        if (isNative) {
+        const native = isNative;
+        if (native) {
           setDebug('Solicitando permiso de notificaciones...');
           
           const permResult = await requestPermissions();
@@ -75,7 +78,7 @@ export function PushAutoSubscribe() {
 
     run();
     return () => { cancelled = true; };
-  }, [isLoaded, isSignedIn, isNative]);
+  }, [isLoaded, isSignedIn, isNative, isInitialized, requestPermissions, registerForPushNotifications]);
 
   if (!debug) return null;
   return (
