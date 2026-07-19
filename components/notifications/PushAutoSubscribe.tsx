@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 
 function swReadyTimeout(ms: number): Promise<ServiceWorkerRegistration> {
+  const timer = setTimeout(() => reject(new Error('timeout')), ms);
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), ms);
     navigator.serviceWorker.ready.then((reg) => {
       clearTimeout(timer);
       resolve(reg);
@@ -16,15 +16,61 @@ function swReadyTimeout(ms: number): Promise<ServiceWorkerRegistration> {
   });
 }
 
-async function getPushPlugin() {
-  const cap = (window as any).Capacitor;
-  if (!cap?.isNativePlatform?.()) return null;
-  try {
-    const mod = await import('@capacitor/push-notifications');
-    return mod.PushNotifications as any;
-  } catch {
-    return cap.Plugins?.PushNotifications || null;
+async function tryRegisterFCM(PushNotifications: any, setDebug: (m: string | null) => void): Promise<string | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 10000);
+    let regToken: string | null = null;
+
+    PushNotifications.addListener('registration', (data: any) => {
+      regToken = data.value;
+      clearTimeout(timer);
+      resolve(regToken);
+    });
+
+    PushNotifications.addListener('registrationError', () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+
+    PushNotifications.register().catch(() => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+  });
+}
+
+async function webPushSubscribe(setDebug: (m: string | null) => void): Promise<void> {
+  setDebug('Cargando servicio push...');
+  const { default: svc } = await import('@/services/pushNotificationService');
+
+  const initialized = await svc.initialize();
+  if (!initialized) {
+    setDebug('Push no soportado');
+    setTimeout(() => setDebug(null), 5000);
+    return;
   }
+
+  setDebug('Buscando service worker...');
+  let reg: ServiceWorkerRegistration;
+  try {
+    reg = await swReadyTimeout(5000);
+  } catch {
+    setDebug('ServiceWorker no disponible');
+    setTimeout(() => setDebug(null), 5000);
+    return;
+  }
+
+  const existingSub = await reg.pushManager.getSubscription();
+  if (existingSub) {
+    setDebug('Suscripción ya existe');
+    setTimeout(() => setDebug(null), 3000);
+    return;
+  }
+
+  setDebug('Suscribiendo...');
+  const ok = await svc.subscribe();
+  setDebug(ok ? 'Suscripción creada' : `Fallo al suscribir: permiso=${Notification.permission}`);
+  setTimeout(() => setDebug(null), 5000);
 }
 
 export function PushAutoSubscribe() {
@@ -33,135 +79,60 @@ export function PushAutoSubscribe() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-
     let cancelled = false;
 
     const run = async () => {
       try {
-        const PushNotifications = await getPushPlugin();
-        if (!PushNotifications) {
-          // Not Capacitor native — use web push
-          setDebug('Cargando servicio push...');
+        const cap = (window as any).Capacitor;
+        const isNative = cap?.isNativePlatform?.();
 
-          const { default: svc } = await import('@/services/pushNotificationService');
-          if (cancelled) return;
+        if (isNative) {
+          const pn = cap.Plugins?.PushNotifications;
+          if (pn && typeof pn.register === 'function') {
+            setDebug('FCM: registrando...');
+            const token = await tryRegisterFCM(pn, setDebug);
+            if (cancelled) return;
 
-          const initialized = await svc.initialize();
-          if (!initialized) {
-            setDebug('Push no soportado en este navegador');
-            setTimeout(() => setDebug(null), 5000);
-            return;
+            if (token) {
+              setDebug(`FCM: ${token.slice(0, 16)}...`);
+              try {
+                const res = await fetch('/api/push/subscribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
+                });
+                setDebug(res.ok ? 'FCM registrado!' : `API err: ${await res.text()}`);
+              } catch { setDebug('FCM: error red'); }
+              setTimeout(() => setDebug(null), 8000);
+              return;
+            }
+
+            setDebug('FCM timeout, usando Web Push...');
+            await new Promise(r => setTimeout(r, 1000));
           }
-
-          setDebug('Verificando suscripción existente...');
-          let reg: ServiceWorkerRegistration;
-          try {
-            reg = await swReadyTimeout(5000);
-          } catch {
-            setDebug('ServiceWorker no disponible');
-            setTimeout(() => setDebug(null), 5000);
-            return;
-          }
-          if (cancelled) return;
-
-          const existingSub = await reg.pushManager.getSubscription();
-          if (existingSub) {
-            setDebug('Suscripción ya existe, sincronizada con servidor');
-            setTimeout(() => setDebug(null), 3000);
-            return;
-          }
-
-          setDebug('Sin suscripción — solicitando permiso...');
-          const ok = await svc.subscribe();
-          if (ok) {
-            setDebug('Suscripción creada exitosamente');
-          } else {
-            setDebug(`Fallo al suscribir: permiso=${Notification.permission}`);
-          }
-
-          setTimeout(() => setDebug(null), 5000);
-          return;
         }
 
-        // Capacitor native path
-        setDebug('Registrando FCM (sin permiso previo)...');
-
-        let resolveToken: (v: string | null) => void;
-        let timer: ReturnType<typeof setTimeout>;
-
-        const tokenPromise = new Promise<string | null>((resolve) => {
-          resolveToken = resolve;
-        });
-
-        // Add listeners first, then register
-        PushNotifications.addListener('registration', (data: any) => {
-          clearTimeout(timer);
-          resolveToken(data.value);
-        });
-
-        PushNotifications.addListener('registrationError', (err: any) => {
-          clearTimeout(timer);
-          resolveToken(null);
-          setDebug(`Error reg: ${err?.message || 'desconocido'}`);
-        });
-
-        timer = setTimeout(() => {
-          resolveToken(null);
-          setDebug('Token FCM timeout (60s)');
-        }, 60000);
-
-        try {
-          await PushNotifications.register();
-        } catch (e: any) {
-          clearTimeout(timer);
-          setDebug(`register() falló: ${e?.message || e}`);
-          setTimeout(() => setDebug(null), 8000);
-          return;
-        }
-
-        const token = await tokenPromise;
-
-        if (cancelled) return;
-
-        if (token) {
-          setDebug(`Token: ${token.slice(0, 16)}...`);
-          try {
-            const res = await fetch('/api/push/subscribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
-            });
-            setDebug(res.ok ? 'FCM registrado' : `API err: ${await res.text()}`);
-          } catch {
-            setDebug('Error red al guardar');
-          }
-        } else {
-          setDebug('FCM: sin token');
-        }
-
-        setTimeout(() => setDebug(null), 8000);
+        await webPushSubscribe(setDebug);
       } catch (e) {
-        setDebug(`Error: ${e instanceof Error ? e.message : 'desconocido'}`);
+        setDebug(`Error: ${e instanceof Error ? e.message : '?'}`);
       }
     };
 
     run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isLoaded, isSignedIn]);
 
-  return debug ? (
-    <div
-      style={{
-        position: 'fixed', bottom: 8, right: 8, zIndex: 9999,
-        padding: '4px 8px', borderRadius: 6, color: '#fff',
-        fontSize: 11, fontWeight: 500, maxWidth: 240, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        backgroundColor: debug.includes('registrado') || debug.includes('Token:') ? '#16a34a' : debug.includes('Error') || debug.includes('falló') || debug.includes('timeout') || debug.includes('sin token') ? '#dc2626' : '#2563eb',
-      }}
-    >
+  if (!debug) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: 8, right: 8, zIndex: 9999,
+      padding: '4px 8px', borderRadius: 6, color: '#fff',
+      fontSize: 11, fontWeight: 500, maxWidth: 240,
+      textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
+      backgroundColor: debug.includes('registrado') || debug.includes('creada') || debug.includes('FCM: ') ?
+        '#16a34a' : debug.includes('Error') || debug.includes('timeout') || debug.includes('Fallo') ? '#dc2626' : '#2563eb',
+    }}>
       {debug}
     </div>
-  ) : null;
+  );
 }
