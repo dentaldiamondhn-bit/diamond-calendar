@@ -52,7 +52,7 @@ export function PushAutoSubscribe() {
 
           // Request permission first
           const permResult = await PushNotifications.requestPermissions();
-          if (permResult?.granted !== 'granted') {
+          if (permResult?.receive !== 'granted') {
             setDebug('Permiso de notificaciones denegado');
             setTimeout(() => setDebug(null), 5000);
             return;
@@ -60,22 +60,30 @@ export function PushAutoSubscribe() {
 
           setDebug('Solicitando token FCM...');
 
-          // Listen for FCM token
-          const token = await new Promise<string | null>((resolve) => {
-            const timeout = setTimeout(() => resolve(null), 15000);
+          // Await listener registration, then use a promise to capture the token
+          let tokenResolve: (v: string | null) => void;
+          const tokenPromise = new Promise<string | null>((resolve) => { tokenResolve = resolve; });
+          let tokenTimer: ReturnType<typeof setTimeout>;
 
-            PushNotifications.addListener('registration', (data: any) => {
-              clearTimeout(timeout);
-              resolve(data.value);
-            });
-
-            PushNotifications.addListener('registrationError', () => {
-              clearTimeout(timeout);
-              resolve(null);
-            });
-
-            PushNotifications.register();
+          const regHandler = await PushNotifications.addListener('registration', (data: any) => {
+            clearTimeout(tokenTimer);
+            tokenResolve(data.value);
           });
+          const errHandler = await PushNotifications.addListener('registrationError', () => {
+            clearTimeout(tokenTimer);
+            tokenResolve(null);
+          });
+
+          tokenTimer = setTimeout(() => {
+            tokenResolve(null);
+          }, 15000);
+
+          PushNotifications.register();
+
+          const token = await tokenPromise;
+
+          regHandler.remove();
+          errHandler.remove();
 
           if (cancelled) return;
 
