@@ -136,15 +136,42 @@ export class CapacitorNotificationService {
   }
 
   // Register for push notifications (FCM token)
+  private fcmTokenPromise: Promise<string> | null = null;
+  private fcmTokenResolve: ((token: string) => void) | null = null;
+
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (this.isNative()) {
-        const result = await PushNotifications.register();
-        const token = result.value;
-        if (token) {
-          console.log('📱 Push registration success:', token);
-          this.sendPushTokenToBackend(token);
+        if (!this.fcmTokenPromise) {
+          this.fcmTokenPromise = new Promise((resolve) => {
+            this.fcmTokenResolve = resolve;
+          });
         }
+
+        PushNotifications.addListener('registration', (token) => {
+          console.log('📱 Push registration success:', token.value);
+          if (this.fcmTokenResolve) {
+            this.fcmTokenResolve(token.value);
+            this.fcmTokenResolve = null;
+          }
+          this.sendPushTokenToBackend(token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('❌ Push registration error:', error);
+          if (this.fcmTokenResolve) {
+            this.fcmTokenResolve('');
+            this.fcmTokenResolve = null;
+          }
+        });
+
+        PushNotifications.register();
+
+        const token = await Promise.race([
+          this.fcmTokenPromise,
+          new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
+        ]);
+
         return token || null;
       } else {
         console.log('🌐 Push notifications not supported on web');
@@ -185,16 +212,6 @@ export class CapacitorNotificationService {
         } else if (data?.appointmentId) {
           this.openAppointment(data.appointmentId);
         }
-      });
-
-      // Listen for token refresh
-      PushNotifications.addListener('registration', (token) => {
-        console.log('🔄 FCM token refreshed:', token.value);
-        this.sendPushTokenToBackend(token.value);
-      });
-
-      PushNotifications.addListener('registrationError', (error) => {
-        console.error('❌ FCM registration error:', error);
       });
 
       console.log('✅ Push notification handlers setup complete');
