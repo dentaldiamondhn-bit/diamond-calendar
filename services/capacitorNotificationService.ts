@@ -139,6 +139,13 @@ export class CapacitorNotificationService {
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (this.isNative()) {
+        // Request permission explicitly first (required on Android 13+)
+        const permResult = await PushNotifications.requestPermissions();
+        if ((permResult as any).receive !== 'granted') {
+          console.warn('❌ Push notification permission denied:', permResult);
+          return null;
+        }
+
         return new Promise((resolve) => {
           PushNotifications.addListener('registration', (token) => {
             console.log('📱 Push registration success:', token.value);
