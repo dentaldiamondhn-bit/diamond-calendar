@@ -44,9 +44,18 @@ export function PushAutoSubscribe() {
               ln.requestPermissions(),
               pn.requestPermissions(),
             ]);
-            setDebug(`Raw: local=${JSON.stringify(localPerm)}, push=${JSON.stringify(pushPerm)}`);
-            permResult = { local: localPerm.receive, push: pushPerm.receive };
-            setDebug(`Permiso: local=${localPerm.receive}, push=${pushPerm.receive}`);
+            setDebug(`Raw1: local=${JSON.stringify(localPerm)}, push=${JSON.stringify(pushPerm)}`);
+            
+            // Check permissions again after dialog (async state update)
+            await new Promise(r => setTimeout(r, 500));
+            const [localPerm2, pushPerm2] = await Promise.all([
+              ln.checkPermissions(),
+              pn.checkPermissions(),
+            ]);
+            setDebug(`Raw2: local=${JSON.stringify(localPerm2)}, push=${JSON.stringify(pushPerm2)}`);
+            
+            permResult = { local: localPerm2.receive, push: pushPerm2.receive };
+            setDebug(`Permiso final: local=${localPerm2.receive}, push=${pushPerm2.receive}`);
           } catch (e: any) {
             setDebug(`Permiso error: ${e.message}`);
             permResult = { local: 'denied', push: 'denied' };
