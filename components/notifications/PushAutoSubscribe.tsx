@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 
+function isCapacitorNative(): boolean {
+  try {
+    return navigator.userAgent.includes('Capacitor');
+  } catch {
+    return false;
+  }
+}
+
 export function PushAutoSubscribe() {
   const { isLoaded, isSignedIn } = useUser();
   const [debug, setDebug] = useState<string | null>(null);
@@ -14,6 +22,22 @@ export function PushAutoSubscribe() {
 
     const run = async () => {
       try {
+        if (isCapacitorNative()) {
+          setDebug('Dispositivo nativo — registrando FCM...');
+          const { CapacitorNotificationService } = await import('@/services/capacitorNotificationService');
+          if (cancelled) return;
+          const svc = CapacitorNotificationService.getInstance();
+          await svc.initialize();
+          const token = await svc.registerForPushNotifications();
+          if (token) {
+            setDebug('FCM registrado exitosamente');
+          } else {
+            setDebug('Fallo registro FCM — permiso denegado');
+          }
+          setTimeout(() => setDebug(null), 5000);
+          return;
+        }
+
         setDebug('Cargando servicio push...');
 
         const { default: svc } = await import('@/services/pushNotificationService');

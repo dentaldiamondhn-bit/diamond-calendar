@@ -37,7 +37,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data?.json() || {};
   } catch {
-    data = { title: 'Diamond Link', message: event.data?.text() || '' };
+    data = { title: 'Diamond Calendar', message: event.data?.text() || '' };
   }
 
   const options = {
@@ -63,7 +63,7 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  event.waitUntil(self.registration.showNotification(data.title || 'Diamond Link', options));
+  event.waitUntil(self.registration.showNotification(data.title || 'Diamond Calendar', options));
 });
 
 self.addEventListener('notificationclick', (event) => {

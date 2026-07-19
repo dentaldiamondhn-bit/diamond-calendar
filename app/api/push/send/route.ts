@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase/server';
 import webpush from 'web-push';
+import { sendFCMNotification } from '@/lib/firebaseAdmin';
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
@@ -18,10 +19,6 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-
-    if (!vapidConfigured) {
-      return NextResponse.json({ error: 'Push not configured — set VAPID keys' }, { status: 500 });
-    }
 
     const { subscription, data } = await request.json();
     if (!subscription || !data) {
@@ -49,6 +46,21 @@ export async function POST(request: NextRequest) {
     const results = [];
 
     for (const sub of targets) {
+      if (sub.platform === 'capacitor' && sub.fcm_token) {
+        const sent = await sendFCMNotification(sub.fcm_token, {
+          title: data.title || 'Diamond Calendar',
+          body: data.message || '',
+          data: data.metadata || data,
+        });
+        if (sent) {
+          results.push({ endpoint: sub.endpoint, status: 'sent' });
+        } else {
+          await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+          results.push({ endpoint: sub.endpoint, status: 'unsubscribed' });
+        }
+        continue;
+      }
+
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },

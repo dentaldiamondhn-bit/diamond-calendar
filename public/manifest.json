@@ -1,7 +1,7 @@
 {
-  "name": "Diamond Link - Dental Clinic Management",
-  "short_name": "Diamond Link",
-  "description": "Dental clinic management system",
+  "name": "Diamond Calendar",
+  "short_name": "Diamond Calendar",
+  "description": "Dental clinic calendar management",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1f2937",
