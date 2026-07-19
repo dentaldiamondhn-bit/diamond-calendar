@@ -19,7 +19,7 @@ function swReadyTimeout(ms: number): Promise<ServiceWorkerRegistration> {
 async function tryRegisterFCM(PushNotifications: any, setDebug: (m: string | null) => void): Promise<string | null> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
-      setDebug('FCM: timeout');
+      setDebug('FCM: timeout 15s');
       resolve(null);
     }, 15000);
 
@@ -27,24 +27,37 @@ async function tryRegisterFCM(PushNotifications: any, setDebug: (m: string | nul
       clearTimeout(timer);
       regHandler.remove?.();
       errHandler.remove?.();
+      setDebug(`FCM: token recibido (${data.value?.slice(0, 16)}...)`);
       resolve(data.value);
     });
 
-    const errHandler = PushNotifications.addListener('registrationError', () => {
+    const errHandler = PushNotifications.addListener('registrationError', (e: any) => {
       clearTimeout(timer);
       regHandler.remove?.();
       errHandler.remove?.();
-      setDebug('FCM: error registro');
+      setDebug(`FCM: registrationError: ${e?.message || JSON.stringify(e)}`);
       resolve(null);
     });
 
-    PushNotifications.register().catch(() => {
+    try {
+      const regPromise = PushNotifications.register();
+      setDebug('FCM: register() llamado');
+      if (regPromise && typeof regPromise.catch === 'function') {
+        regPromise.catch((e: any) => {
+          clearTimeout(timer);
+          regHandler.remove?.();
+          errHandler.remove?.();
+          setDebug(`FCM: register reject: ${e?.message || e}`);
+          resolve(null);
+        });
+      }
+    } catch (e: any) {
       clearTimeout(timer);
       regHandler.remove?.();
       errHandler.remove?.();
-      setDebug('FCM: register lanzó error');
+      setDebug(`FCM: register throw: ${e?.message || e}`);
       resolve(null);
-    });
+    }
   });
 }
 
@@ -64,14 +77,23 @@ async function webPushSubscribe(setDebug: (m: string | null) => void): Promise<v
   }
 
   try {
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPM = 'PushManager' in window;
+    const hasNotif = 'Notification' in window;
+    setDebug(`SW check: sw=${hasSW}, PM=${hasPM}, Notif=${hasNotif}`);
+    if (!hasSW || !hasPM || !hasNotif) {
+      setDebug(`Push no soportado (falta: ${!hasSW?'sw':''}${!hasPM?' PM':''}${!hasNotif?' Notif':''})`);
+      setTimeout(() => setDebug(null), 5000);
+      return;
+    }
     const initialized = await svc.initialize();
     if (!initialized) {
-      setDebug('Push no soportado');
+      setDebug('init falló');
       setTimeout(() => setDebug(null), 5000);
       return;
     }
   } catch (e: any) {
-    setDebug(`init falló: ${e.message}`);
+    setDebug(`init err: ${e.message}`);
     setTimeout(() => setDebug(null), 5000);
     return;
   }
