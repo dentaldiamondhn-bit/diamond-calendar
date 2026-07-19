@@ -28,32 +28,24 @@ export function PushAutoSubscribe() {
 
     const run = async () => {
       try {
+        // Try native FCM first (if Capacitor plugins actually work)
         const cap = (window as any).Capacitor;
         const isNative = cap?.isNativePlatform?.();
         const pn = cap?.Plugins?.PushNotifications;
-        const ln = cap?.Plugins?.LocalNotifications;
 
-        if (isNative && pn && ln) {
-          setDebug('Iniciando registro FCM...');
+        if (isNative && pn) {
+          setDebug('Intentando FCM nativo...');
           
-          // Request permissions (shows native dialog)
           try {
-            await ln.requestPermissions();
             await pn.requestPermissions();
           } catch (e: any) {
-            setDebug(`Permiso error: ${e.message}`);
-            setTimeout(() => setDebug(null), 5000);
-            return;
+            setDebug(`FCM permiso error: ${e.message}`);
           }
 
-          // Get FCM token - register() will fail if permission denied
-          setDebug('Obteniendo token FCM...');
-          
           const token = await new Promise<string | null>((resolve) => {
             const timer = setTimeout(() => {
-              setDebug('FCM timeout 20s');
               resolve(null);
-            }, 20000);
+            }, 15000);
 
             const regHandler = pn.addListener('registration', (data: any) => {
               clearTimeout(timer);
@@ -61,35 +53,29 @@ export function PushAutoSubscribe() {
               errHandler.remove?.();
               resolve(data.value);
             });
-
-            const errHandler = pn.addListener('registrationError', (e: any) => {
+            const errHandler = pn.addListener('registrationError', () => {
               clearTimeout(timer);
               regHandler.remove?.();
               errHandler.remove?.();
-              setDebug(`FCM error: ${e?.message || 'desconocido'}`);
               resolve(null);
             });
 
             try {
-              pn.register().catch((e: any) => {
+              pn.register().catch(() => {
                 clearTimeout(timer);
                 regHandler.remove?.();
                 errHandler.remove?.();
-                setDebug(`FCM register failed: ${e?.message || e}`);
                 resolve(null);
               });
-            } catch (e: any) {
+            } catch {
               clearTimeout(timer);
               regHandler.remove?.();
               errHandler.remove?.();
-              setDebug(`FCM throw: ${e?.message || e}`);
               resolve(null);
             }
           });
 
-          if (cancelled) return;
-
-          if (token) {
+          if (token && !cancelled) {
             setDebug(`FCM: ${token.slice(0, 16)}...`);
             try {
               const res = await fetch('/api/push/subscribe', {
@@ -102,12 +88,14 @@ export function PushAutoSubscribe() {
             setTimeout(() => setDebug(null), 5000);
             return;
           }
-          setDebug('FCM: sin token');
+
+          setDebug('FCM falló, usando Web Push...');
         }
 
-        // Web push fallback (PWA)
-        setDebug('Cargando push web...');
+        // Web Push (VAPID) - SAME AS PWA, works in Capacitor WebView
+        setDebug('Cargando Web Push (PWA)...');
         const { default: svc } = await import('@/services/pushNotificationService');
+        
         const initialized = await svc.initialize();
         if (!initialized) {
           setDebug('Push no soportado');
@@ -117,17 +105,17 @@ export function PushAutoSubscribe() {
 
         const existingSub = await navigator.serviceWorker.ready.then(r => r.pushManager.getSubscription());
         if (existingSub) {
-          setDebug('Suscripción ya existe');
+          setDebug('Suscripción ya existe ✓');
           setTimeout(() => setDebug(null), 3000);
           return;
         }
 
-        setDebug('Solicitando permiso push...');
+        setDebug('Solicitando permiso...');
         const ok = await svc.subscribe();
         if (cancelled) return;
 
         if (ok) {
-          setDebug('Suscripción web creada ✓');
+          setDebug('Web Push guardado ✓');
         } else {
           setDebug(`Fallo: permiso=${Notification.permission}`);
         }
@@ -149,8 +137,8 @@ export function PushAutoSubscribe() {
       padding: '4px 8px', borderRadius: 6, color: '#fff',
       fontSize: 11, fontWeight: 500, maxWidth: 280,
       textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-      backgroundColor: debug.includes('guardado') || debug.includes('creada') || debug.includes('FCM:') ?
-        '#16a34a' : debug.includes('Fallo') || debug.includes('Error') || debug.includes('timeout') || debug.includes('sin token') || debug.includes('no soportado') ? '#dc2626' : '#2563eb',
+      backgroundColor: debug.includes('guardado') || debug.includes('creada') || debug.includes('✓') ?
+        '#16a34a' : debug.includes('Fallo') || debug.includes('Error') || debug.includes('timeout') || debug.includes('no soportado') ? '#dc2626' : '#2563eb',
     }}>
       {debug}
     </div>
