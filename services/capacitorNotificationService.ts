@@ -139,11 +139,23 @@ export class CapacitorNotificationService {
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (this.isNative()) {
-        // Request permission explicitly first (required on Android 13+)
-        const permResult = await PushNotifications.requestPermissions();
-        if ((permResult as any).receive !== 'granted') {
-          console.warn('❌ Push notification permission denied:', permResult);
-          return null;
+        // Use Web Notification API for permission prompt (reliable in Android WebView)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          const webResult = await Notification.requestPermission();
+          if (webResult !== 'granted') {
+            console.warn('❌ Web Notification permission denied');
+            return null;
+          }
+        }
+
+        // Also try Capacitor native permission request
+        try {
+          const nativePerm = await PushNotifications.requestPermissions();
+          if ((nativePerm as any).receive !== 'granted') {
+            console.warn('⚠️ Native push permission not granted, using FCM anyway');
+          }
+        } catch {
+          console.warn('⚠️ Native permission request failed, proceeding with FCM');
         }
 
         return new Promise((resolve) => {
