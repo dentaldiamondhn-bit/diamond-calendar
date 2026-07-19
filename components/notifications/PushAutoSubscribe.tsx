@@ -3,15 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 
-function isCapacitorNative(): boolean {
+declare const Capacitor: any;
+
+function getCapacitor() {
   try {
-    if (typeof window === 'undefined') return false;
-    if ((window as any).Capacitor?.isNativePlatform) {
-      return (window as any).Capacitor.isNativePlatform();
-    }
-    return navigator.userAgent.includes('Capacitor');
+    return (window as any).Capacitor;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -39,19 +37,68 @@ export function PushAutoSubscribe() {
 
     const run = async () => {
       try {
-        if (isCapacitorNative()) {
-          setDebug('Inicializando servicio nativo...');
-          const { CapacitorNotificationService } = await import('@/services/capacitorNotificationService');
-          if (cancelled) return;
-          const svc = CapacitorNotificationService.getInstance();
-          await svc.initialize();
-          setDebug('Solicitando permiso de notificaciones...');
-          const token = await svc.registerForPushNotifications();
-          if (token) {
-            setDebug('FCM registrado exitosamente');
-          } else {
-            setDebug('Permiso de notificaciones denegado');
+        const cap = getCapacitor();
+        const isNative = cap?.isNativePlatform?.();
+
+        if (isNative) {
+          setDebug('Solicitando permiso...');
+
+          const PushNotifications = cap.Plugins?.PushNotifications;
+          if (!PushNotifications) {
+            setDebug('Plugin PushNotifications no disponible');
+            setTimeout(() => setDebug(null), 5000);
+            return;
           }
+
+          // Request permission first
+          const permResult = await PushNotifications.requestPermissions();
+          if (permResult?.granted !== 'granted') {
+            setDebug('Permiso de notificaciones denegado');
+            setTimeout(() => setDebug(null), 5000);
+            return;
+          }
+
+          setDebug('Solicitando token FCM...');
+
+          // Listen for FCM token
+          const token = await new Promise<string | null>((resolve) => {
+            const timeout = setTimeout(() => resolve(null), 15000);
+
+            PushNotifications.addListener('registration', (data: any) => {
+              clearTimeout(timeout);
+              resolve(data.value);
+            });
+
+            PushNotifications.addListener('registrationError', () => {
+              clearTimeout(timeout);
+              resolve(null);
+            });
+
+            PushNotifications.register();
+          });
+
+          if (cancelled) return;
+
+          if (token) {
+            setDebug('Guardando token FCM...');
+            try {
+              const res = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
+              });
+              if (res.ok) {
+                setDebug('FCM registrado exitosamente');
+              } else {
+                setDebug('Error al guardar token FCM');
+              }
+            } catch {
+              setDebug('Error de red al guardar token');
+            }
+          } else {
+            setDebug('No se pudo obtener token FCM');
+          }
+
           setTimeout(() => setDebug(null), 5000);
           return;
         }
@@ -114,7 +161,7 @@ export function PushAutoSubscribe() {
         position: 'fixed', bottom: 8, right: 8, zIndex: 9999,
         padding: '4px 8px', borderRadius: 6, color: '#fff',
         fontSize: 11, fontWeight: 500, maxWidth: 200, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        backgroundColor: debug.includes('exitosa') ? '#16a34a' : debug.includes('Error') || debug.includes('Fallo') ? '#dc2626' : '#2563eb',
+        backgroundColor: debug.includes('exitosa') ? '#16a34a' : debug.includes('Error') || debug.includes('Fallo') || debug.includes('No se pudo') ? '#dc2626' : '#2563eb',
       }}
     >
       {debug}
