@@ -5,10 +5,27 @@ import { useUser } from '@clerk/nextjs';
 
 function isCapacitorNative(): boolean {
   try {
+    if (typeof window === 'undefined') return false;
+    if ((window as any).Capacitor?.isNativePlatform) {
+      return (window as any).Capacitor.isNativePlatform();
+    }
     return navigator.userAgent.includes('Capacitor');
   } catch {
     return false;
   }
+}
+
+function swReadyTimeout(ms: number): Promise<ServiceWorkerRegistration> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    navigator.serviceWorker.ready.then((reg) => {
+      clearTimeout(timer);
+      resolve(reg);
+    }).catch((err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
 }
 
 export function PushAutoSubscribe() {
@@ -43,11 +60,22 @@ export function PushAutoSubscribe() {
         const { default: svc } = await import('@/services/pushNotificationService');
         if (cancelled) return;
 
-        setDebug('Servicio cargado, inicializando...');
-        await svc.initialize();
+        const initialized = await svc.initialize();
+        if (!initialized) {
+          setDebug('Push no soportado en este navegador');
+          setTimeout(() => setDebug(null), 5000);
+          return;
+        }
 
         setDebug('Verificando suscripción existente...');
-        const reg = await navigator.serviceWorker.ready;
+        let reg: ServiceWorkerRegistration;
+        try {
+          reg = await swReadyTimeout(5000);
+        } catch {
+          setDebug('ServiceWorker no disponible');
+          setTimeout(() => setDebug(null), 5000);
+          return;
+        }
         if (cancelled) return;
 
         const existingSub = await reg.pushManager.getSubscription();
