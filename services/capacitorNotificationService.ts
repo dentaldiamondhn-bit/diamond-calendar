@@ -135,43 +135,17 @@ export class CapacitorNotificationService {
     return false;
   }
 
-  // Register for push notifications
+  // Register for push notifications (FCM token)
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (this.isNative()) {
-        // Use Web Notification API for permission prompt (reliable in Android WebView)
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-          const webResult = await Notification.requestPermission();
-          if (webResult !== 'granted') {
-            console.warn('❌ Web Notification permission denied');
-            return null;
-          }
+        const result = await PushNotifications.register();
+        const token = result.value;
+        if (token) {
+          console.log('📱 Push registration success:', token);
+          this.sendPushTokenToBackend(token);
         }
-
-        // Also try Capacitor native permission request
-        try {
-          const nativePerm = await PushNotifications.requestPermissions();
-          if ((nativePerm as any).receive !== 'granted') {
-            console.warn('⚠️ Native push permission not granted, using FCM anyway');
-          }
-        } catch {
-          console.warn('⚠️ Native permission request failed, proceeding with FCM');
-        }
-
-        return new Promise((resolve) => {
-          PushNotifications.addListener('registration', (token) => {
-            console.log('📱 Push registration success:', token.value);
-            resolve(token.value);
-            this.sendPushTokenToBackend(token.value);
-          });
-
-          PushNotifications.addListener('registrationError', (error) => {
-            console.error('❌ Push registration error:', error);
-            resolve(null);
-          });
-
-          PushNotifications.register();
-        });
+        return token || null;
       } else {
         console.log('🌐 Push notifications not supported on web');
         return null;
@@ -211,6 +185,16 @@ export class CapacitorNotificationService {
         } else if (data?.appointmentId) {
           this.openAppointment(data.appointmentId);
         }
+      });
+
+      // Listen for token refresh
+      PushNotifications.addListener('registration', (token) => {
+        console.log('🔄 FCM token refreshed:', token.value);
+        this.sendPushTokenToBackend(token.value);
+      });
+
+      PushNotifications.addListener('registrationError', (error) => {
+        console.error('❌ FCM registration error:', error);
       });
 
       console.log('✅ Push notification handlers setup complete');
