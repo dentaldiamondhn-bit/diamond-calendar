@@ -33,47 +33,27 @@ export function PushAutoSubscribe() {
         const pn = cap?.Plugins?.PushNotifications;
         const ln = cap?.Plugins?.LocalNotifications;
 
-        setDebug(`Inicio: native=${isNative}, pn=${!!pn}, ln=${!!ln}`);
-
         if (isNative && pn && ln) {
+          setDebug('Iniciando registro FCM...');
+          
           // Request permissions (shows native dialog)
-          setDebug('Solicitando permiso...');
-          let permResult;
           try {
-            const [localPerm, pushPerm] = await Promise.all([
-              ln.requestPermissions(),
-              pn.requestPermissions(),
-            ]);
-            setDebug(`Raw1: local=${JSON.stringify(localPerm)}, push=${JSON.stringify(pushPerm)}`);
-            
-            // Check permissions again after dialog (async state update)
-            await new Promise(r => setTimeout(r, 500));
-            const [localPerm2, pushPerm2] = await Promise.all([
-              ln.checkPermissions(),
-              pn.checkPermissions(),
-            ]);
-            setDebug(`Raw2: local=${JSON.stringify(localPerm2)}, push=${JSON.stringify(pushPerm2)}`);
-            
-            permResult = { local: localPerm2.receive, push: pushPerm2.receive };
-            setDebug(`Permiso final: local=${localPerm2.receive}, push=${pushPerm2.receive}`);
+            await ln.requestPermissions();
+            await pn.requestPermissions();
           } catch (e: any) {
             setDebug(`Permiso error: ${e.message}`);
-            permResult = { local: 'denied', push: 'denied' };
-          }
-
-          if (permResult.push !== 'granted') {
-            setDebug(`Denegado: push=${permResult.push}`);
             setTimeout(() => setDebug(null), 5000);
             return;
           }
 
-          // Get FCM token
+          // Get FCM token - register() will fail if permission denied
           setDebug('Obteniendo token FCM...');
+          
           const token = await new Promise<string | null>((resolve) => {
             const timer = setTimeout(() => {
-              setDebug('FCM timeout 15s');
+              setDebug('FCM timeout 20s');
               resolve(null);
-            }, 15000);
+            }, 20000);
 
             const regHandler = pn.addListener('registration', (data: any) => {
               clearTimeout(timer);
@@ -81,6 +61,7 @@ export function PushAutoSubscribe() {
               errHandler.remove?.();
               resolve(data.value);
             });
+
             const errHandler = pn.addListener('registrationError', (e: any) => {
               clearTimeout(timer);
               regHandler.remove?.();
@@ -94,14 +75,14 @@ export function PushAutoSubscribe() {
                 clearTimeout(timer);
                 regHandler.remove?.();
                 errHandler.remove?.();
-                setDebug(`FCM register reject: ${e?.message || e}`);
+                setDebug(`FCM register failed: ${e?.message || e}`);
                 resolve(null);
               });
             } catch (e: any) {
               clearTimeout(timer);
               regHandler.remove?.();
               errHandler.remove?.();
-              setDebug(`FCM register throw: ${e?.message || e}`);
+              setDebug(`FCM throw: ${e?.message || e}`);
               resolve(null);
             }
           });
@@ -124,7 +105,7 @@ export function PushAutoSubscribe() {
           setDebug('FCM: sin token');
         }
 
-        // Web push fallback
+        // Web push fallback (PWA)
         setDebug('Cargando push web...');
         const { default: svc } = await import('@/services/pushNotificationService');
         const initialized = await svc.initialize();
@@ -169,7 +150,7 @@ export function PushAutoSubscribe() {
       fontSize: 11, fontWeight: 500, maxWidth: 280,
       textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
       backgroundColor: debug.includes('guardado') || debug.includes('creada') || debug.includes('FCM:') ?
-        '#16a34a' : debug.includes('denegado') || debug.includes('Fallo') || debug.includes('Error') || debug.includes('timeout') || debug.includes('sin token') ? '#dc2626' : '#2563eb',
+        '#16a34a' : debug.includes('Fallo') || debug.includes('Error') || debug.includes('timeout') || debug.includes('sin token') || debug.includes('no soportado') ? '#dc2626' : '#2563eb',
     }}>
       {debug}
     </div>
