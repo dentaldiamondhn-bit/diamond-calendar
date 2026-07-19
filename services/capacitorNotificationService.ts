@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { AppLauncher } from '@capacitor/app-launcher';
@@ -346,6 +346,16 @@ export const useCapacitorNotifications = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const serviceRef = useRef(CapacitorNotificationService.getInstance());
 
+  const requestPermissions = useCallback(async () => {
+    const service = serviceRef.current;
+    return await service.requestPermissions();
+  }, []);
+
+  const registerForPushNotifications = useCallback(async () => {
+    const service = serviceRef.current;
+    return await service.registerForPushNotifications();
+  }, []);
+
   useEffect(() => {
     const service = serviceRef.current;
     
@@ -366,33 +376,11 @@ export const useCapacitorNotifications = () => {
       });
   }, []);
 
-  const requestPermissions = async () => {
-    const service = serviceRef.current;
-    return await service.requestPermissions();
-  };
-
-  const scheduleAppointmentReminder = async (appointment: AppointmentNotification) => {
-    const service = serviceRef.current;
-    return await service.scheduleAppointmentReminder(appointment);
-  };
-
-  const registerForPushNotifications = async () => {
-    const service = serviceRef.current;
-    return await service.registerForPushNotifications();
-  };
-
-  const openPatientRecord = async (patientId: string) => {
-    const service = serviceRef.current;
-    await service.openPatientRecord(patientId);
-  };
-
   return {
     isNative,
     isInitialized,
     requestPermissions,
-    scheduleAppointmentReminder,
     registerForPushNotifications,
-    openPatientRecord
   };
 };
 

@@ -75,7 +75,7 @@ export function PushAutoSubscribe() {
 
     run();
     return () => { cancelled = true; };
-  }, [isLoaded, isSignedIn, isNative, isInitialized, requestPermissions, registerForPushNotifications]);
+  }, [isLoaded, isSignedIn, isNative]);
 
   if (!debug) return null;
   return (
