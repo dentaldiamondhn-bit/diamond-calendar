@@ -3,16 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 
-declare const Capacitor: any;
-
-function getCapacitor() {
-  try {
-    return (window as any).Capacitor;
-  } catch {
-    return null;
-  }
-}
-
 function swReadyTimeout(ms: number): Promise<ServiceWorkerRegistration> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), ms);
@@ -37,77 +27,75 @@ export function PushAutoSubscribe() {
 
     const run = async () => {
       try {
-        const cap = getCapacitor();
+        const cap = (window as any).Capacitor;
         const isNative = cap?.isNativePlatform?.();
 
         if (isNative) {
-          setDebug('Solicitando permiso...');
+          setDebug('Iniciando registro FCM...');
 
-          const PushNotifications = cap.Plugins?.PushNotifications;
-          if (!PushNotifications) {
-            setDebug('Plugin PushNotifications no disponible');
+          // Import the plugin directly
+          let PushNotifications: any;
+          try {
+            PushNotifications = cap.Plugins?.PushNotifications;
+            if (!PushNotifications) throw new Error('not in plugins');
+          } catch {
+            setDebug('PushNotifications plugin no encontrado');
             setTimeout(() => setDebug(null), 5000);
             return;
           }
 
-          // Request permission first
           const permResult = await PushNotifications.requestPermissions();
+          setDebug(`Permiso: ${permResult?.receive}`);
+
           if (permResult?.receive !== 'granted') {
-            setDebug('Permiso de notificaciones denegado');
             setTimeout(() => setDebug(null), 5000);
             return;
           }
 
-          setDebug('Solicitando token FCM...');
+          setDebug('Registrando FCM...');
 
-          // Await listener registration, then use a promise to capture the token
-          let tokenResolve: (v: string | null) => void;
-          const tokenPromise = new Promise<string | null>((resolve) => { tokenResolve = resolve; });
-          let tokenTimer: ReturnType<typeof setTimeout>;
+          let resolveToken: (v: string | null) => void;
+          let timer: ReturnType<typeof setTimeout>;
 
-          const regHandler = await PushNotifications.addListener('registration', (data: any) => {
-            clearTimeout(tokenTimer);
-            tokenResolve(data.value);
-          });
-          const errHandler = await PushNotifications.addListener('registrationError', () => {
-            clearTimeout(tokenTimer);
-            tokenResolve(null);
+          const p = new Promise<string | null>((resolve) => {
+            resolveToken = resolve;
           });
 
-          tokenTimer = setTimeout(() => {
-            tokenResolve(null);
-          }, 15000);
+          PushNotifications.addListener('registration', (data: any) => {
+            clearTimeout(timer);
+            resolveToken(data.value);
+          });
+
+          PushNotifications.addListener('registrationError', () => {
+            clearTimeout(timer);
+            resolveToken(null);
+          });
+
+          timer = setTimeout(() => resolveToken(null), 30000);
 
           PushNotifications.register();
 
-          const token = await tokenPromise;
-
-          regHandler.remove();
-          errHandler.remove();
+          const token = await p;
 
           if (cancelled) return;
 
           if (token) {
-            setDebug('Guardando token FCM...');
+            setDebug(`Token obtenido: ${token.slice(0, 20)}...`);
             try {
               const res = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
               });
-              if (res.ok) {
-                setDebug('FCM registrado exitosamente');
-              } else {
-                setDebug('Error al guardar token FCM');
-              }
+              setDebug(res.ok ? 'FCM registrado exitosamente' : `Error API: ${await res.text()}`);
             } catch {
               setDebug('Error de red al guardar token');
             }
           } else {
-            setDebug('No se pudo obtener token FCM');
+            setDebug('No se pudo obtener token FCM (timeout 30s)');
           }
 
-          setTimeout(() => setDebug(null), 5000);
+          setTimeout(() => setDebug(null), 8000);
           return;
         }
 
@@ -146,8 +134,7 @@ export function PushAutoSubscribe() {
         if (ok) {
           setDebug('Suscripción creada exitosamente');
         } else {
-          const perm = Notification.permission;
-          setDebug(`Fallo al suscribir: permiso=${perm}`);
+          setDebug(`Fallo al suscribir: permiso=${Notification.permission}`);
         }
 
         setTimeout(() => setDebug(null), 5000);
@@ -169,7 +156,7 @@ export function PushAutoSubscribe() {
         position: 'fixed', bottom: 8, right: 8, zIndex: 9999,
         padding: '4px 8px', borderRadius: 6, color: '#fff',
         fontSize: 11, fontWeight: 500, maxWidth: 200, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        backgroundColor: debug.includes('exitosa') ? '#16a34a' : debug.includes('Error') || debug.includes('Fallo') || debug.includes('No se pudo') ? '#dc2626' : '#2563eb',
+        backgroundColor: debug.includes('exitosa') || debug.includes('Token obtenido') ? '#16a34a' : debug.includes('Error') || debug.includes('No se pudo') ? '#dc2626' : '#2563eb',
       }}
     >
       {debug}
