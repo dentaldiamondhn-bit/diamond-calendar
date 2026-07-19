@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { CapacitorNotificationService, useCapacitorNotifications } from '@/services/capacitorNotificationService';
 
@@ -8,17 +8,16 @@ export function PushAutoSubscribe() {
   const { isLoaded, isSignedIn } = useUser();
   const { isNative, isInitialized, requestPermissions, registerForPushNotifications } = useCapacitorNotifications();
   const [debug, setDebug] = useState<string | null>(null);
-  const [hasRun, setHasRun] = useState(false);
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || hasRun) return;
-    setHasRun(true);
+    if (!isLoaded || !isSignedIn || !isInitialized || hasRunRef.current) return;
+    hasRunRef.current = true;
     let cancelled = false;
 
     const run = async () => {
       try {
-        const native = isNative;
-        if (native) {
+        if (isNative) {
           setDebug('Solicitando permiso de notificaciones...');
           
           const permResult = await requestPermissions();
@@ -78,7 +77,7 @@ export function PushAutoSubscribe() {
 
     run();
     return () => { cancelled = true; };
-  }, [isLoaded, isSignedIn, isNative, isInitialized, requestPermissions, registerForPushNotifications]);
+  }, [isLoaded, isSignedIn, isInitialized, isNative, requestPermissions, registerForPushNotifications]);
 
   if (!debug) return null;
   return (
