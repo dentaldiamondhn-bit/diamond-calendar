@@ -44,6 +44,7 @@ export function PushAutoSubscribe() {
               ln.requestPermissions(),
               pn.requestPermissions(),
             ]);
+            setDebug(`Raw: local=${JSON.stringify(localPerm)}, push=${JSON.stringify(pushPerm)}`);
             permResult = { local: localPerm.receive, push: pushPerm.receive };
             setDebug(`Permiso: local=${localPerm.receive}, push=${pushPerm.receive}`);
           } catch (e: any) {
@@ -52,7 +53,7 @@ export function PushAutoSubscribe() {
           }
 
           if (permResult.push !== 'granted') {
-            setDebug('Permiso denegado');
+            setDebug(`Denegado: push=${permResult.push}`);
             setTimeout(() => setDebug(null), 5000);
             return;
           }
