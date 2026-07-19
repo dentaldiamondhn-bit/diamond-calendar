@@ -73,7 +73,14 @@ export function PushAutoSubscribe() {
 
           timer = setTimeout(() => resolveToken(null), 30000);
 
-          PushNotifications.register();
+          try {
+            await PushNotifications.register();
+          } catch (e: any) {
+            clearTimeout(timer);
+            setDebug(`Error register(): ${e?.message || e}`);
+            setTimeout(() => setDebug(null), 8000);
+            return;
+          }
 
           const token = await p;
 
