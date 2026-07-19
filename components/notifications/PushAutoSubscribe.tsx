@@ -40,16 +40,17 @@ export function PushAutoSubscribe() {
     const run = async () => {
       try {
         if (isCapacitorNative()) {
-          setDebug('Dispositivo nativo — registrando FCM...');
+          setDebug('Inicializando servicio nativo...');
           const { CapacitorNotificationService } = await import('@/services/capacitorNotificationService');
           if (cancelled) return;
           const svc = CapacitorNotificationService.getInstance();
           await svc.initialize();
+          setDebug('Solicitando permiso de notificaciones...');
           const token = await svc.registerForPushNotifications();
           if (token) {
             setDebug('FCM registrado exitosamente');
           } else {
-            setDebug('Fallo registro FCM — permiso denegado');
+            setDebug('Permiso de notificaciones denegado');
           }
           setTimeout(() => setDebug(null), 5000);
           return;
