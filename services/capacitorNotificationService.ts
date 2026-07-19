@@ -55,7 +55,7 @@ export class CapacitorNotificationService {
         console.log('📱 Capacitor permissions:', { localPermission, pushPermission });
         
         return {
-          granted: (localPermission as any).granted === 'granted' && (pushPermission as any).granted === 'granted',
+          granted: localPermission.receive === 'granted' && pushPermission.receive === 'granted',
           platform: 'capacitor'
         };
       } catch (error) {
@@ -63,7 +63,7 @@ export class CapacitorNotificationService {
         // Fallback to web permissions
         const webPermission = await this.webService.requestPermission();
         return {
-          granted: webPermission.granted,
+          granted: webPermission === 'granted',
           platform: 'web'
         };
       }
@@ -71,7 +71,7 @@ export class CapacitorNotificationService {
       // Web permissions
       const webPermission = await this.webService.requestPermission();
       return {
-        granted: webPermission.granted,
+        granted: webPermission === 'granted',
         platform: 'web'
       };
     }
