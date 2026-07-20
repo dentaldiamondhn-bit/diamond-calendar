@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { pushService } from '@/services/unifiedPushService';
 

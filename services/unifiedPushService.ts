@@ -107,12 +107,13 @@ export class UnifiedPushService {
     if (this.isCapacitor) {
       try {
         // Request both local and push permissions
-        const [localPerm, pushPerm] = await Promise.all([
-          this.localNotifications?.requestPermissions?.() ?? { receive: 'granted' },
-          this.pushNotifications?.requestPermissions?.() ?? { receive: 'granted' }
-        ]);
+        const localPerm = await this.localNotifications?.requestPermissions?.() ?? { receive: 'granted' };
+        const pushPerm = await this.pushNotifications?.requestPermissions?.() ?? { receive: 'granted' };
         
-        const granted = localPerm.receive === 'granted' && pushPerm.receive === 'granted';
+        console.log('Permission results:', { localPerm, pushPerm });
+        
+        const granted = localPerm?.receive === 'granted' && pushPerm?.receive === 'granted';
+        console.log('Granted:', granted, 'local:', localPerm?.receive, 'push:', pushPerm?.receive);
         return { granted };
       } catch (error) {
         console.error('Capacitor permission error:', error);
