@@ -114,45 +114,40 @@ export class CapacitorNotificationService {
     return false;
   }
 
-  private fcmTokenPromise: Promise<string> | null = null;
-  private fcmTokenResolve: ((token: string) => void) | null = null;
-
   async registerForPushNotifications(): Promise<string | null> {
     try {
-      if (this.isNative()) {
-        if (!this.fcmTokenPromise) {
-          this.fcmTokenPromise = new Promise((resolve) => {
-            this.fcmTokenResolve = resolve;
-          });
-        }
+      if (!this.isNative()) return null;
 
-        PushNotifications.addListener('registration', (token) => {
-          if (this.fcmTokenResolve) {
-            this.fcmTokenResolve(token.value);
-            this.fcmTokenResolve = null;
-          }
+      const token = await new Promise<string | null>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn('[FCM] Registration timeout after 15s');
+          resolve(null);
+        }, 15000);
+
+        const regHandle = PushNotifications.addListener('registration', (token) => {
+          console.log('[FCM] Registration success:', token.value);
+          clearTimeout(timeout);
+          regHandle.then(h => h.remove());
+          errHandle.then(h => h.remove());
           this.sendPushTokenToBackend(token.value);
+          resolve(token.value);
         });
 
-        PushNotifications.addListener('registrationError', () => {
-          if (this.fcmTokenResolve) {
-            this.fcmTokenResolve('');
-            this.fcmTokenResolve = null;
-          }
+        const errHandle = PushNotifications.addListener('registrationError', (err) => {
+          console.error('[FCM] Registration error:', err);
+          clearTimeout(timeout);
+          regHandle.then(h => h.remove());
+          errHandle.then(h => h.remove());
+          resolve(null);
         });
 
+        console.log('[FCM] Calling PushNotifications.register()...');
         PushNotifications.register();
+      });
 
-        const token = await Promise.race([
-          this.fcmTokenPromise,
-          new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
-        ]);
-
-        return token || null;
-      } else {
-        return null;
-      }
-    } catch {
+      return token;
+    } catch (e) {
+      console.error('[FCM] registerForPushNotifications failed:', e);
       return null;
     }
   }
