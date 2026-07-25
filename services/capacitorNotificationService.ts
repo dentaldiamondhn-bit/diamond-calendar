@@ -5,7 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { AppLauncher } from '@capacitor/app-launcher';
 import { Capacitor } from '@capacitor/core';
-import MobileNotificationService, { PushNotification } from './mobileNotificationService';
+import MobileNotificationService from './mobileNotificationService';
 
 export interface AppointmentNotification {
   id: string;
@@ -32,56 +32,43 @@ export class CapacitorNotificationService {
     return CapacitorNotificationService.instance;
   }
 
-  // Check if running on native platform
   isNative(): boolean {
     try {
       return Capacitor.isNativePlatform();
-    } catch (error) {
-      console.warn('⚠️ Capacitor not available, assuming web platform:', error);
+    } catch {
       return false;
     }
   }
 
-  // Request notification permissions (Capacitor + Web fallback)
   async requestPermissions(): Promise<{ granted: boolean; platform: string }> {
     if (this.isNative()) {
       try {
-        // Request local notification permissions
         const localPermission = await LocalNotifications.requestPermissions();
-        
-        // Request push notification permissions
         const pushPermission = await PushNotifications.requestPermissions();
-        
-        console.log('📱 Capacitor permissions:', { localPermission, pushPermission });
-        
+
         return {
           granted: localPermission.receive === 'granted' && pushPermission.receive === 'granted',
           platform: 'capacitor'
         };
-      } catch (error) {
-        console.error('❌ Capacitor permission request failed:', error);
-        // Fallback to web permissions
+      } catch {
         const webPermission = await this.webService.requestPermission();
         return {
-          granted: webPermission === 'granted',
+          granted: webPermission.granted,
           platform: 'web'
         };
       }
     } else {
-      // Web permissions
       const webPermission = await this.webService.requestPermission();
       return {
-        granted: webPermission === 'granted',
+        granted: webPermission.granted,
         platform: 'web'
       };
     }
   }
 
-  // Schedule appointment reminder
   async scheduleAppointmentReminder(appointment: AppointmentNotification): Promise<boolean> {
     try {
       if (this.isNative()) {
-        // Use Capacitor local notifications
         await LocalNotifications.schedule({
           notifications: [{
             id: parseInt(appointment.id),
@@ -100,13 +87,9 @@ export class CapacitorNotificationService {
             }
           }]
         });
-        
-        console.log('📱 Appointment reminder scheduled (Capacitor):', appointment);
         return true;
       } else {
-        // Web fallback - schedule with browser notification
         const delay = appointment.scheduledDate.getTime() - Date.now();
-        
         if (delay > 0) {
           setTimeout(() => {
             this.webService.showLocalNotification({
@@ -122,20 +105,15 @@ export class CapacitorNotificationService {
               }
             });
           }, delay);
-          
-          console.log('🌐 Appointment reminder scheduled (Web):', appointment);
           return true;
         }
       }
-    } catch (error) {
-      console.error('❌ Failed to schedule appointment reminder:', error);
+    } catch {
       return false;
     }
-    
     return false;
   }
 
-  // Register for push notifications (FCM token)
   private fcmTokenPromise: Promise<string> | null = null;
   private fcmTokenResolve: ((token: string) => void) | null = null;
 
@@ -149,7 +127,6 @@ export class CapacitorNotificationService {
         }
 
         PushNotifications.addListener('registration', (token) => {
-          console.log('📱 Push registration success:', token.value);
           if (this.fcmTokenResolve) {
             this.fcmTokenResolve(token.value);
             this.fcmTokenResolve = null;
@@ -157,8 +134,7 @@ export class CapacitorNotificationService {
           this.sendPushTokenToBackend(token.value);
         });
 
-        PushNotifications.addListener('registrationError', (error) => {
-          console.error('❌ Push registration error:', error);
+        PushNotifications.addListener('registrationError', () => {
           if (this.fcmTokenResolve) {
             this.fcmTokenResolve('');
             this.fcmTokenResolve = null;
@@ -174,38 +150,33 @@ export class CapacitorNotificationService {
 
         return token || null;
       } else {
-        console.log('🌐 Push notifications not supported on web');
         return null;
       }
-    } catch (error) {
-      console.error('❌ Failed to register for push notifications:', error);
+    } catch {
       return null;
     }
   }
 
-  // Handle incoming push notifications
   async setupPushNotificationHandlers(): Promise<void> {
     if (!this.isNative()) return;
 
     try {
-      // Handle received push notifications
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('📱 Push notification received:', notification);
-        
-        // Show local notification
-        this.webService.showLocalNotification({
-          id: notification.id?.toString() || Date.now().toString(),
-          title: notification.title || 'Diamond Link',
-          body: notification.body || 'Tiene una nueva notificación',
-          icon: '/Logo.svg',
-          data: notification.data
+        LocalNotifications.schedule({
+          notifications: [{
+            id: Date.now(),
+            title: notification.title || 'Diamond Calendar',
+            body: notification.body || 'Tiene una nueva notificación',
+            sound: 'default',
+            smallIcon: 'notification_icon',
+            largeIcon: 'notification_icon_large',
+            iconColor: '#14b8a6',
+            extra: notification.data || {}
+          }]
         });
       });
 
-      // Handle push notification clicks
       PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('📱 Push notification clicked:', notification);
-        
         const data = notification.notification.data;
         if (data?.patientId) {
           this.openPatientRecord(data.patientId);
@@ -213,85 +184,61 @@ export class CapacitorNotificationService {
           this.openAppointment(data.appointmentId);
         }
       });
-
-      console.log('✅ Push notification handlers setup complete');
-    } catch (error) {
-      console.error('❌ Failed to setup push notification handlers:', error);
+    } catch {
+      // handlers setup failed
     }
   }
 
-  // Open patient record via deep link
   async openPatientRecord(patientId: string): Promise<void> {
     try {
       if (this.isNative()) {
-        const deepLink = `diamondlink://patient/${patientId}`;
-        await AppLauncher.openUrl({ url: deepLink });
-        console.log('📱 Opened patient record (Capacitor):', patientId);
+        await AppLauncher.openUrl({ url: `diamondlink://patient/${patientId}` });
       } else {
-        // Web navigation
         window.location.href = `/menu-navegacion?id=${patientId}`;
-        console.log('🌐 Opened patient record (Web):', patientId);
       }
-    } catch (error) {
-      console.error('❌ Failed to open patient record:', error);
+    } catch {
+      // open failed
     }
   }
 
-  // Open appointment via deep link
   async openAppointment(appointmentId: string): Promise<void> {
     try {
       if (this.isNative()) {
-        const deepLink = `diamondlink://appointment/${appointmentId}`;
-        await AppLauncher.openUrl({ url: deepLink });
-        console.log('📱 Opened appointment (Capacitor):', appointmentId);
+        await AppLauncher.openUrl({ url: `diamondlink://appointment/${appointmentId}` });
       } else {
-        // Web navigation
         window.location.href = `/appointments?id=${appointmentId}`;
-        console.log('🌐 Opened appointment (Web):', appointmentId);
       }
-    } catch (error) {
-      console.error('❌ Failed to open appointment:', error);
+    } catch {
+      // open failed
     }
   }
 
-  // Cancel scheduled notification
   async cancelNotification(notificationId: string): Promise<boolean> {
     try {
       if (this.isNative()) {
         await LocalNotifications.cancel({
           notifications: [{ id: parseInt(notificationId) }]
         });
-        console.log('📱 Notification cancelled (Capacitor):', notificationId);
         return true;
-      } else {
-        // Web notifications can't be cancelled once scheduled with setTimeout
-        console.log('🌐 Web notification cancellation not supported');
-        return false;
       }
-    } catch (error) {
-      console.error('❌ Failed to cancel notification:', error);
+      return false;
+    } catch {
       return false;
     }
   }
 
-  // Get scheduled notifications
   async getScheduledNotifications(): Promise<any[]> {
     try {
       if (this.isNative()) {
         const pending = await LocalNotifications.getPending();
-        console.log('📱 Scheduled notifications:', pending);
         return pending.notifications;
-      } else {
-        console.log('🌐 Web scheduled notifications not trackable');
-        return [];
       }
-    } catch (error) {
-      console.error('❌ Failed to get scheduled notifications:', error);
+      return [];
+    } catch {
       return [];
     }
   }
 
-  // Send FCM push token to backend
   private async sendPushTokenToBackend(token: string): Promise<void> {
     try {
       const res = await fetch('/api/push/subscribe', {
@@ -299,81 +246,52 @@ export class CapacitorNotificationService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
       });
-      if (res.ok) {
-        console.log('📤 FCM token saved to backend');
-      } else {
-        console.error('❌ Failed to save FCM token:', await res.text());
+      if (!res.ok) {
+        console.error('Failed to save FCM token:', await res.text());
       }
     } catch (error) {
-      console.error('❌ Failed to send push token to backend:', error);
+      console.error('Failed to send push token to backend:', error);
     }
   }
 
-  // Send immediate local notification
   async sendLocalNotification(notification: any): Promise<void> {
     await this.webService.showLocalNotification(notification);
   }
 
-  // Initialize the complete service
   async initialize(): Promise<boolean> {
     try {
-      console.log('🚀 Initializing Capacitor Notification Service...');
-      
-      // Initialize web service first
       await this.webService.initialize();
-      
-      // Setup push handlers only if native and Capacitor is available
-      if (this.isNative() && typeof LocalNotifications !== 'undefined') {
-        try {
-          await this.setupPushNotificationHandlers();
-        } catch (error) {
-          console.warn('⚠️ Capacitor plugins not available, falling back to web:', error);
-        }
+
+      if (this.isNative()) {
+        await this.requestPermissions();
+        await this.setupPushNotificationHandlers();
+        await this.registerForPushNotifications();
       }
-      
-      console.log('✅ Capacitor Notification Service initialized');
+
       return true;
-    } catch (error) {
-      console.error('❌ Failed to initialize Capacitor Notification Service:', error);
+    } catch {
       return false;
     }
   }
 }
 
-// React Hook for using Capacitor notifications
 export const useCapacitorNotifications = () => {
   const [isNative, setIsNative] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const serviceRef = useRef(CapacitorNotificationService.getInstance());
 
   const requestPermissions = useCallback(async () => {
-    const service = serviceRef.current;
-    return await service.requestPermissions();
+    return await serviceRef.current.requestPermissions();
   }, []);
 
   const registerForPushNotifications = useCallback(async () => {
-    const service = serviceRef.current;
-    return await service.registerForPushNotifications();
+    return await serviceRef.current.registerForPushNotifications();
   }, []);
 
   useEffect(() => {
     const service = serviceRef.current;
-    
-    // Check if native
-    try {
-      setIsNative(service.isNative());
-    } catch (error) {
-      console.warn('⚠️ Failed to detect native platform:', error);
-      setIsNative(false);
-    }
-    
-    // Initialize service with error handling
-    service.initialize()
-      .then(setIsInitialized)
-      .catch((error) => {
-        console.error('❌ Failed to initialize Capacitor service:', error);
-        setIsInitialized(false);
-      });
+    setIsNative(service.isNative());
+    service.initialize().then(setIsInitialized).catch(() => setIsInitialized(false));
   }, []);
 
   return {
