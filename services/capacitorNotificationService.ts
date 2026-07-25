@@ -47,7 +47,7 @@ export class CapacitorNotificationService {
         const pushPermission = await PushNotifications.requestPermissions();
 
         return {
-          granted: localPermission.receive === 'granted' && pushPermission.receive === 'granted',
+          granted: pushPermission.receive === 'granted',
           platform: 'capacitor'
         };
       } catch {
