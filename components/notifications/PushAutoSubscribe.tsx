@@ -32,9 +32,9 @@ export function PushAutoSubscribe() {
           if (result.token) {
             setDebug('FCM registrado ✓');
           } else {
-            setDebug(`FCM error: ${result.error || 'desconocido'}`);
+            setDebug(`FCM fail: ${result.error || '?'}`);
           }
-          setTimeout(() => setDebug(null), 5000);
+          setTimeout(() => setDebug(null), 20000);
         } else {
           const { pushService } = await import('@/services/unifiedPushService');
           const initialized = await pushService.initialize();
