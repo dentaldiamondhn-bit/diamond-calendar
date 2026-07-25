@@ -136,7 +136,11 @@ export class UnifiedPushService {
 
   async registerForPush(): Promise<string | null> {
     if (this.isCapacitor) {
-      return await this.registerCapacitor();
+      const token = await this.registerCapacitor();
+      if (token) {
+        await this.sendTokenToBackend(token);
+      }
+      return token;
     }
     return await this.registerWeb();
   }
@@ -146,11 +150,12 @@ export class UnifiedPushService {
 
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        console.warn('FCM registration timeout');
+        console.warn('FCM registration timeout after 20s');
         resolve(null);
       }, 20000);
 
       const regHandler = this.pushNotifications.addListener('registration', (token: any) => {
+        console.log('FCM registration received:', token.value);
         clearTimeout(timeout);
         regHandler.remove();
         errHandler.remove();
@@ -158,13 +163,14 @@ export class UnifiedPushService {
       });
 
       const errHandler = this.pushNotifications.addListener('registrationError', (err: any) => {
+        console.error('FCM registration error:', err);
         clearTimeout(timeout);
         regHandler.remove();
         errHandler.remove();
-        console.error('FCM error:', err);
         resolve(null);
       });
 
+      console.log('Calling pushNotifications.register()...');
       this.pushNotifications.register();
     });
   }

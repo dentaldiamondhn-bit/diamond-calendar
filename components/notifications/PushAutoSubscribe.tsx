@@ -42,7 +42,7 @@ export function PushAutoSubscribe() {
         if (token) {
           setDebug(`${isNative ? 'FCM' : 'Web Push'} registrado ✓`);
         } else {
-          setDebug('No se pudo obtener token');
+          setDebug('FCM: registro falló o timeout');
         }
         setTimeout(() => setDebug(null), 5000);
 
