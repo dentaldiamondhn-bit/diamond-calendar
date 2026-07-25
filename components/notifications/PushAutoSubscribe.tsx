@@ -41,6 +41,25 @@ export function PushAutoSubscribe() {
 
         if (token) {
           setDebug(`${isNative ? 'FCM' : 'Web Push'} registrado ✓`);
+        } else if (isNative) {
+          // Native FCM failed - fall back to web push (VAPID)
+          setDebug('FCM falló, intentando Web Push...');
+          try {
+            const { default: svc } = await import('@/services/pushNotificationService');
+            const initialized = await svc.initialize();
+            if (initialized) {
+              const ok = await svc.subscribe();
+              if (ok) {
+                setDebug('Web Push guardado ✓');
+              } else {
+                setDebug(`Web Push: permiso=${Notification.permission}`);
+              }
+            } else {
+              setDebug('Web Push no soportado');
+            }
+          } catch (e: any) {
+            setDebug(`Web Push error: ${e.message}`);
+          }
         } else {
           setDebug('FCM: registro falló o timeout');
         }
