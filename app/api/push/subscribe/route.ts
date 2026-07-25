@@ -22,20 +22,22 @@ export async function POST(request: NextRequest) {
       }
 
       const supabase = await createClient();
-      const { error } = await supabase.from('push_subscriptions').upsert(
-        {
-          user_id: userId,
-          endpoint: `fcm:${fcmToken}`,
-          platform: 'capacitor',
-          fcm_token: fcmToken,
-          p256dh: '',
-          auth: '',
-        },
-        { onConflict: 'user_id,endpoint' },
-      );
+      const endpoint = `fcm:${fcmToken}`;
+
+      // Delete any existing subscription for this endpoint, then insert
+      await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+
+      const { error } = await supabase.from('push_subscriptions').insert({
+        user_id: userId,
+        endpoint,
+        platform: 'capacitor',
+        fcm_token: fcmToken,
+        p256dh: '',
+        auth: '',
+      });
 
       if (error) {
-        console.error(`[${requestId}] Supabase upsert error:`, error);
+        console.error(`[${requestId}] Supabase insert error:`, error);
         return NextResponse.json({ error: 'Failed to save FCM subscription' }, { status: 500 });
       }
 
@@ -48,17 +50,18 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { error } = await supabase.from('push_subscriptions').upsert(
-      {
-        user_id: userId,
-        endpoint,
-        platform: 'web',
-        p256dh: keys.p256dh,
-        auth: keys.auth,
-        fcm_token: null,
-      },
-      { onConflict: 'user_id,endpoint' },
-    );
+
+    // Delete any existing subscription for this endpoint, then insert
+    await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+
+    const { error } = await supabase.from('push_subscriptions').insert({
+      user_id: userId,
+      endpoint,
+      platform: 'web',
+      p256dh: keys.p256dh,
+      auth: keys.auth,
+      fcm_token: null,
+    });
 
     if (error) {
       console.error(`[${requestId}] Supabase upsert error:`, error);

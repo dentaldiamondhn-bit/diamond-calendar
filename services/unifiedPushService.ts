@@ -57,29 +57,8 @@ export class UnifiedPushService {
   private async initializeCapacitor(): Promise<boolean> {
     try {
       if (!this.pushNotifications) {
-        console.warn('PushNotifications plugin not available');
         return false;
       }
-
-      // Setup listeners
-      this.pushNotifications.addListener('registration', (token: any) => {
-        console.log('FCM registration:', token.value);
-        this.sendTokenToBackend(token.value);
-      });
-
-      this.pushNotifications.addListener('registrationError', (err: any) => {
-        console.error('FCM registration error:', err);
-      });
-
-      this.pushNotifications.addListener('pushNotificationReceived', (notification: any) => {
-        console.log('Push received:', notification);
-        this.showLocalNotification(notification);
-      });
-
-      this.pushNotifications.addListener('pushNotificationActionPerformed', (notification: any) => {
-        console.log('Push action:', notification);
-      });
-
       return true;
     } catch (error) {
       console.error('Capacitor init failed:', error);
@@ -221,11 +200,18 @@ export class UnifiedPushService {
   }
 
   private async sendTokenToBackend(token: string): Promise<void> {
-    await fetch('/api/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
-    });
+    try {
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fcmToken: token, platform: 'capacitor' }),
+      });
+      if (!res.ok) {
+        console.error('Failed to save FCM token:', res.status, await res.text());
+      }
+    } catch (e) {
+      console.error('Failed to send FCM token to backend:', e);
+    }
   }
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array {

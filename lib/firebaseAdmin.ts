@@ -25,11 +25,19 @@ export async function sendFCMNotification(
   payload: {
     title: string;
     body: string;
-    data?: Record<string, string>;
+    data?: Record<string, any>;
   },
 ): Promise<boolean> {
   try {
     const app = getApp();
+
+    // FCM data payload requires all values to be strings
+    const stringData: Record<string, string> = {};
+    if (payload.data) {
+      for (const [key, value] of Object.entries(payload.data)) {
+        stringData[key] = value != null ? String(value) : '';
+      }
+    }
 
     const message: admin.messaging.Message = {
       token,
@@ -55,14 +63,13 @@ export async function sendFCMNotification(
           },
         },
       },
-      data: payload.data,
+      data: Object.keys(stringData).length > 0 ? stringData : undefined,
     };
 
     await app.messaging().send(message);
     return true;
   } catch (error: any) {
     if (error?.errorInfo?.code === 'messaging/registration-token-not-registered') {
-      console.warn('FCM token not registered (unregistered device):', token);
       return false;
     }
     console.error('FCM send error:', error);

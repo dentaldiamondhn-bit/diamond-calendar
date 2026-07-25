@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { pushService } from '@/services/unifiedPushService';
+import { CapacitorNotificationService } from '@/services/capacitorNotificationService';
 
 export function PushAutoSubscribe() {
   const { isLoaded, isSignedIn } = useUser();
@@ -15,56 +15,53 @@ export function PushAutoSubscribe() {
 
     const run = async () => {
       try {
-        setDebug('Inicializando push...');
-        
-        const initialized = await pushService.initialize();
-        if (!initialized) {
-          setDebug('Push no disponible');
-          setTimeout(() => setDebug(null), 5000);
-          return;
-        }
+        const service = CapacitorNotificationService.getInstance();
+        const isNative = service.isNative();
 
-        const isNative = pushService.isNative();
-        setDebug(`Plataforma: ${isNative ? 'Capacitor' : 'Web'}`);
-
-        setDebug('Solicitando permiso...');
-        const result = await pushService.requestPermissions();
-        setDebug(`Permiso: ${result.debug}`);
-        
-        if (!result.granted) {
-          setTimeout(() => setDebug(null), 5000);
-          return;
-        }
-
-        setDebug('Registrando push...');
-        const token = await pushService.registerForPush();
-
-        if (token) {
-          setDebug(`${isNative ? 'FCM' : 'Web Push'} registrado ✓`);
-        } else if (isNative) {
-          // Native FCM failed - fall back to web push (VAPID)
-          setDebug('FCM falló, intentando Web Push...');
-          try {
-            const { default: svc } = await import('@/services/pushNotificationService');
-            const initialized = await svc.initialize();
-            if (initialized) {
-              const ok = await svc.subscribe();
-              if (ok) {
-                setDebug('Web Push guardado ✓');
-              } else {
-                setDebug(`Web Push: permiso=${Notification.permission}`);
-              }
-            } else {
-              setDebug('Web Push no soportado');
-            }
-          } catch (e: any) {
-            setDebug(`Web Push error: ${e.message}`);
+        if (isNative) {
+          setDebug('Solicitando permisos...');
+          const permResult = await service.requestPermissions();
+          if (!permResult.granted) {
+            setDebug('Permisos denegados');
+            setTimeout(() => setDebug(null), 5000);
+            return;
           }
-        } else {
-          setDebug('FCM: registro falló o timeout');
-        }
-        setTimeout(() => setDebug(null), 5000);
 
+          setDebug('Registrando FCM...');
+          const token = await service.registerForPushNotifications();
+          if (token) {
+            setDebug('FCM registrado ✓');
+          } else {
+            setDebug('FCM: no se obtuvo token');
+          }
+          setTimeout(() => setDebug(null), 5000);
+        } else {
+          const { pushService } = await import('@/services/unifiedPushService');
+          const initialized = await pushService.initialize();
+          if (!initialized) {
+            setDebug('Push no disponible');
+            setTimeout(() => setDebug(null), 5000);
+            return;
+          }
+
+          setDebug('Solicitando permiso...');
+          const result = await pushService.requestPermissions();
+          setDebug(`Permiso: ${result.debug}`);
+
+          if (!result.granted) {
+            setTimeout(() => setDebug(null), 5000);
+            return;
+          }
+
+          setDebug('Registrando Web Push...');
+          const token = await pushService.registerForPush();
+          if (token) {
+            setDebug('Web Push registrado ✓');
+          } else {
+            setDebug('Web Push: registro falló');
+          }
+          setTimeout(() => setDebug(null), 5000);
+        }
       } catch (error: any) {
         setDebug(`Error: ${error.message}`);
         setTimeout(() => setDebug(null), 8000);
@@ -92,7 +89,7 @@ export function PushAutoSubscribe() {
         textOverflow: 'ellipsis',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        backgroundColor: debug.includes('✓') ? '#16a34a' : 
+        backgroundColor: debug.includes('✓') ? '#16a34a' :
           debug.includes('Error') || debug.includes('denegado') || debug.includes('no disponible') ? '#dc2626' : '#2563eb',
       }}
     >
