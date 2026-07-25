@@ -28,10 +28,10 @@ export function PushAutoSubscribe() {
         setDebug(`Plataforma: ${isNative ? 'Capacitor' : 'Web'}`);
 
         setDebug('Solicitando permiso...');
-        const { granted } = await pushService.requestPermissions();
+        const result = await pushService.requestPermissions();
+        setDebug(`Permiso: ${result.debug}`);
         
-        if (!granted) {
-          setDebug('Permiso denegado');
+        if (!result.granted) {
           setTimeout(() => setDebug(null), 5000);
           return;
         }
