@@ -103,29 +103,31 @@ export class UnifiedPushService {
     }
   }
 
-  async requestPermissions(): Promise<{ granted: boolean }> {
+  async requestPermissions(): Promise<{ granted: boolean; debug: string }> {
     if (this.isCapacitor) {
       try {
         // Request both local and push permissions
         const localPerm = await this.localNotifications?.requestPermissions?.() ?? { receive: 'granted' };
         const pushPerm = await this.pushNotifications?.requestPermissions?.() ?? { receive: 'granted' };
         
-        console.log('Permission results:', { localPerm, pushPerm });
+        const localStatus = localPerm?.receive ?? 'undefined';
+        const pushStatus = pushPerm?.receive ?? 'undefined';
         
-        const granted = localPerm?.receive === 'granted' && pushPerm?.receive === 'granted';
-        console.log('Granted:', granted, 'local:', localPerm?.receive, 'push:', pushPerm?.receive);
-        return { granted };
-      } catch (error) {
+        const granted = localStatus === 'granted' && pushStatus === 'granted';
+        const debug = `local=${localStatus}, push=${pushStatus}, granted=${granted}`;
+        console.log('Permission results:', { localPerm, pushPerm, debug });
+        return { granted, debug };
+      } catch (error: any) {
         console.error('Capacitor permission error:', error);
-        return { granted: false };
+        return { granted: false, debug: `error: ${error.message}` };
       }
     } else {
       // Web permissions
       try {
         const permission = await Notification.requestPermission();
-        return { granted: permission === 'granted' };
-      } catch {
-        return { granted: false };
+        return { granted: permission === 'granted', debug: `web: ${permission}` };
+      } catch (error: any) {
+        return { granted: false, debug: `web error: ${error.message}` };
       }
     }
   }
