@@ -114,41 +114,47 @@ export class CapacitorNotificationService {
     return false;
   }
 
-  async registerForPushNotifications(): Promise<string | null> {
+  async registerForPushNotifications(): Promise<{ token: string | null; error?: string }> {
     try {
-      if (!this.isNative()) return null;
+      if (!this.isNative()) return { token: null, error: 'not_native' };
 
-      const token = await new Promise<string | null>((resolve) => {
+      const result = await new Promise<{ token: string | null; error?: string }>((resolve) => {
         const timeout = setTimeout(() => {
           console.warn('[FCM] Registration timeout after 15s');
-          resolve(null);
+          resolve({ token: null, error: 'timeout_15s' });
         }, 15000);
 
         const regHandle = PushNotifications.addListener('registration', (token) => {
           console.log('[FCM] Registration success:', token.value);
           clearTimeout(timeout);
-          regHandle.then(h => h.remove());
-          errHandle.then(h => h.remove());
+          regHandle.then(h => h.remove()).catch(() => {});
+          errHandle.then(h => h.remove()).catch(() => {});
           this.sendPushTokenToBackend(token.value);
-          resolve(token.value);
+          resolve({ token: token.value });
         });
 
         const errHandle = PushNotifications.addListener('registrationError', (err) => {
-          console.error('[FCM] Registration error:', err);
+          console.error('[FCM] Registration error:', JSON.stringify(err));
           clearTimeout(timeout);
-          regHandle.then(h => h.remove());
-          errHandle.then(h => h.remove());
-          resolve(null);
+          regHandle.then(h => h.remove()).catch(() => {});
+          errHandle.then(h => h.remove()).catch(() => {});
+          resolve({ token: null, error: JSON.stringify(err) });
         });
 
         console.log('[FCM] Calling PushNotifications.register()...');
-        PushNotifications.register();
+        try {
+          PushNotifications.register();
+        } catch (e: any) {
+          console.error('[FCM] register() threw:', e);
+          clearTimeout(timeout);
+          resolve({ token: null, error: `register_threw: ${e.message}` });
+        }
       });
 
-      return token;
-    } catch (e) {
+      return result;
+    } catch (e: any) {
       console.error('[FCM] registerForPushNotifications failed:', e);
-      return null;
+      return { token: null, error: e.message };
     }
   }
 

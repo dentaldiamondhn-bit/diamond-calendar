@@ -28,11 +28,11 @@ export function PushAutoSubscribe() {
           }
 
           setDebug('Registrando FCM...');
-          const token = await service.registerForPushNotifications();
-          if (token) {
+          const result = await service.registerForPushNotifications();
+          if (result.token) {
             setDebug('FCM registrado ✓');
           } else {
-            setDebug('FCM: no se obtuvo token');
+            setDebug(`FCM error: ${result.error || 'desconocido'}`);
           }
           setTimeout(() => setDebug(null), 5000);
         } else {
