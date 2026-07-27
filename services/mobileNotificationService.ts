@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 // Extend the global NotificationOptions to include actions and timestamp
 declare global {
@@ -54,6 +55,15 @@ class MobileNotificationService {
   // Initialize the service
   async initialize(): Promise<boolean> {
     try {
+      // Don't register service worker if running in a native environment
+      // This prevents the browser (Chrome) from intercepting notifications in the APK
+      const isNative = Capacitor.isNativePlatform();
+      if (isNative) {
+        console.log('📱 Native platform detected, skipping Service Worker registration to prevent Chrome attribution');
+        this.swRegistration = null;
+        return true;
+      }
+
       // Register service worker with better error handling
       if ('serviceWorker' in navigator) {
         try {

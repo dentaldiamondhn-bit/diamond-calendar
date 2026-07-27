@@ -4,4 +4,6 @@
     <string name="title_activity_main">Diamond Calendar</string>
     <string name="package_name">com.diamondcalendar.app</string>
     <string name="custom_url_scheme">com.diamondcalendar.app</string>
+    <string name="default_notification_channel_id">reminders</string>
+    <string name="default_notification_channel_name">Recordatorios</string>
 </resources>

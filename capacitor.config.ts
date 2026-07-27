@@ -12,13 +12,13 @@ const config: CapacitorConfig = {
     allowNavigation: ['*'],
   },
   plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
     LocalNotifications: {
       smallIcon: 'notification_icon',
       iconColor: '#14b8a6',
       sound: 'default',
-    },
-    PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert'],
     },
     AppLauncher: {
       enabled: true,

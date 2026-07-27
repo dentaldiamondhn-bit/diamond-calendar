@@ -28,6 +28,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.78.0",
+    "@tanstack/query-core": "^5.101.4",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@use-gesture/react": "^10.3.1",
     "@vercel/analytics": "^1.6.1",
