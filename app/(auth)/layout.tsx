@@ -7,8 +7,6 @@ import { HistoricalModeProvider } from '@/contexts/HistoricalModeContext';
 import { BellNotificationProvider } from '@/contexts/BellNotificationContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { TutorialProvider } from '@/contexts/TutorialContext';
-import { PushAutoSubscribe } from '@/components/notifications/PushAutoSubscribe';
-import { NotificationListenerWrapper } from '@/components/notifications/NotificationListenerWrapper';
 
 export default function AuthLayout({
   children,
@@ -23,9 +21,7 @@ export default function AuthLayout({
         <HistoricalModeProvider>
           <NotificationProvider>
             <BellNotificationProvider>
-              <PushAutoSubscribe />
-              <NotificationListenerWrapper>
-                {userLoaded && user ? (
+              {userLoaded && user ? (
                   <div className="flex h-screen bg-gray-100">
                     <div className="flex-1 flex flex-col">
                       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
@@ -61,8 +57,7 @@ export default function AuthLayout({
                   </div>
                 ) : (
                   children
-                )}
-              </NotificationListenerWrapper>
+              )}
             </BellNotificationProvider>
           </NotificationProvider>
         </HistoricalModeProvider>
