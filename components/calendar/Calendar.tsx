@@ -6,7 +6,6 @@ import { CalendarTaskWithPatient } from '../../types/calendarTasks';
 import calendarRealtimeService, { CalendarRealtimeNotification } from '../../services/calendarRealtimeService';
 import { CalendarService } from '../../services/calendarService';
 import { CalendarTaskService } from '../../services/calendarTaskService';
-import { CapacitorNotificationService } from '../../services/capacitorNotificationService';
 import { useBellNotifications } from '../../contexts/BellNotificationContext';
 import { EventModal } from './EventModal';
 import { TaskModal } from './TaskModal';
@@ -112,33 +111,6 @@ export const Calendar: React.FC<CalendarProps> = ({ userId, userRole }) => {
           });
         } catch (error) {
           console.error('❌ Error creating browser notification:', error);
-        }
-
-        // Also trigger Capacitor notification for mobile devices (non-blocking)
-        try {
-          const capacitorService = CapacitorNotificationService.getInstance();
-          capacitorService.sendLocalNotification({
-            id: `calendar-${notification.type}-${Date.now()}`,
-            title: notification.title,
-            body: notification.message,
-            icon: '/Logo.svg',
-            tag: notification.type,
-            data: {
-              type: notification.type,
-              userId: notification.userId,
-              eventId: notification.data.item_id,
-              timestamp: notification.timestamp
-            }
-          }).catch(error => {
-            console.error('❌ Error creating Capacitor notification:', error);
-          });
-          console.log('📱 Capacitor notification sent for invitee:', {
-            title: notification.title,
-            body: notification.message,
-            userId: notification.userId
-          });
-        } catch (error) {
-          console.error('❌ Error creating Capacitor notification:', error);
         }
 
         // Also add to Bell notification system for Android tray notifications

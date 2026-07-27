@@ -13,11 +13,6 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.76",
-    "@capacitor/android": "^8.4.2",
-    "@capacitor/app-launcher": "^8.0.1",
-    "@capacitor/core": "^8.1.0",
-    "@capacitor/local-notifications": "^8.2.1",
-    "@capacitor/push-notifications": "^8.1.2",
     "@clerk/nextjs": "latest",
     "@clerk/ui": "^0.3.24",
     "@headlessui/react": "^2.2.9",
@@ -36,7 +31,6 @@
     "animejs": "^4.3.5",
     "date-fns": "^4.1.0",
     "ecc-universal": "github:affaan-m/everything-claude-code",
-    "firebase-admin": "^14.2.0",
     "framer-motion": "^12.23.26",
     "groq-sdk": "^1.2.1",
     "jspdf": "^4.0.0",
@@ -63,7 +57,6 @@
     "sileo": "^0.1.5",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "web-push": "^3.6.7",
     "workbox-precaching": "^7.4.0",
     "workbox-routing": "^7.4.0",
     "workbox-webpack-plugin": "^7.3.0",
@@ -75,7 +68,6 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.2.1",
     "@eslint/js": "^9.39.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/forms": "^0.5.11",
