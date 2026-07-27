@@ -525,13 +525,26 @@ export class CalendarService {
       // Calculate reminder time
       const eventDate = new Date(event.start_date);
       const reminderDate = new Date(eventDate.getTime() - reminderMinutes * 60 * 1000);
-      
+
+      // Format event time for Honduras (UTC-6)
+      const formatLocalTime = (dateInput: string | Date) => {
+        const d = new Date(dateInput);
+        const localD = new Date(d.getTime() - (6 * 60 * 60 * 1000));
+        const hours = localD.getUTCHours();
+        const mins = String(localD.getUTCMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const h12 = hours % 12 || 12;
+        return `${h12}:${mins} ${ampm}`;
+      };
+
+      const localTimeStr = formatLocalTime(event.start_date);
+
       // Only schedule if reminder date is in the future
       if (reminderDate > new Date()) {
         const eventNotification = {
           id: `calendar-event-${event.id}`,
           title: 'Evento de Calendario - Diamond Link',
-          body: `${event.title}${event.patient?.nombre_completo ? ` con ${event.patient.nombre_completo}` : ''} en ${reminderMinutes} minutos`,
+          body: `${event.title}${event.patient?.nombre_completo ? ` con ${event.patient.nombre_completo}` : ''} a las ${localTimeStr} (${reminderMinutes} min antes)`,
           scheduledDate: reminderDate,
           patientId: event.patient_id,
           appointmentId: `calendar-${event.id}`

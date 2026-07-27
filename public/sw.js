@@ -40,6 +40,23 @@ self.addEventListener('push', (event) => {
     data = { title: 'Diamond Calendar', message: event.data?.text() || '' };
   }
 
+  // Timezone helper for Honduras (UTC-6)
+  const formatHondurasTime = (dateInput) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return '';
+
+    // Subtract 6 hours from UTC
+    const localDate = new Date(date.getTime() - (6 * 60 * 60 * 1000));
+
+    const hours = localDate.getUTCHours();
+    const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+
+    return `${hours12}:${minutes} ${ampm}`;
+  };
+
   const options = {
     body: data.message || data.body || 'Nueva notificación',
     icon: '/Logo.svg',
@@ -50,16 +67,13 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
   };
 
-  if (data.metadata?.eventTime || data.metadata?.taskTime || data.metadata?.itemTime) {
-    const d = new Date(data.metadata.eventTime || data.metadata.taskTime || data.metadata.itemTime);
-    if (!isNaN(d.getTime())) {
-      options.body += ` | ${d.toLocaleDateString('es-HN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`;
+  const hasTimeInBody = options.body.includes(' AM') || options.body.includes(' PM') || /\d{1,2}:\d{2}/.test(options.body);
+  const rawTime = data.metadata?.eventTime || data.metadata?.taskTime || data.metadata?.itemTime;
+
+  if (rawTime && !hasTimeInBody) {
+    const formattedTime = formatHondurasTime(rawTime);
+    if (formattedTime) {
+      options.body += ` | ${formattedTime}`;
     }
   }
 

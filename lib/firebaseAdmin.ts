@@ -48,10 +48,14 @@ export async function sendFCMNotification(
       android: {
         priority: 'high',
         notification: {
-          channelId: 'default',
+          channelId: 'reminders',
           priority: 'high',
           visibility: 1,
           sound: 'default',
+          icon: 'notification_icon',
+          color: '#14b8a6',
+          tag: stringData.eventId || stringData.taskId || 'general',
+          clickAction: 'FCM_PLUGIN_ACTIVITY',
         },
       },
       apns: {

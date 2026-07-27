@@ -11,16 +11,6 @@ export function NotificationListenerWrapper({ children }: { children: React.Reac
   useEffect(() => {
     const service = CapacitorNotificationService.getInstance();
     if (service.isNative()) {
-      // Create notification channel for background push delivery
-      PushNotifications.createChannel({
-        id: 'default',
-        name: 'Notifications',
-        description: 'App notifications',
-        importance: 4,
-        visibility: 1,
-        sound: 'default',
-      }).catch(() => {});
-
       service.setupPushNotificationHandlers();
     }
   }, []);
