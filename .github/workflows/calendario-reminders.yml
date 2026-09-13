@@ -1,0 +1,34 @@
+name: calendario-reminders
+
+# Phase 5b — free scheduler for /api/cron/reminders (GitHub Actions instead of
+# Vercel Cron, which needs Pro for sub-daily precision on Hobby).
+#
+# GitHub lets scheduled runs drift (5-min is their practical floor and runs can
+# be delayed under queue load), so use `*/5`. The route's 5-min lean window
+# (REMINDER_LEAN_MINUTES) treats reminders as due 5 min before their anchored
+# reminder_time, compensating for that lag. The `sent` flag + `concurrency`
+# together guarantee at-most-once.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendario-reminders
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fire the reminder dispatcher
+        run: |
+          curl -fsS --max-time 60 -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "https://app.dentaldiamondhn.com/api/cron/reminders" \
+            || exit 1

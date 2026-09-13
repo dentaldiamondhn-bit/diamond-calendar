@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerServiceClient } from '@/lib/supabase/server';
 import { auth } from '@clerk/nextjs/server';
 
 export const revalidate = 0;
@@ -9,7 +9,7 @@ export async function GET() {
     const { userId } = await auth();
     if (!userId) return NextResponse.json([]);
 
-    const supabase = await createClient();
+    const supabase = createServerServiceClient();
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
-    const supabase = await createClient();
+    const supabase = createServerServiceClient();
     const body = await request.json();
 
     const { data, error } = await supabase
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
-    const supabase = await createClient();
+    const supabase = createServerServiceClient();
     const { notificationId, action } = await request.json();
 
     if (!action) {

@@ -20,8 +20,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
+        "./src/*",
         "./*"
-      ]
+      ],
+      "@/components/*": ["./components/*"],
+      "@/contexts/*": ["./contexts/*"],
+      "@/hooks/*": ["./hooks/*"]
     },
     "plugins": [
       {

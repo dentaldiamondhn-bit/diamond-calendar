@@ -1,19 +1,15 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { Calendar } from '../../../components/calendar/Calendar';
-import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { ToastProvider } from '@/components/calendar-new/Toast';
+import { PushStatusBadge } from '@/components/calendar-new/PushStatusBadge';
+import { QueryProvider } from '@/contexts/QueryProvider';
+
+const CalendarNew = dynamic(() => import('@/calendario/CalendarShell'), { ssr: false });
 
 export default function CalendarPage() {
   const { user, isLoaded } = useUser();
-  const [userRole, setUserRole] = useState<string>('staff');
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      const role = user.publicMetadata?.role as string || 'staff';
-      setUserRole(role);
-    }
-  }, [user, isLoaded]);
 
   if (!isLoaded) {
     return (
@@ -38,8 +34,11 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] p-4 bg-gray-50 dark:bg-gray-900">
-      <Calendar userId={user.id} userRole={userRole} />
-    </div>
+    <QueryProvider>
+      <ToastProvider>
+        <CalendarNew userId={user.id} />
+        <PushStatusBadge />
+      </ToastProvider>
+    </QueryProvider>
   );
 }

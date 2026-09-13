@@ -86,12 +86,14 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data || {};
   let url = '/';
 
-  if (data.eventId || data.conversationId) {
-    url = data.conversationId ? `/chat?conv=${data.conversationId}` : '/calendario';
+  if (data.url) {
+    url = data.url;
+  } else if (data.conversationId) {
+    url = `/chat?conv=${data.conversationId}`;
+  } else if (data.eventId) {
+    url = '/calendario';
   } else if (data.patientId) {
     url = `/menu-navegacion?id=${data.patientId}`;
-  } else if (data.url) {
-    url = data.url;
   }
 
   event.waitUntil(

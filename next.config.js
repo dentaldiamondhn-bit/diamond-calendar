@@ -15,7 +15,7 @@ const nextConfig = {
   outputFileTracingExcludes: {
     '*': ['./clerk.broken/**/*']
   },
-  serverExternalPackages: ['@supabase/supabase-js'],
+  serverExternalPackages: ['@supabase/supabase-js', 'web-push'],
   // Ensure proper build for Vercel
   // swcMinify: true, // Removed as it's default in Next.js 15
   // Fix client reference manifest issues
