@@ -226,8 +226,26 @@ calendar today.
     `notification_icon.xml` + `notification_icon_large.xml`, `colors.xml` (teal primary),
     `default_notification_channel_id` = `reminders` in `strings.xml`.
 - **User must:** (a) run `database/migrations/add_push_subscriptions_fcm.sql` in Supabase SQL editor
-  (adds `platform` and `fcm_token` columns to `push_subscriptions`); (b) set `FIREBASE_SERVICE_ACCOUNT`
-  JSON env var in Vercel dashboard; (c) set remaining push/cron env vars in Vercel.
+  (adds `platform` and `fcm_token` columns to `push_subscriptions`); (b) **run
+  `database/migrations/repoint_calendar_push_webhook_standalone.sql`** (re-points the pg_net
+  `events` + `event_invitees` triggers from `app.dentaldiamondhn.com` → `calendario.dentaldiamondhn.com`
+  so invitee-on-creation notifications reach the FCM-capable standalone webhook — set `_secret` =
+  the standalone `PUSH_WEBHOOK_SECRET`); (c) set `FIREBASE_SERVICE_ACCOUNT` JSON env var in Vercel
+  dashboard; (d) set remaining push/cron env vars in Vercel.
+
+**Post-test UX pass (2026-09-14, commit `5534ae4`):**
+- **Invitee-on-creation:** webhook already handles `event_invitees` INSERT → "Invitación a cita"
+  (`app/api/push/calendar-webhook/route.ts:169`–226); the gap was DB trigger origin, fixed by the
+  `repoint_…_standalone.sql` migration above.
+- **Notification action button:** `public/sw.js` now renders payload `actions` and defaults any
+  calendar/eventId notification to **"Abrir cita"**; `notificationclick` honors action taps and
+  deep-links `?view=day&date=&eventId=`. (The "Unsubscribe" the tester saw was the Android/Chrome
+  notification-management affordance, not app UI — cannot be relabeled, so a real "Abrir cita"
+  button is now shown instead.)
+- **PushStatusBadge hidden once `subscribed`** — it is now an onboarding-only trigger.
+- **Menu / patient name / Nueva Historia Clínica** in the event drawer now resolve at the Diamond
+  Link monolith `https://app.dentaldiamondhn.com/{menu-navegacion?id=…|patient-preview/…|patient-form}`
+  via same-tab navigation (WebView/browser back returns to the calendar).
 
 **Gate:** `tsc --noEmit` + `npm run build` (passing) + `gradlew assembleDebug` APK artifact +
 on-device parity pass.
@@ -644,14 +662,20 @@ Preceding UI passes also shipped in the same commit: "Próximos esta semana" pre
    (2026-09-14, states-updated above); ~~Capacitor re-add + debug APK~~ ✅ (`2c0b5b1`: native FCM push
    via firebase-admin + `@capacitor/push-notifications`, debug APK rebuilt 10.6 MB).
 7. **User actions (standalone deploy):**
-   a. **DB migration:** run `database/migrations/add_push_subscriptions_fcm.sql` in the Supabase
+   a. **DB migration 1:** run `database/migrations/add_push_subscriptions_fcm.sql` in the Supabase
       Dashboard SQL editor (adds `platform` and `fcm_token` columns to `push_subscriptions`).
-   b. **Vercel env vars:** set `FIREBASE_SERVICE_ACCOUNT` (JSON), `NEXT_PUBLIC_VAPID_PUBLIC_KEY_1`,
+   b. **DB migration 2:** run `database/migrations/repoint_calendar_push_webhook_standalone.sql`
+      (re-points the `events` + `event_invitees` pg_net triggers to `calendario.dentaldiamondhn.com`;
+      replace `_secret` with the standalone `PUSH_WEBHOOK_SECRET`).
+   c. **Vercel env vars:** set `FIREBASE_SERVICE_ACCOUNT` (JSON), `NEXT_PUBLIC_VAPID_PUBLIC_KEY_1`,
       `VAPID_PRIVATE_KEY_1`, `PUSH_WEBHOOK_SECRET`, `CRON_SECRET` in the Vercel dashboard for the
       standalone project (existing Clerk/Supabase/VAPID_SUBJECT already set).
-   c. **Deploy:** `vercel --prod` for the standalone.
+   d. **Deploy:** `vercel --prod` for the standalone.
 8. **On-device QA:** install debug APK on an Android device, confirm push notifications arrive when
    the app is in the background/closed, tap opens deep-link, bell + tray parity with PWA.
+9. **Done this round (commit `5534ae4`):** invitee-on-creation push (via trigger re-point migration
+   + existing webhook branch), notification "Abrir cita" action button in sw.js, PushStatusBadge
+   hidden once subscribed, and Menu/patient/Nueva Historia Clínica links → monolith in same tab.
 
 ### Verification Gate
 ```bash
