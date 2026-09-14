@@ -14,7 +14,10 @@
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.76",
     "@capacitor/android": "^8.5.2",
+    "@capacitor/app-launcher": "^8.0.1",
     "@capacitor/core": "^8.5.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/push-notifications": "^8.1.2",
     "@clerk/backend": "^3.11.7",
     "@clerk/nextjs": "latest",
     "@clerk/ui": "^0.3.24",
@@ -34,6 +37,7 @@
     "animejs": "^4.3.5",
     "date-fns": "^4.1.0",
     "ecc-universal": "github:affaan-m/everything-claude-code",
+    "firebase-admin": "^14.4.0",
     "framer-motion": "^12.23.26",
     "groq-sdk": "^1.2.1",
     "jspdf": "^4.0.0",

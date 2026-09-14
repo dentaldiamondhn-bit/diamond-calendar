@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { createServiceClient } from '@/lib/supabase';
+import { sendFCMNotification } from '@/lib/firebaseAdmin';
 import { ensureVapidConfigured } from './vapid';
 
 /**
@@ -39,6 +40,10 @@ interface PushSubscriptionRow {
   auth_secret: string;
   user_agent?: string | null;
   last_success_at?: string | null;
+  /** Capacitor/FCM native rows only ('capacitor'); web rows leave this 'web'. */
+  platform?: string | null;
+  /** FCM device token for native rows (Capacitor APK). */
+  fcm_token?: string | null;
 }
 
 export interface PushSendResult {
@@ -69,8 +74,6 @@ export async function sendPushToUser(
   userId: string,
   payload: PushNotificationPayload
 ): Promise<PushSendResult> {
-  if (!ensureVapidConfigured()) return EMPTY_RESULT;
-
   const db = createServiceClient();
   const { data: rows, error } = await db
     .from('push_subscriptions')
@@ -79,11 +82,26 @@ export async function sendPushToUser(
 
   if (error || !rows || rows.length === 0) return EMPTY_RESULT;
 
+  const typedRows = (rows as PushSubscriptionRow[]).filter(
+    (r) => r.endpoint && r.id
+  );
+  const webRows = typedRows.filter((r) => r.platform !== 'capacitor');
+  const nativeRows = typedRows.filter(
+    (r) => r.platform === 'capacitor' && r.fcm_token
+  );
+
+  // Web-Push rows only go out when VAPID is configured; native FCM rows do not
+  // require VAPID, so an FCM-only user still gets native deliveries even if the
+  // VAPID keys/environment are missing.
+  if (webRows.length > 0 && !ensureVapidConfigured()) {
+    if (nativeRows.length === 0) return EMPTY_RESULT;
+  }
+
   const body = JSON.stringify(payload);
   const result: PushSendResult = { ...EMPTY_RESULT };
 
-  await Promise.all(
-    (rows as PushSubscriptionRow[]).map(async (row) => {
+  await Promise.all([
+    ...webRows.map(async (row) => {
       try {
         // TTL keeps stale subscriptions from eating a quota push.
         // urgency:high makes Android show it even in Doze / battery saver.
@@ -105,8 +123,33 @@ export async function sendPushToUser(
           console.error('[push] send failed', row.endpoint, (err as Error)?.message);
         }
       }
-    })
-  );
+    }),
+    ...nativeRows.map(async (row) => {
+      try {
+        const outcome = await sendFCMNotification(row.fcm_token!, {
+          title: payload.title,
+          body: payload.body,
+          data: payload.data,
+        });
+        if (outcome === 'ok') {
+          result.sent++;
+          await db
+            .from('push_subscriptions')
+            .update({ last_success_at: new Date().toISOString() })
+            .eq('id', row.id);
+        } else if (outcome === 'unregistered') {
+          result.removed++;
+          await db.from('push_subscriptions').delete().eq('id', row.id);
+        } else {
+          result.failed++;
+          console.error('[push] fcm send failed', row.endpoint);
+        }
+      } catch (err) {
+        result.failed++;
+        console.error('[push] fcm send error', row.endpoint, (err as Error)?.message);
+      }
+    }),
+  ]);
 
   return result;
 }

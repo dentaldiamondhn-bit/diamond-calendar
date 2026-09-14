@@ -4,6 +4,7 @@ import { useUser } from '@clerk/nextjs';
 import dynamic from 'next/dynamic';
 import { ToastProvider } from '@/components/calendar-new/Toast';
 import { PushStatusBadge } from '@/components/calendar-new/PushStatusBadge';
+import { NativePushListener } from '@/components/calendar-new/NativePushListener';
 import { QueryProvider } from '@/contexts/QueryProvider';
 
 const CalendarNew = dynamic(() => import('@/calendario/CalendarShell'), { ssr: false });
@@ -38,6 +39,7 @@ export default function CalendarPage() {
       <ToastProvider>
         <CalendarNew userId={user.id} />
         <PushStatusBadge />
+        <NativePushListener />
       </ToastProvider>
     </QueryProvider>
   );

@@ -15,6 +15,46 @@ export async function POST(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json().catch(() => null);
+    const platform = body?.platform === 'capacitor' ? 'capacitor' : 'web';
+
+    // Capacitor APK (native FCM) registration.
+    if (platform === 'capacitor') {
+      const fcmToken = body?.fcmToken;
+      if (!fcmToken || typeof fcmToken !== 'string' || fcmToken.length < 20) {
+        return NextResponse.json({ error: 'fcmToken is required for capacitor platform' }, { status: 400 });
+      }
+
+      const db = createServiceClient();
+      const { error } = await db.from('push_subscriptions').upsert(
+        {
+          user_id: userId,
+          endpoint: `fcm:${fcmToken}`,
+          platform: 'capacitor',
+          fcm_token: fcmToken,
+          p256dh: '',
+          auth_secret: '',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'endpoint' }
+      );
+
+      if (error) {
+        console.error('[push] fcm subscribe upsert failed:', error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      let result = { sent: 0 };
+      if (body?.confirm !== false) {
+        result = await sendTestNotification(
+          userId,
+          '🔔 Diamond Calendar',
+          'Notificaciones activadas. Recibirás los mensajes aquí.'
+        );
+      }
+
+      return NextResponse.json({ ok: true, platform: 'capacitor', delivered: result.sent });
+    }
+
     const subscription = body?.subscription;
     const endpoint = subscription?.endpoint;
     const keys = subscription?.keys || {};

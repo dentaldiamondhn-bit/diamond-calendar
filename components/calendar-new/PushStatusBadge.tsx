@@ -18,8 +18,12 @@ export function PushStatusBadge() {
   const [swReady, setSwReady] = useState(false);
 
   useEffect(() => {
+    if (push.isNative) {
+      setSwReady(true);
+      return;
+    }
     registerServiceWorker().then(() => setSwReady(true));
-  }, []);
+  }, [push.isNative]);
 
   if (!swReady || push.status === 'unsupported') return null;
 
