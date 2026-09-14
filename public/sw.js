@@ -67,6 +67,13 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
   };
 
+  // Render action buttons (e.g. "Abrir cita") when the payload includes them.
+  if (Array.isArray(data.actions) && data.actions.length > 0) {
+    options.actions = data.actions;
+  } else if (data.type === 'calendar' || data.source === 'event_invitees' || data.eventId) {
+    options.actions = [{ action: 'open', title: 'Abrir cita' }];
+  }
+
   const hasTimeInBody = options.body.includes(' AM') || options.body.includes(' PM') || /\d{1,2}:\d{2}/.test(options.body);
   const rawTime = data.metadata?.eventTime || data.metadata?.taskTime || data.metadata?.itemTime;
 
@@ -91,9 +98,14 @@ self.addEventListener('notificationclick', (event) => {
   } else if (data.conversationId) {
     url = `/chat?conv=${data.conversationId}`;
   } else if (data.eventId) {
-    url = '/calendario';
+    url = `/calendario?view=day&date=${encodeURIComponent(data.date || '')}&eventId=${data.eventId}`;
   } else if (data.patientId) {
     url = `/menu-navegacion?id=${data.patientId}`;
+  }
+
+  // Always handle action button taps (e.g. "Abrir cita") — open the URL.
+  if (event.action && event.action !== 'dismiss') {
+    url = url || '/calendario';
   }
 
   event.waitUntil(
@@ -101,6 +113,7 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of windowClients) {
         if (client.url.startsWith(self.location.origin) && 'focus' in client) {
           client.postMessage({ type: 'NOTIFICATION_CLICKED', data });
+          client.navigate(url);
           return client.focus();
         }
       }

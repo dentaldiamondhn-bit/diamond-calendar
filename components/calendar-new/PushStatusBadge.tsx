@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BellRing, BellOff, Loader2 } from 'lucide-react';
+import { BellOff, Loader2 } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { registerServiceWorker } from '@/lib/serviceWorker';
 
@@ -25,21 +25,18 @@ export function PushStatusBadge() {
     registerServiceWorker().then(() => setSwReady(true));
   }, [push.isNative]);
 
-  if (!swReady || push.status === 'unsupported') return null;
-
-  const active = push.status === 'subscribed';
+  // Hidden once notifications are live — the badge is an onboarding trigger only.
+  if (!swReady || push.status === 'unsupported' || push.status === 'subscribed') return null;
 
   return (
     <button
-      onClick={() => (active ? push.disable() : push.enable())}
+      onClick={() => push.enable()}
       disabled={push.loading}
       className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg transition"
       title="Notificaciones push de citas y recordatorios"
     >
       {push.loading ? (
         <Loader2 size={16} className="animate-spin" />
-      ) : active ? (
-        <BellRing size={16} />
       ) : (
         <BellOff size={16} />
       )}

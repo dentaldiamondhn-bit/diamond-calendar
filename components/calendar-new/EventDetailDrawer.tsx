@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, ArrowUpRight, Phone, LayoutGrid, FilePlus2, type LucideIcon } from 'lucide-react';
+import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, Phone, LayoutGrid, FilePlus2, ExternalLink, type LucideIcon } from 'lucide-react';
 import { formatPhoneDisplay, createWhatsAppUrl } from '@/utils/phoneUtils';
 import AnimatedWhatsApp from '@/components/AnimatedWhatsApp';
 import type { ClinicEvent } from '@/lib/types-calendar';
@@ -47,6 +46,9 @@ interface DrawerInvitee {
 const avatarFor = (u: DrawerInvitee) =>
   u.profileImageUrl ||
   `https://ui-avatars.com/api/?name=${encodeURIComponent((u.first_name || '') + ' ' + (u.last_name || ''))}&background=random`;
+
+/** Diamond Link monolith base — all patient/menu links resolve there. */
+const MONOLITH_BASE = 'https://app.dentaldiamondhn.com';
 
 function timeSpan(e: ClinicEvent): string {
   return `${formatClock12(e.start_time)} – ${formatClock12(e.end_time || e.start_time)}`;
@@ -203,36 +205,38 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
 
               <Row icon={UserRound} label="Paciente">
                 {event.patient_id ? (
-                  <Link
-                    href={`/patient-preview/${event.patient_id}`}
+                  <a
+                    href={`${MONOLITH_BASE}/patient-preview/${event.patient_id}`}
                     className="flex items-center gap-1 text-teal-700 dark:text-teal-300 font-medium hover:underline"
                   >
                     {event.patient_name}
-                    <ArrowUpRight size={14} />
-                  </Link>
+                    <ExternalLink size={14} />
+                  </a>
                 ) : (
                   <span className="text-gray-800 dark:text-gray-100">{event.patient_name || '—'}</span>
                 )}
               </Row>
 
               {/* Historia clínica: existing patient → Menú Navegación; new patient
-                  (not picked from Pacientes *) → blank history form. */}
+                  (not picked from Pacientes *) → blank history form.
+                  Both resolve in the Diamond Link monolith (same WebView/browser
+                  navigation; back button returns to the calendar). */}
               {event.patient_id ? (
-                <Link
-                  href={`/menu-navegacion?id=${encodeURIComponent(event.patient_id)}`}
+                <a
+                  href={`${MONOLITH_BASE}/menu-navegacion?id=${encodeURIComponent(event.patient_id)}`}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950 px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
                 >
                   <LayoutGrid size={16} />
                   Menú
-                </Link>
+                </a>
               ) : (
-                <Link
-                  href="/patient-form"
+                <a
+                  href={`${MONOLITH_BASE}/patient-form`}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950 px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
                 >
                   <FilePlus2 size={16} />
                   Nueva Historia Clínica
-                </Link>
+                </a>
               )}
 
               {(event.procedure || event.dentist || event.phone) && (
