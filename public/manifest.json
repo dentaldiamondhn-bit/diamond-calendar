@@ -11,7 +11,7 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/Logo.svg",
+      "src": "/Calendar.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -36,28 +36,28 @@
       "short_name": "Dashboard",
       "description": "View main dashboard",
       "url": "/dashboard",
-      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+      "icons": [{"src": "/Calendar.svg", "sizes": "any"}]
     },
     {
       "name": "Patients",
       "short_name": "Patients",
       "description": "Manage patients",
       "url": "/pacientes",
-      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+      "icons": [{"src": "/Calendar.svg", "sizes": "any"}]
     },
     {
       "name": "Calendar",
       "short_name": "Calendar",
       "description": "View calendar",
       "url": "/calendario",
-      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+      "icons": [{"src": "/Calendar.svg", "sizes": "any"}]
     },
     {
       "name": "Calendar Widget",
       "short_name": "Widget",
       "description": "Quick calendar widget view",
       "url": "/calendar-widget",
-      "icons": [{"src": "/Logo.svg", "sizes": "any"}]
+      "icons": [{"src": "/Calendar.svg", "sizes": "any"}]
     }
   ]
 }

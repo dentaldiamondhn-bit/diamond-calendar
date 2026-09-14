@@ -59,8 +59,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.message || data.body || 'Nueva notificación',
-    icon: '/Logo.svg',
-    badge: '/Logo.svg',
+    icon: '/Calendar.svg',
+    badge: '/Calendar.svg',
     tag: data.type || 'general',
     data: data.metadata || data,
     requireInteraction: true,

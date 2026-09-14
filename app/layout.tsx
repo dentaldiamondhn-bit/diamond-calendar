@@ -9,9 +9,9 @@ export const metadata = {
   description: 'Dental clinic calendar management system',
   manifest: '/manifest.json',
   icons: {
-    icon: '/Logo.svg',
-    shortcut: '/Logo.svg',
-    apple: '/Logo.svg',
+    icon: '/Calendar.svg',
+    shortcut: '/Calendar.svg',
+    apple: '/Calendar.svg',
   },
 }
 
@@ -47,9 +47,9 @@ export default function RootLayout({
             crossOrigin="anonymous"
             referrerPolicy="no-referrer"
           />
-          <link rel="icon" href="/Logo.svg" />
-          <link rel="shortcut icon" href="/Logo.svg" />
-          <link rel="apple-touch-icon" href="/Logo.svg" />
+          <link rel="icon" href="/Calendar.svg" />
+          <link rel="shortcut icon" href="/Calendar.svg" />
+          <link rel="apple-touch-icon" href="/Calendar.svg" />
           <script
             dangerouslySetInnerHTML={{
               __html: `
@@ -57,7 +57,7 @@ export default function RootLayout({
                 (function() {
                   var overlay = document.createElement('div');
                   overlay.id = 'loading-overlay';
-                  overlay.innerHTML = '<img src="/Logo.svg" alt="Loading..." class="loading-logo" />';
+                  overlay.innerHTML = '<img src="/Calendar.svg" alt="Loading..." class="loading-logo" />';
                   document.documentElement.appendChild(overlay);
                   
                   // Preserve dark mode preference (don't force it)

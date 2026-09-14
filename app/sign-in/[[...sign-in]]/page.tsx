@@ -46,10 +46,10 @@ export default function SignInPage() {
           <div className="mb-6 relative">
             <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
             <Image
-              src="/Logo.svg"
+              src="/Calendar.svg"
               alt="Diamond Calendar"
-              width={120}
-              height={120}
+              width={144}
+              height={144}
               className="relative drop-shadow-[0_8px_24px_rgba(18,181,162,0.25)]"
               priority
             />
@@ -101,10 +101,10 @@ export default function SignInPage() {
           {/* Mobile brand */}
           <div className="lg:hidden text-center mb-8">
             <Image
-              src="/Logo.svg"
+              src="/Calendar.svg"
               alt="Diamond Calendar"
-              width={64}
-              height={64}
+              width={77}
+              height={77}
               className="mx-auto mb-3 drop-shadow-lg"
               priority
             />
