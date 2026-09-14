@@ -8,6 +8,11 @@
 --
 -- ⚠️ CHANGE ME: set _secret to the same PUSH_WEBHOOK_SECRET the standalone
 --    deployment uses (must match the env var on Vercel for the standalone).
+-- ⚠️ BOTH functions in this file declare _secret independently — replace the
+--    placeholder in EACH one (not just one), or that trigger will keep getting
+--    401s from the webhook. Verify afterwards with:
+--      SELECT proname, prosrc FROM pg_proc
+--      WHERE proname LIKE 'notify_calendar_%_webhook';
 -- ⚠️ This migration replaces the trigger functions created by
 --    20260910a_calendario_push_webhook.sql — only apply ONCE.
 
