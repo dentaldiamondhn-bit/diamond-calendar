@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.76",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@clerk/backend": "^3.11.7",
     "@clerk/nextjs": "latest",
     "@clerk/ui": "^0.3.24",
@@ -74,6 +76,8 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^9.39.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/forms": "^0.5.11",
