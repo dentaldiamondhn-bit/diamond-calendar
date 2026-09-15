@@ -2,6 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
 import { ToastProvider } from '@/components/calendar-new/Toast';
 import { PushStatusBadge } from '@/components/calendar-new/PushStatusBadge';
 import { NativePushListener } from '@/components/calendar-new/NativePushListener';
@@ -11,8 +12,13 @@ const CalendarNew = dynamic(() => import('@/calendario/CalendarShell'), { ssr: f
 
 export default function CalendarPage() {
   const { user, isLoaded } = useUser();
+  const [mounted, setMounted] = useState(false);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isLoaded) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUser, UserButton } from '@clerk/nextjs';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { HistoricalModeProvider } from '@/contexts/HistoricalModeContext';
@@ -14,6 +14,13 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoaded: userLoaded } = useUser();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showAuth = mounted && userLoaded && user;
 
   return (
     <TutorialProvider>
@@ -21,7 +28,7 @@ export default function AuthLayout({
         <HistoricalModeProvider>
           <NotificationProvider>
             <BellNotificationProvider>
-              {userLoaded && user ? (
+              {showAuth ? (
                   <div className="flex h-screen bg-gray-100">
                     <div className="flex-1 flex flex-col">
                       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">

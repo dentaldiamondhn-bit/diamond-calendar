@@ -27,14 +27,14 @@ export class UserPreferencesService {
         .from('user_preferences')
         .select('*')
         .eq('clerk_user_id', clerkUserId)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching user preferences:', error);
         return null;
       }
 
-      return data;
+      return data?.[0] || null;
     } catch (error) {
       console.error('Unexpected error fetching user preferences:', error);
       return null;
