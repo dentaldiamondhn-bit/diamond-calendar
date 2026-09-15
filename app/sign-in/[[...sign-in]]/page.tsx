@@ -164,8 +164,8 @@ export default function SignInPage() {
 
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 mt-6">
             {[
-              { label: 'Política de Privacidad', href: '#' },
-              { label: 'Términos de Servicio', href: '#' },
+              { label: 'Política de Privacidad', href: '/privacy' },
+              { label: 'Términos de Servicio', href: '/terms' },
               { label: 'Soporte', href: '#' },
             ].map((link) => (
               <a
