@@ -48,6 +48,7 @@ export default function AuthLayout({
                               </p>
                             </div>
                             <UserButton
+                              afterSignOutUrl="/sign-in"
                               appearance={{
                                 elements: {
                                   avatarBox: "w-8 h-8 lg:w-10 lg:h-10 shadow-md",

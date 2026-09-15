@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { ToastProvider } from '@/components/calendar-new/Toast';
@@ -12,11 +13,18 @@ const CalendarNew = dynamic(() => import('@/calendario/CalendarShell'), { ssr: f
 
 export default function CalendarPage() {
   const { user, isLoaded } = useUser();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted && isLoaded && !user) {
+      router.replace('/sign-in');
+    }
+  }, [mounted, isLoaded, user, router]);
 
   if (!mounted || !isLoaded) {
     return (

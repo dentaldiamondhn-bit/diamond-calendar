@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diamond-link-v2';
+const CACHE_NAME = 'diamond-link-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -19,6 +19,30 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('/api/')) return;
   if (event.request.method !== 'GET') return;
+
+  // Navigations must always hit the network first: serving a stale cached HTML
+  // page can show a signed-out user a previously-cached authenticated route
+  // (e.g. /calendario "No autorizado") because the middleware redirect never
+  // runs. Fall back to cache only when offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(event.request)
+            .then((cached) => cached || new Response('Offline', { status: 503 })),
+        ),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
