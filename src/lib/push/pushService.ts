@@ -163,8 +163,8 @@ export async function sendTestNotification(
   return sendPushToUser(userId, {
     title,
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/Calendar.svg',
+    badge: '/Calendar.svg',
     tag: `test-${userId}`,
     data: { type: 'test', url: '/chat' },
   });
