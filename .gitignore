@@ -41,3 +41,11 @@ Thumbs.db
 clerk.broken/
 everything-claude-code/
 .venv/
+
+# Sensitive migration artifacts
+ins_*.csv
+client_secret_*.json
+scripts/clerk-migration/mapping.json
+
+# Firebase service account keys (secrets — never track)
+diamond-calendar-1de34-firebase-adminsdk-fbsvc*.json
