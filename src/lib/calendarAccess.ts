@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { calendarAliasIds } from '@/lib/calendarDevBridge';
 
 /**
  * Ownership/membership helpers for event-scoped calendar APIs (Phase 0).
@@ -34,4 +35,30 @@ export async function isEventMember(
     .eq('user_id', userId)
     .maybeSingle();
   return !!data;
+}
+
+/**
+ * Read-only visibility check: own dev id or (in dev) the mapped production id
+ * owns the event or is an invitee. Never used to gate writes — those remain
+ * strictly dev-owner scoped.
+ */
+export async function isEventVisible(
+  db: SupabaseClient,
+  eventId: string,
+  userId: string
+): Promise<boolean> {
+  const aliasIds = calendarAliasIds(userId);
+  const { data } = await db
+    .from('events')
+    .select('user_id')
+    .eq('id', eventId)
+    .maybeSingle();
+  if (data && aliasIds.includes(data.user_id)) return true;
+  const { data: invitee } = await db
+    .from('event_invitees')
+    .select('id')
+    .eq('event_id', eventId)
+    .in('user_id', aliasIds)
+    .maybeSingle();
+  return !!invitee;
 }

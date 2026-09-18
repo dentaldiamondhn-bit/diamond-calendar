@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerServiceClient } from '@/lib/supabase/server';
 import { authorizeCalendar } from '@/lib/calendarAuth';
+import { calendarAliasIds } from '@/lib/calendarDevBridge';
 import { CLINIC_TIME_ZONE, clinicWallClockTimestamp } from '@/calendario/timezone';
 import {
   findDentistConflicts,
@@ -42,19 +43,18 @@ export async function GET(req: NextRequest) {
     const supabase = createServerServiceClient();
     // Visible events = owned OR invited (matches the `events` RLS predicate and the
     // realtime `event_invitees` binding, so invitee calendars actually populate).
+    const aliasIds = calendarAliasIds(userId);
     const { data: inviteeRows } = await supabase
       .from('event_invitees')
       .select('event_id')
-      .eq('user_id', userId);
+      .in('user_id', aliasIds);
     const inviteeEventIds = (inviteeRows ?? [])
       .map((r) => Number(r.event_id))
       .filter((n) => Number.isFinite(n));
 
-    let query = supabase.from('events').select('*');
+    let query = supabase.from('events').select('*').in('user_id', aliasIds);
     if (inviteeEventIds.length > 0) {
-      query = query.or(`user_id.eq.${userId},id.in.(${inviteeEventIds.join(',')})`);
-    } else {
-      query = query.eq('user_id', userId);
+      query = query.or(`id.in.(${inviteeEventIds.join(',')})`);
     }
 
     if (dateFrom) query = query.gte('date', dateFrom);

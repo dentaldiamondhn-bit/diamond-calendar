@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerServiceClient } from '@/lib/supabase/server';
 import { authorizeCalendar } from '@/lib/calendarAuth';
 import { clerkIdentityOf, getClerkUserIdentities } from '@/lib/clerkUsers';
+import { calendarAliasIds } from '@/lib/calendarDevBridge';
 
 export const runtime = 'nodejs';
 
@@ -69,11 +70,12 @@ export async function GET(req: NextRequest) {
     }
 
     const eventMap = new Map((events || []).map((e) => [e.id, e]));
+    const aliasIds = calendarAliasIds(userId);
     const allowedEventIds = ids.filter((id) => {
       const owner = eventMap.get(id)?.user_id;
-      if (owner && owner === userId) return true;
+      if (owner && aliasIds.includes(owner)) return true;
       const list = inviteesByEvent.get(id) || [];
-      return list.some((i) => i.user_id === userId);
+      return list.some((i) => aliasIds.includes(i.user_id));
     });
 
     // Collect every distinct user id referenced by the allowed events.

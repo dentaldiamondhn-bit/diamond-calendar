@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerServiceClient } from '@/lib/supabase/server';
 import { authorizeCalendar } from '@/lib/calendarAuth';
+import { calendarAliasIds } from '@/lib/calendarDevBridge';
 import { clinicDateKey } from '@/calendario/timezone';
 
 export const runtime = 'nodejs';
@@ -18,10 +19,11 @@ export async function GET() {
     // Visible events = owned OR invited (mirrors the main /api/events read and
     // the `events` RLS predicate, so a doctor's invite lands on the admin's
     // "Próximos Eventos" too).
+    const aliasIds = calendarAliasIds(userId);
     const { data: inviteeRows } = await supabase
       .from('event_invitees')
       .select('event_id')
-      .eq('user_id', userId);
+      .in('user_id', aliasIds);
     const inviteeEventIds = (inviteeRows ?? [])
       .map((r) => Number(r.event_id))
       .filter((n) => Number.isFinite(n));
@@ -31,12 +33,11 @@ export async function GET() {
       .select('*')
       .gte('date', start)
       .lte('date', end)
-      .neq('status', 'cancelled');
+      .neq('status', 'cancelled')
+      .in('user_id', aliasIds);
 
     if (inviteeEventIds.length > 0) {
-      query = query.or(`user_id.eq.${userId},id.in.(${inviteeEventIds.join(',')})`);
-    } else {
-      query = query.eq('user_id', userId);
+      query = query.or(`id.in.(${inviteeEventIds.join(',')})`);
     }
 
     const { data: events, error: eventsError } = await query

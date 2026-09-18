@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerServiceClient } from '@/lib/supabase/server';
 import { authorizeCalendar } from '@/lib/calendarAuth';
-import { isEventMember } from '@/lib/calendarAccess';
+import { isEventVisible } from '@/lib/calendarAccess';
 import { clerkIdentityOf, getClerkUserIdentities } from '@/lib/clerkUsers';
 
 export const runtime = 'nodejs';
@@ -18,7 +18,7 @@ export async function GET(
     const { id } = await params;
     const supabase = createServerServiceClient();
 
-    if (!(await isEventMember(supabase, id, userId))) {
+    if (!(await isEventVisible(supabase, id, userId))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
