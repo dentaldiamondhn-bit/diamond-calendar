@@ -30,8 +30,10 @@ import java.util.concurrent.Executors;
 /**
  * Home-launcher month-calendar widget (Google-Calendar style).
  *
- * Renders a Monday-start 6x7 month grid with per-day event dots, prev/next
- * month navigation and a "Hoy" shortcut. Day taps deep-link into the day view.
+ * The six week rows are served by {@link MonthWidgetService} as a RemoteViews
+ * collection so the launcher always re-queries the app for the grid content
+ * after widget re-creation (page switches, rotation, launcher restarts) instead
+ * of relying on the last pushed {@code RemoteViews}, which stock launchers drop.
  *
  * Auth reuses the Clerk session cookies the Capacitor WebView stores for the
  * app origin — the widget fetches {@code /api/widget/month} (cookie-authenticated).
@@ -48,16 +50,17 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     public static final String EXTRA_WIDGET_PATH = "widget_path";
     public static final String EXTRA_OFFSET = "widget_offset";
 
-    private static final String PREFS = "calendar_widget";
+    static final String PREFS = "calendar_widget";
     private static final String KEY_OFFSET = "month_offset";
 
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
-    private static final int[] WEEK_ROW_IDS = {
-            R.id.widget_week_1, R.id.widget_week_2, R.id.widget_week_3,
-            R.id.widget_week_4, R.id.widget_week_5, R.id.widget_week_6,
-    };
-    private static final int MAX_LABEL_LENGTH = 18;
+    /**
+     * Most recent fetch result. The {@link MonthWidgetService} factory reads
+     * this on every launcher-driven re-render, so a recreated widget always
+     * shows current content without waiting for a fresh provider callback.
+     */
+    static volatile WidgetMonth LAST_MONTH;
 
     @Override
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager,
@@ -125,10 +128,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     error = "Toca para abrir la app";
                 }
             }
+            LAST_MONTH = month;
             for (int id : ids) {
                 boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
-                RemoteViews views = buildViews(appContext, month, monthOffset, error, expanded);
+                RemoteViews views = buildViews(appContext, month, monthOffset, error, id);
                 manager.updateAppWidget(id, views);
+                // Ask the launcher to re-query the week rows from the service;
+                // the factory pulls LAST_MONTH so the grid tracks this fetch.
+                manager.notifyAppWidgetViewDataChanged(id, R.id.widget_week_list);
             }
         });
     }
@@ -257,9 +264,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return builder.toString();
     }
 
-    private static RemoteViews buildViews(Context context, WidgetMonth month, int offset, String error,
-                                          boolean expanded) {
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_layout);
+    /**
+     * Builds the root widget RemoteViews: header (month nav / Hoy), weekday row,
+     * and a ListView bound to {@link MonthWidgetService} for the six week rows.
+     */
+    private static RemoteViews buildViews(Context context, WidgetMonth month, int offset,
+                                          String error, int widgetId) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_grid_layout);
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
         views.setOnClickPendingIntent(R.id.widget_title, openAppIntent(context, 1, "/calendario?view=month"));
@@ -270,117 +281,27 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4, 0));
 
         if (error != null || month == null || month.weeks.isEmpty()) {
-            for (int id : WEEK_ROW_IDS) views.setViewVisibility(id, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_weekdays, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_divider, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_today, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_error, android.view.View.VISIBLE);
             views.setTextViewText(R.id.widget_error, error != null ? error : "Sin datos");
             views.setTextViewText(R.id.widget_title, "Diamond Calendar");
-            return views;
+            views.setViewVisibility(R.id.widget_today, android.view.View.GONE);
+        } else {
+            views.setTextViewText(R.id.widget_title, month.label);
+            views.setViewVisibility(R.id.widget_today,
+                    offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
         }
 
-        views.setViewVisibility(R.id.widget_error, android.view.View.GONE);
-        views.setViewVisibility(R.id.widget_weekdays, android.view.View.VISIBLE);
-        views.setViewVisibility(R.id.widget_divider, android.view.View.VISIBLE);
-        views.setTextViewText(R.id.widget_title, month.label);
-        views.setViewVisibility(R.id.widget_today, offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-
-        // The 42 day cells are statically declared in the layout (aapt-inflated,
-        // not addView-injected) so launchers restore them after page switches /
-        // widget re-inflation; we only update their contents by view id.
-        for (int i = 0; i < 42; i++) {
-            List<WidgetDay> week = month.weeks.size() > (i / 7) ? month.weeks.get(i / 7) : null;
-            WidgetDay day = (week != null && week.size() > (i % 7)) ? week.get(i % 7) : null;
-            fillDayCell(context, views, i, day, expanded);
-        }
+        Intent service = new Intent(context, MonthWidgetService.class);
+        service.setData(Uri.parse("widget://calendar/" + widgetId));
+        service.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
+        views.setRemoteAdapter(R.id.widget_week_list, service);
+        views.setEmptyView(R.id.widget_week_list, R.id.widget_error);
+        views.setPendingIntentTemplate(R.id.widget_week_list,
+                openAppIntent(context, 50, "/calendario"));
 
         return views;
     }
 
-    private static void fillDayCell(Context context, RemoteViews views, int index, WidgetDay day,
-                                    boolean expanded) {
-        int numberId = CalendarWidgetIds.DAY_NUMBER[index];
-
-        if (day == null) {
-            views.setViewVisibility(numberId, android.view.View.INVISIBLE);
-            return;
-        }
-
-        views.setTextViewText(numberId, String.valueOf(day.day));
-        int textColor = day.inMonth
-                ? context.getColor(R.color.widget_day_text)
-                : context.getColor(R.color.widget_day_dim);
-        if (day.isToday) {
-            views.setInt(numberId, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
-            textColor = context.getColor(R.color.widget_today_text);
-        }
-        views.setTextColor(numberId, textColor);
-
-        if (expanded) {
-            // Large footprint — show up to 2 green pills per day: the patient
-            // name (max 18 letters) with the event time beside it.
-            hideDots(views, index);
-            for (int k = 0; k < 2; k++) {
-                int labelId = labelIdFor(index, k);
-                int nameId = nameIdFor(index, k);
-                int timeId = timeIdFor(index, k);
-                views.setViewVisibility(labelId, android.view.View.VISIBLE);
-                boolean has = k < day.labels.size();
-                if (has) {
-                    views.setTextViewText(nameId, shorten(day.labels.get(k)));
-                    views.setTextViewText(timeId, formatTime(day.times.size() > k ? day.times.get(k) : ""));
-                    views.setViewVisibility(nameId, android.view.View.VISIBLE);
-                    views.setViewVisibility(timeId, android.view.View.VISIBLE);
-                } else {
-                    views.setTextViewText(nameId, "");
-                    views.setTextViewText(timeId, "");
-                    views.setViewVisibility(nameId, android.view.View.GONE);
-                    views.setViewVisibility(timeId, android.view.View.GONE);
-                }
-            }
-        } else {
-            // Compact footprint — event dots.
-            hideLabels(views, index);
-            int[][] dots = {CalendarWidgetIds.DAY_DOT_1, CalendarWidgetIds.DAY_DOT_2, CalendarWidgetIds.DAY_DOT_3};
-            for (int k = 0; k < dots.length; k++) {
-                int dotId = dots[k][index];
-                if (k < day.dotColors.size()) {
-                    views.setViewVisibility(dotId, android.view.View.VISIBLE);
-                    views.setInt(dotId, "setColorFilter", parseColor(day.dotColors.get(k)));
-                } else {
-                    views.setViewVisibility(dotId, android.view.View.GONE);
-                }
-            }
-        }
-
-        views.setOnClickPendingIntent(CalendarWidgetIds.DAY_CELL[index],
-                openAppIntent(context, 100 + index, "/calendario?view=day&date=" + Uri.encode(day.date)));
-    }
-
-    private static int labelIdFor(int index, int slot) {
-        return slot == 0 ? CalendarWidgetIds.DAY_LABEL_1[index] : CalendarWidgetIds.DAY_LABEL_2[index];
-    }
-
-    private static int nameIdFor(int index, int slot) {
-        return slot == 0 ? CalendarWidgetIds.DAY_NAME_1[index] : CalendarWidgetIds.DAY_NAME_2[index];
-    }
-
-    private static int timeIdFor(int index, int slot) {
-        return slot == 0 ? CalendarWidgetIds.DAY_TIME_1[index] : CalendarWidgetIds.DAY_TIME_2[index];
-    }
-
-    private static void hideDots(RemoteViews views, int index) {
-        int[][] dots = {CalendarWidgetIds.DAY_DOT_1, CalendarWidgetIds.DAY_DOT_2, CalendarWidgetIds.DAY_DOT_3};
-        for (int[] arr : dots) views.setViewVisibility(arr[index], android.view.View.GONE);
-    }
-
-    private static void hideLabels(RemoteViews views, int index) {
-        views.setViewVisibility(labelIdFor(index, 0), android.view.View.GONE);
-        views.setViewVisibility(labelIdFor(index, 1), android.view.View.GONE);
-    }
-
-    private static int parseColor(String value) {
+    static int parseColor(String value) {
         try {
             if (value != null && !value.isEmpty()) return Color.parseColor(value);
         } catch (Exception ignored) {
@@ -388,16 +309,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return 0xFF14B8A6;
     }
 
-    /** Trims and truncates to MAX_LABEL_LENGTH letters so the event time fits. */
-    private static String shorten(String value) {
-        if (value == null) return "";
-        String trimmed = value.trim();
-        if (trimmed.length() <= MAX_LABEL_LENGTH) return trimmed;
-        return trimmed.substring(0, MAX_LABEL_LENGTH);
-    }
-
     /** "HH:mm[:ss]" → "h:mm AM/PM" (drops the seconds the API returns). */
-    private static String formatTime(String value) {
+    static String formatTime(String value) {
         if (value == null || value.isEmpty()) return "";
         String[] parts = value.split(":");
         if (parts.length < 2) return value;
@@ -438,13 +351,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    /** Minimal POJOs (kept static to avoid extra files). */
-    private static class WidgetMonth {
+    static class WidgetMonth {
         String label = "";
         final List<List<WidgetDay>> weeks = new ArrayList<>();
     }
 
-    private static class WidgetDay {
+    static class WidgetDay {
         String date = "";
         int day;
         boolean inMonth = true;

@@ -40,6 +40,11 @@
                 android:resource="@xml/calendar_widget_provider" />
         </receiver>
 
+        <service
+            android:name=".MonthWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/notification_icon" />
