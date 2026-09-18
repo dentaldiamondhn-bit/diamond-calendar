@@ -56,18 +56,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             R.id.widget_week_1, R.id.widget_week_2, R.id.widget_week_3,
             R.id.widget_week_4, R.id.widget_week_5, R.id.widget_week_6,
     };
-    private static final int[] DAY_DOT_IDS = {
-            R.id.day_dot_1, R.id.day_dot_2, R.id.day_dot_3,
-    };
-    private static final int[] DAY_LABEL_IDS = {
-            R.id.day_label_1, R.id.day_label_2,
-    };
-    private static final int[] DAY_NAME_IDS = {
-            R.id.day_name_1, R.id.day_name_2,
-    };
-    private static final int[] DAY_TIME_IDS = {
-            R.id.day_time_1, R.id.day_time_2,
-    };
     private static final int MAX_LABEL_LENGTH = 18;
 
     @Override
@@ -237,7 +225,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                                 JSONObject item = events.optJSONObject(e);
                                 if (item == null) continue;
                                 day.dotColors.add(item.optString("color", ""));
-                                if (day.labels.size() < DAY_LABEL_IDS.length) {
+                                if (day.labels.size() < 2) {
                                     day.labels.add(item.optString("label", ""));
                                     day.times.add(item.optString("time", ""));
                                 }
@@ -293,74 +281,98 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_title, month.label);
         views.setViewVisibility(R.id.widget_today, offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
 
-        // Each row is statically declared in the layout, so cells are added one
-        // level deep (nested RemoteViews cannot themselves call addView).
-        for (int w = 0; w < WEEK_ROW_IDS.length; w++) {
-            List<WidgetDay> week = month.weeks.size() > w ? month.weeks.get(w) : null;
-            for (int d = 0; d < 7; d++) {
-                WidgetDay day = (week != null && week.size() > d) ? week.get(d) : null;
-                views.addView(WEEK_ROW_IDS[w], buildDayCell(context, day, w * 7 + d, expanded));
-            }
+        // The 42 day cells are statically declared in the layout (aapt-inflated,
+        // not addView-injected) so launchers restore them after page switches /
+        // widget re-inflation; we only update their contents by view id.
+        for (int i = 0; i < 42; i++) {
+            List<WidgetDay> week = month.weeks.size() > (i / 7) ? month.weeks.get(i / 7) : null;
+            WidgetDay day = (week != null && week.size() > (i % 7)) ? week.get(i % 7) : null;
+            fillDayCell(context, views, i, day, expanded);
         }
 
         return views;
     }
 
-    private static RemoteViews buildDayCell(Context context, WidgetDay day, int index, boolean expanded) {
-        RemoteViews cell = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_day_cell);
+    private static void fillDayCell(Context context, RemoteViews views, int index, WidgetDay day,
+                                    boolean expanded) {
+        int numberId = CalendarWidgetIds.DAY_NUMBER[index];
 
         if (day == null) {
-            cell.setViewVisibility(R.id.day_number, android.view.View.INVISIBLE);
-            for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
-            for (int id : DAY_LABEL_IDS) cell.setViewVisibility(id, android.view.View.GONE);
-            return cell;
+            views.setViewVisibility(numberId, android.view.View.INVISIBLE);
+            return;
         }
 
-        cell.setTextViewText(R.id.day_number, String.valueOf(day.day));
+        views.setTextViewText(numberId, String.valueOf(day.day));
         int textColor = day.inMonth
                 ? context.getColor(R.color.widget_day_text)
                 : context.getColor(R.color.widget_day_dim);
         if (day.isToday) {
-            cell.setInt(R.id.day_number, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
+            views.setInt(numberId, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
             textColor = context.getColor(R.color.widget_today_text);
         }
-        cell.setTextColor(R.id.day_number, textColor);
+        views.setTextColor(numberId, textColor);
 
         if (expanded) {
             // Large footprint — show up to 2 green pills per day: the patient
             // name (max 18 letters) with the event time beside it.
-            for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
-            for (int i = 0; i < DAY_LABEL_IDS.length; i++) {
-                cell.setViewVisibility(DAY_LABEL_IDS[i], android.view.View.VISIBLE);
-                boolean has = i < day.labels.size();
+            hideDots(views, index);
+            for (int k = 0; k < 2; k++) {
+                int labelId = labelIdFor(index, k);
+                int nameId = nameIdFor(index, k);
+                int timeId = timeIdFor(index, k);
+                views.setViewVisibility(labelId, android.view.View.VISIBLE);
+                boolean has = k < day.labels.size();
                 if (has) {
-                    cell.setTextViewText(DAY_NAME_IDS[i], shorten(day.labels.get(i)));
-                    cell.setTextViewText(DAY_TIME_IDS[i], day.times.size() > i ? day.times.get(i) : "");
-                    cell.setViewVisibility(DAY_NAME_IDS[i], android.view.View.VISIBLE);
-                    cell.setViewVisibility(DAY_TIME_IDS[i], android.view.View.VISIBLE);
+                    views.setTextViewText(nameId, shorten(day.labels.get(k)));
+                    views.setTextViewText(timeId, formatTime(day.times.size() > k ? day.times.get(k) : ""));
+                    views.setViewVisibility(nameId, android.view.View.VISIBLE);
+                    views.setViewVisibility(timeId, android.view.View.VISIBLE);
                 } else {
-                    cell.setTextViewText(DAY_NAME_IDS[i], "");
-                    cell.setTextViewText(DAY_TIME_IDS[i], "");
-                    cell.setViewVisibility(DAY_NAME_IDS[i], android.view.View.GONE);
-                    cell.setViewVisibility(DAY_TIME_IDS[i], android.view.View.GONE);
+                    views.setTextViewText(nameId, "");
+                    views.setTextViewText(timeId, "");
+                    views.setViewVisibility(nameId, android.view.View.GONE);
+                    views.setViewVisibility(timeId, android.view.View.GONE);
                 }
             }
         } else {
             // Compact footprint — event dots.
-            for (int id : DAY_LABEL_IDS) cell.setViewVisibility(id, android.view.View.GONE);
-            for (int i = 0; i < DAY_DOT_IDS.length; i++) {
-                if (i < day.dotColors.size()) {
-                    cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.VISIBLE);
-                    cell.setInt(DAY_DOT_IDS[i], "setColorFilter", parseColor(day.dotColors.get(i)));
+            hideLabels(views, index);
+            int[][] dots = {CalendarWidgetIds.DAY_DOT_1, CalendarWidgetIds.DAY_DOT_2, CalendarWidgetIds.DAY_DOT_3};
+            for (int k = 0; k < dots.length; k++) {
+                int dotId = dots[k][index];
+                if (k < day.dotColors.size()) {
+                    views.setViewVisibility(dotId, android.view.View.VISIBLE);
+                    views.setInt(dotId, "setColorFilter", parseColor(day.dotColors.get(k)));
                 } else {
-                    cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.GONE);
+                    views.setViewVisibility(dotId, android.view.View.GONE);
                 }
             }
         }
 
-        String path = "/calendario?view=day&date=" + Uri.encode(day.date);
-        cell.setOnClickPendingIntent(R.id.day_cell_root, openAppIntent(context, 100 + index, path));
-        return cell;
+        views.setOnClickPendingIntent(CalendarWidgetIds.DAY_CELL[index],
+                openAppIntent(context, 100 + index, "/calendario?view=day&date=" + Uri.encode(day.date)));
+    }
+
+    private static int labelIdFor(int index, int slot) {
+        return slot == 0 ? CalendarWidgetIds.DAY_LABEL_1[index] : CalendarWidgetIds.DAY_LABEL_2[index];
+    }
+
+    private static int nameIdFor(int index, int slot) {
+        return slot == 0 ? CalendarWidgetIds.DAY_NAME_1[index] : CalendarWidgetIds.DAY_NAME_2[index];
+    }
+
+    private static int timeIdFor(int index, int slot) {
+        return slot == 0 ? CalendarWidgetIds.DAY_TIME_1[index] : CalendarWidgetIds.DAY_TIME_2[index];
+    }
+
+    private static void hideDots(RemoteViews views, int index) {
+        int[][] dots = {CalendarWidgetIds.DAY_DOT_1, CalendarWidgetIds.DAY_DOT_2, CalendarWidgetIds.DAY_DOT_3};
+        for (int[] arr : dots) views.setViewVisibility(arr[index], android.view.View.GONE);
+    }
+
+    private static void hideLabels(RemoteViews views, int index) {
+        views.setViewVisibility(labelIdFor(index, 0), android.view.View.GONE);
+        views.setViewVisibility(labelIdFor(index, 1), android.view.View.GONE);
     }
 
     private static int parseColor(String value) {
@@ -377,6 +389,23 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         String trimmed = value.trim();
         if (trimmed.length() <= MAX_LABEL_LENGTH) return trimmed;
         return trimmed.substring(0, MAX_LABEL_LENGTH);
+    }
+
+    /** "HH:mm[:ss]" → "h:mm AM/PM" (drops the seconds the API returns). */
+    private static String formatTime(String value) {
+        if (value == null || value.isEmpty()) return "";
+        String[] parts = value.split(":");
+        if (parts.length < 2) return value;
+        try {
+            int hour = Integer.parseInt(parts[0]);
+            String minute = parts[1];
+            if (minute.length() > 2) minute = minute.substring(0, 2);
+            if (hour < 0 || hour > 23) return value;
+            int h12 = hour % 12 == 0 ? 12 : hour % 12;
+            return h12 + ":" + minute + (hour >= 12 ? " PM" : " AM");
+        } catch (Exception e) {
+            return value;
+        }
     }
 
     private static PendingIntent openAppIntent(Context context, int requestCode, String path) {
