@@ -103,17 +103,20 @@ export async function GET(request: NextRequest) {
       .map((r) => Number(r.event_id))
       .filter((n) => Number.isFinite(n));
 
+    // Single `or` group: `user_id in (owned) OR id in (invited)`. Chaining
+    // `.in()` + `.or()` would AND the branches and hide invitee events.
+    const orParts = [`user_id.in.(${aliasIds.join(',')})`];
+    if (inviteeEventIds.length > 0) {
+      orParts.push(`id.in.(${inviteeEventIds.join(',')})`);
+    }
+
     let query = supabase
       .from('events')
       .select('id,date,start_time,color,title,patient_name,status')
+      .or(orParts.join(','))
       .gte('date', gridStart)
       .lte('date', gridEnd)
-      .neq('status', 'cancelled')
-      .in('user_id', aliasIds);
-
-    if (inviteeEventIds.length > 0) {
-      query = query.or(`id.in.(${inviteeEventIds.join(',')})`);
-    }
+      .neq('status', 'cancelled');
 
     const { data: rows, error: eventsError } = await query
       .order('date', { ascending: true })

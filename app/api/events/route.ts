@@ -52,10 +52,14 @@ export async function GET(req: NextRequest) {
       .map((r) => Number(r.event_id))
       .filter((n) => Number.isFinite(n));
 
-    let query = supabase.from('events').select('*').in('user_id', aliasIds);
+    // Single PostgREST `or` group: `user_id in (owned) OR id in (invited)`.
+    // Chaining `.in()` + `.or()` here would AND the two branches instead, hiding
+    // invitee events (and every owned event once any invitee row exists).
+    const orParts = [`user_id.in.(${aliasIds.join(',')})`];
     if (inviteeEventIds.length > 0) {
-      query = query.or(`id.in.(${inviteeEventIds.join(',')})`);
+      orParts.push(`id.in.(${inviteeEventIds.join(',')})`);
     }
+    let query = supabase.from('events').select('*').or(orParts.join(','));
 
     if (dateFrom) query = query.gte('date', dateFrom);
     if (dateTo) query = query.lte('date', dateTo);
