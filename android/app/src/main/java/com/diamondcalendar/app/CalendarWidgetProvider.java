@@ -46,6 +46,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_NEXT_MONTH = "com.diamondcalendar.app.WIDGET_NEXT_MONTH";
     public static final String ACTION_TODAY = "com.diamondcalendar.app.WIDGET_TODAY";
     public static final String EXTRA_WIDGET_PATH = "widget_path";
+    public static final String EXTRA_OFFSET = "widget_offset";
 
     private static final String PREFS = "calendar_widget";
     private static final String KEY_OFFSET = "month_offset";
@@ -70,7 +71,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        refreshAsync(context, appWidgetManager, appWidgetIds);
+        refreshAsync(context, appWidgetManager, appWidgetIds, getOffset(context));
     }
 
     @Override
@@ -81,12 +82,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             return;
         }
         if (ACTION_PREV_MONTH.equals(action)) {
-            setOffset(context, getOffset(context) - 1);
+            // Target month travels inside the broadcast itself so a re-fired /
+            // raced broadcast can never navigate against a stale pref value.
+            setOffset(context, intent.getIntExtra(EXTRA_OFFSET, getOffset(context) - 1));
             refreshAll(context);
             return;
         }
         if (ACTION_NEXT_MONTH.equals(action)) {
-            setOffset(context, getOffset(context) + 1);
+            setOffset(context, intent.getIntExtra(EXTRA_OFFSET, getOffset(context) + 1));
             refreshAll(context);
             return;
         }
@@ -101,13 +104,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private void refreshAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         int[] ids = manager.getAppWidgetIds(new ComponentName(context, CalendarWidgetProvider.class));
-        refreshAsync(context, manager, ids);
+        refreshAsync(context, manager, ids, getOffset(context));
     }
 
-    private void refreshAsync(Context context, AppWidgetManager manager, int[] ids) {
+    private void refreshAsync(Context context, AppWidgetManager manager, int[] ids, int offset) {
         if (ids == null || ids.length == 0) return;
         final Context appContext = context.getApplicationContext();
-        final int offset = getOffset(appContext);
+        final int monthOffset = offset;
         final String cookies = readCookies();
         EXECUTOR.execute(() -> {
             WidgetMonth month = null;
@@ -116,7 +119,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 error = "Abre la app para sincronizar";
             } else {
                 try {
-                    month = fetchMonth(cookies, offset);
+                    month = fetchMonth(cookies, monthOffset);
                 } catch (Exception e) {
                     Log.w(TAG, "widget fetch failed: " + e.getMessage());
                     error = "Toca para abrir la app";
@@ -124,7 +127,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             }
             for (int id : ids) {
                 boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
-                RemoteViews views = buildViews(appContext, month, offset, error, expanded);
+                RemoteViews views = buildViews(appContext, month, monthOffset, error, expanded);
                 manager.updateAppWidget(id, views);
             }
         });
@@ -260,9 +263,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
         views.setOnClickPendingIntent(R.id.widget_title, openAppIntent(context, 1, "/calendario?view=month"));
-        views.setOnClickPendingIntent(R.id.widget_prev, broadcastIntent(context, ACTION_PREV_MONTH, 2));
-        views.setOnClickPendingIntent(R.id.widget_next, broadcastIntent(context, ACTION_NEXT_MONTH, 3));
-        views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4));
+        views.setOnClickPendingIntent(R.id.widget_prev,
+                broadcastIntent(context, ACTION_PREV_MONTH, 2, offset - 1));
+        views.setOnClickPendingIntent(R.id.widget_next,
+                broadcastIntent(context, ACTION_NEXT_MONTH, 3, offset + 1));
+        views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4, 0));
 
         if (error != null || month == null || month.weeks.isEmpty()) {
             for (int id : WEEK_ROW_IDS) views.setViewVisibility(id, android.view.View.GONE);
@@ -422,9 +427,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static PendingIntent broadcastIntent(Context context, String action, int requestCode) {
+    private static PendingIntent broadcastIntent(Context context, String action, int requestCode, int offset) {
         Intent intent = new Intent(context, CalendarWidgetProvider.class);
         intent.setAction(action);
+        intent.putExtra(EXTRA_OFFSET, offset);
         return PendingIntent.getBroadcast(
                 context,
                 requestCode,
