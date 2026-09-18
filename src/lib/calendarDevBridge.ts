@@ -40,3 +40,60 @@ export function calendarAliasIds(userId: string): string[] {
   const prodId = DEV_TO_PROD[userId];
   return prodId ? [...new Set([userId, prodId])] : [userId];
 }
+
+/**
+ * Dynamic fallback: if a dev user ID isn't in the hardcoded map, try to find
+ * their production counterpart by matching email across Clerk instances.
+ * This is a fallback for users not in the hardcoded map.
+ */
+let _emailCache: Map<string, string> | null = null;
+
+export async function resolveProdIdFromDev(devUserId: string): Promise<string | null> {
+  if (!shouldUseDevMapping()) return null;
+  if (DEV_TO_PROD[devUserId]) return DEV_TO_PROD[devUserId];
+
+  try {
+    const { createClerkClient } = await import('@clerk/backend');
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+    // Get the dev user's email
+    const devUser = await clerk.users.getUser(devUserId);
+    const email = devUser.emailAddresses?.[0]?.emailAddress;
+    if (!email) return null;
+
+    // Search for a user with the same email in the production Clerk instance
+    // We need to use the production Clerk secret key for this
+    const prodClerkSecret = process.env.CLERK_PROD_SECRET_KEY || process.env.CLERK_SECRET_KEY;
+    const prodClerk = createClerkClient({ secretKey: prodClerkSecret });
+
+    const { data: prodUsers } = await prodClerk.users.getUserList({
+      emailAddress: [email],
+      limit: 1,
+    });
+
+    if (prodUsers.length > 0) {
+      const prodId = prodUsers[0].id;
+      // Cache the mapping
+      DEV_TO_PROD[devUserId] = prodId;
+      return prodId;
+    }
+  } catch (err) {
+    console.warn('[calendarDevBridge] Failed to resolve prod ID for dev user:', devUserId, err);
+  }
+  return null;
+}
+
+/**
+ * Get alias IDs with dynamic fallback for unmapped users.
+ */
+export async function calendarAliasIdsAsync(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  if (!shouldUseDevMapping()) return [userId];
+
+  const prodId = DEV_TO_PROD[userId];
+  if (prodId) return [...new Set([userId, prodId])];
+
+  // Try dynamic resolution
+  const resolved = await resolveProdIdFromDev(userId);
+  return resolved ? [...new Set([userId, resolved])] : [userId];
+}
