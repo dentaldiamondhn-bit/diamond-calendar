@@ -62,6 +62,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final int[] DAY_LABEL_IDS = {
             R.id.day_label_1, R.id.day_label_2,
     };
+    private static final int[] DAY_NAME_IDS = {
+            R.id.day_name_1, R.id.day_name_2,
+    };
+    private static final int[] DAY_TIME_IDS = {
+            R.id.day_time_1, R.id.day_time_2,
+    };
+    private static final int MAX_LABEL_LENGTH = 18;
 
     @Override
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager,
@@ -232,6 +239,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                                 day.dotColors.add(item.optString("color", ""));
                                 if (day.labels.size() < DAY_LABEL_IDS.length) {
                                     day.labels.add(item.optString("label", ""));
+                                    day.times.add(item.optString("time", ""));
                                 }
                             }
                         }
@@ -319,19 +327,27 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         cell.setTextColor(R.id.day_number, textColor);
 
         if (expanded) {
-            // Large footprint — show up to 2 event names per day instead of dots.
+            // Large footprint — show up to 2 green pills per day: the patient
+            // name (max 18 letters) with the event time beside it.
             for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
             for (int i = 0; i < DAY_LABEL_IDS.length; i++) {
-                String label = i < day.labels.size() ? day.labels.get(i) : "";
-                cell.setTextViewText(DAY_LABEL_IDS[i], label);
                 cell.setViewVisibility(DAY_LABEL_IDS[i], android.view.View.VISIBLE);
+                boolean has = i < day.labels.size();
+                if (has) {
+                    cell.setTextViewText(DAY_NAME_IDS[i], shorten(day.labels.get(i)));
+                    cell.setTextViewText(DAY_TIME_IDS[i], day.times.size() > i ? day.times.get(i) : "");
+                    cell.setViewVisibility(DAY_NAME_IDS[i], android.view.View.VISIBLE);
+                    cell.setViewVisibility(DAY_TIME_IDS[i], android.view.View.VISIBLE);
+                } else {
+                    cell.setTextViewText(DAY_NAME_IDS[i], "");
+                    cell.setTextViewText(DAY_TIME_IDS[i], "");
+                    cell.setViewVisibility(DAY_NAME_IDS[i], android.view.View.GONE);
+                    cell.setViewVisibility(DAY_TIME_IDS[i], android.view.View.GONE);
+                }
             }
         } else {
             // Compact footprint — event dots.
-            for (int id : DAY_LABEL_IDS) {
-                cell.setViewVisibility(id, android.view.View.GONE);
-                cell.setTextViewText(id, "");
-            }
+            for (int id : DAY_LABEL_IDS) cell.setViewVisibility(id, android.view.View.GONE);
             for (int i = 0; i < DAY_DOT_IDS.length; i++) {
                 if (i < day.dotColors.size()) {
                     cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.VISIBLE);
@@ -353,6 +369,14 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         } catch (Exception ignored) {
         }
         return 0xFF14B8A6;
+    }
+
+    /** Trims and truncates to MAX_LABEL_LENGTH letters so the event time fits. */
+    private static String shorten(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        if (trimmed.length() <= MAX_LABEL_LENGTH) return trimmed;
+        return trimmed.substring(0, MAX_LABEL_LENGTH);
     }
 
     private static PendingIntent openAppIntent(Context context, int requestCode, String path) {
@@ -392,5 +416,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         boolean isToday;
         final List<String> dotColors = new ArrayList<>();
         final List<String> labels = new ArrayList<>();
+        final List<String> times = new ArrayList<>();
     }
 }
