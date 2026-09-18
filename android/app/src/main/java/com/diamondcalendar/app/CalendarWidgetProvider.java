@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.CookieManager;
@@ -19,16 +21,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Home-launcher widget showing today's clinic appointments.
+ * Home-launcher month-calendar widget (Google-Calendar style).
  *
- * Auth reuses the Clerk session cookie ({@code __session}) that the Capacitor
- * WebView already stores for the app origin — no extra token plumbing needed.
- * The widget fetches {@code /api/widget/overview} (cookie-authenticated) and,
- * on tap, deep-links into the calendar for the selected day/event.
+ * Renders a Monday-start 6x7 month grid with per-day event dots, prev/next
+ * month navigation and a "Hoy" shortcut. Day taps deep-link into the day view.
+ *
+ * Auth reuses the Clerk session cookies the Capacitor WebView stores for the
+ * app origin — the widget fetches {@code /api/widget/month} (cookie-authenticated).
  */
 public class CalendarWidgetProvider extends AppWidgetProvider {
 
@@ -36,18 +41,22 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final String BASE_URL = "https://calendario.dentaldiamondhn.com";
 
     public static final String ACTION_REFRESH = "com.diamondcalendar.app.WIDGET_REFRESH";
+    public static final String ACTION_PREV_MONTH = "com.diamondcalendar.app.WIDGET_PREV_MONTH";
+    public static final String ACTION_NEXT_MONTH = "com.diamondcalendar.app.WIDGET_NEXT_MONTH";
+    public static final String ACTION_TODAY = "com.diamondcalendar.app.WIDGET_TODAY";
     public static final String EXTRA_WIDGET_PATH = "widget_path";
+
+    private static final String PREFS = "calendar_widget";
+    private static final String KEY_OFFSET = "month_offset";
 
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
-    private static final int[] ROW_IDS = {
-            R.id.widget_row1, R.id.widget_row2, R.id.widget_row3, R.id.widget_row4,
+    private static final int[] WEEK_ROW_IDS = {
+            R.id.widget_week_1, R.id.widget_week_2, R.id.widget_week_3,
+            R.id.widget_week_4, R.id.widget_week_5, R.id.widget_week_6,
     };
-    private static final int[] TIME_IDS = {
-            R.id.widget_row1_time, R.id.widget_row2_time, R.id.widget_row3_time, R.id.widget_row4_time,
-    };
-    private static final int[] TEXT_IDS = {
-            R.id.widget_row1_text, R.id.widget_row2_text, R.id.widget_row3_text, R.id.widget_row4_text,
+    private static final int[] DAY_DOT_IDS = {
+            R.id.day_dot_1, R.id.day_dot_2, R.id.day_dot_3,
     };
 
     @Override
@@ -57,36 +66,69 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        super.onReceive(context, intent);
-        if (ACTION_REFRESH.equals(intent.getAction())) {
-            AppWidgetManager manager = AppWidgetManager.getInstance(context);
-            int[] ids = manager.getAppWidgetIds(new ComponentName(context, CalendarWidgetProvider.class));
-            refreshAsync(context, manager, ids);
+        String action = intent.getAction();
+        if (ACTION_REFRESH.equals(action)) {
+            refreshAll(context);
+            return;
         }
+        if (ACTION_PREV_MONTH.equals(action)) {
+            setOffset(context, getOffset(context) - 1);
+            refreshAll(context);
+            return;
+        }
+        if (ACTION_NEXT_MONTH.equals(action)) {
+            setOffset(context, getOffset(context) + 1);
+            refreshAll(context);
+            return;
+        }
+        if (ACTION_TODAY.equals(action)) {
+            setOffset(context, 0);
+            refreshAll(context);
+            return;
+        }
+        super.onReceive(context, intent);
+    }
+
+    private void refreshAll(Context context) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int[] ids = manager.getAppWidgetIds(new ComponentName(context, CalendarWidgetProvider.class));
+        refreshAsync(context, manager, ids);
     }
 
     private void refreshAsync(Context context, AppWidgetManager manager, int[] ids) {
         if (ids == null || ids.length == 0) return;
         final Context appContext = context.getApplicationContext();
+        final int offset = getOffset(appContext);
         final String cookies = readCookies();
         EXECUTOR.execute(() -> {
-            WidgetOverview overview = null;
+            WidgetMonth month = null;
             String error = null;
             if (cookies == null) {
                 error = "Abre la app para sincronizar";
             } else {
                 try {
-                    overview = fetchOverview(cookies);
+                    month = fetchMonth(cookies, offset);
                 } catch (Exception e) {
                     Log.w(TAG, "widget fetch failed: " + e.getMessage());
                     error = "Toca para abrir la app";
                 }
             }
-            RemoteViews views = buildViews(appContext, overview, error);
+            RemoteViews views = buildViews(appContext, month, offset, error);
             for (int id : ids) {
                 manager.updateAppWidget(id, views);
             }
         });
+    }
+
+    private static int getOffset(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_OFFSET, 0);
+    }
+
+    private static void setOffset(Context context, int offset) {
+        SharedPreferences.Editor editor =
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit();
+        editor.putInt(KEY_OFFSET, offset);
+        editor.apply();
     }
 
     /** Reads the app-origin cookies from the WebView cookie store (main thread). */
@@ -95,8 +137,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             CookieManager manager = CookieManager.getInstance();
             String cookies = manager.getCookie(BASE_URL);
             if (cookies == null || cookies.isEmpty()) return null;
-            // Clerk only needs the session cookie, but sending the whole jar for
-            // the app origin is robust against renamed/suffixed session cookies.
             return cookies;
         } catch (Exception e) {
             Log.w(TAG, "cookie read failed: " + e.getMessage());
@@ -104,10 +144,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return null;
     }
 
-    private static WidgetOverview fetchOverview(String cookies) throws Exception {
+    private static WidgetMonth fetchMonth(String cookies, int offset) throws Exception {
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(BASE_URL + "/api/widget/overview");
+            URL url = new URL(BASE_URL + "/api/widget/month?offset=" + offset);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(10000);
@@ -122,25 +162,37 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 throw new IllegalStateException("HTTP " + code);
             }
 
-            WidgetOverview overview = new WidgetOverview();
+            WidgetMonth month = new WidgetMonth();
             JSONObject json = new JSONObject(body);
-            overview.date = json.optString("date", "");
-            overview.userName = json.optString("userName", "");
-            JSONArray array = json.optJSONArray("events");
-            if (array != null) {
-                for (int i = 0; i < array.length(); i++) {
-                    JSONObject item = array.getJSONObject(i);
-                    WidgetEvent event = new WidgetEvent();
-                    event.id = item.optLong("id", 0);
-                    event.title = item.optString("title", "");
-                    event.patientName = item.optString("patient_name", "");
-                    event.startTime = item.optString("start_time", "");
-                    event.endTime = item.optString("end_time", "");
-                    event.color = item.optString("color", "");
-                    overview.events.add(event);
+            month.label = json.optString("monthLabel", "");
+            JSONArray weeks = json.optJSONArray("weeks");
+            if (weeks != null) {
+                for (int w = 0; w < weeks.length(); w++) {
+                    JSONArray weekArray = weeks.optJSONArray(w);
+                    if (weekArray == null) continue;
+                    List<WidgetDay> week = new ArrayList<>();
+                    for (int d = 0; d < weekArray.length(); d++) {
+                        JSONObject cell = weekArray.optJSONObject(d);
+                        if (cell == null) continue;
+                        WidgetDay day = new WidgetDay();
+                        day.date = cell.optString("date", "");
+                        day.day = cell.optInt("day", 0);
+                        day.inMonth = cell.optBoolean("inMonth", true);
+                        day.isToday = cell.optBoolean("isToday", false);
+                        JSONArray events = cell.optJSONArray("events");
+                        if (events != null) {
+                            for (int e = 0; e < events.length(); e++) {
+                                JSONObject item = events.optJSONObject(e);
+                                if (item == null) continue;
+                                day.dotColors.add(item.optString("color", ""));
+                            }
+                        }
+                        week.add(day);
+                    }
+                    month.weeks.add(week);
                 }
             }
-            return overview;
+            return month;
         } finally {
             if (conn != null) conn.disconnect();
         }
@@ -158,65 +210,82 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return builder.toString();
     }
 
-    private static RemoteViews buildViews(Context context, WidgetOverview overview, String error) {
+    private static RemoteViews buildViews(Context context, WidgetMonth month, int offset, String error) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_layout);
 
-        // Whole-widget tap → open the calendar.
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
-        views.setOnClickPendingIntent(R.id.widget_open_all, openAppIntent(context, 1, "/calendario"));
+        views.setOnClickPendingIntent(R.id.widget_title, openAppIntent(context, 1, "/calendario?view=month"));
+        views.setOnClickPendingIntent(R.id.widget_prev, broadcastIntent(context, ACTION_PREV_MONTH, 2));
+        views.setOnClickPendingIntent(R.id.widget_next, broadcastIntent(context, ACTION_NEXT_MONTH, 3));
+        views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4));
 
-        if (error != null) {
-            for (int id : ROW_IDS) views.setViewVisibility(id, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_empty, android.view.View.GONE);
+        if (error != null || month == null || month.weeks.isEmpty()) {
+            for (int id : WEEK_ROW_IDS) views.setViewVisibility(id, android.view.View.GONE);
+            views.setViewVisibility(R.id.widget_weekdays, android.view.View.GONE);
+            views.setViewVisibility(R.id.widget_divider, android.view.View.GONE);
+            views.setViewVisibility(R.id.widget_today, android.view.View.GONE);
             views.setViewVisibility(R.id.widget_error, android.view.View.VISIBLE);
-            views.setTextViewText(R.id.widget_error, error);
-            views.setTextViewText(R.id.widget_date, "Diamond Calendar");
+            views.setTextViewText(R.id.widget_error, error != null ? error : "Sin datos");
+            views.setTextViewText(R.id.widget_title, "Diamond Calendar");
             return views;
         }
 
-        int count = overview == null ? 0 : overview.events.size();
-        String greeting = (overview != null && overview.userName != null && !overview.userName.isEmpty())
-                ? "Hola, " + overview.userName
-                : "Hoy";
-        views.setTextViewText(R.id.widget_title, "Diamond Calendar");
-        views.setTextViewText(R.id.widget_date, greeting + " · " + shortDate(overview == null ? "" : overview.date));
+        views.setViewVisibility(R.id.widget_error, android.view.View.GONE);
+        views.setViewVisibility(R.id.widget_weekdays, android.view.View.VISIBLE);
+        views.setViewVisibility(R.id.widget_divider, android.view.View.VISIBLE);
+        views.setTextViewText(R.id.widget_title, month.label);
+        views.setViewVisibility(R.id.widget_today, offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
 
-        // Rows
-        for (int i = 0; i < ROW_IDS.length; i++) {
-            if (overview != null && i < overview.events.size()) {
-                WidgetEvent event = overview.events.get(i);
-                views.setViewVisibility(ROW_IDS[i], android.view.View.VISIBLE);
-                views.setTextViewText(TIME_IDS[i], formatTime(event.startTime));
-                views.setTextViewText(TEXT_IDS[i], rowLabel(event));
-                String path = "/calendario?view=day&date=" + Uri.encode(overview.date)
-                        + "&eventId=" + event.id;
-                views.setOnClickPendingIntent(ROW_IDS[i], openAppIntent(context, 10 + i, path));
-            } else {
-                views.setViewVisibility(ROW_IDS[i], android.view.View.GONE);
+        // Each row is statically declared in the layout, so cells are added one
+        // level deep (nested RemoteViews cannot themselves call addView).
+        for (int w = 0; w < WEEK_ROW_IDS.length; w++) {
+            List<WidgetDay> week = month.weeks.size() > w ? month.weeks.get(w) : null;
+            for (int d = 0; d < 7; d++) {
+                WidgetDay day = (week != null && week.size() > d) ? week.get(d) : null;
+                views.addView(WEEK_ROW_IDS[w], buildDayCell(context, day, w * 7 + d));
             }
-        }
-
-        if (count == 0) {
-            views.setViewVisibility(R.id.widget_empty, android.view.View.VISIBLE);
-            views.setTextViewText(R.id.widget_empty, "Sin citas hoy");
-            views.setViewVisibility(R.id.widget_error, android.view.View.GONE);
-        } else {
-            views.setViewVisibility(R.id.widget_empty, android.view.View.GONE);
-            views.setViewVisibility(R.id.widget_error, android.view.View.GONE);
         }
 
         return views;
     }
 
-    private static String rowLabel(WidgetEvent event) {
-        String title = event.title != null ? event.title.trim() : "";
-        String patient = event.patientName != null ? event.patientName.trim() : "";
-        if (!title.isEmpty() && !patient.isEmpty() && !title.equalsIgnoreCase(patient)) {
-            return title + " · " + patient;
+    private static RemoteViews buildDayCell(Context context, WidgetDay day, int index) {
+        RemoteViews cell = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_day_cell);
+
+        if (day == null) {
+            cell.setViewVisibility(R.id.day_number, android.view.View.INVISIBLE);
+            for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
+            return cell;
         }
-        if (!patient.isEmpty()) return patient;
-        if (!title.isEmpty()) return title;
-        return "Cita";
+
+        cell.setTextViewText(R.id.day_number, String.valueOf(day.day));
+        int textColor = day.inMonth ? 0xFF0F172A : 0xFFCBD5E1;
+        if (day.isToday) {
+            cell.setInt(R.id.day_number, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
+            textColor = 0xFFFFFFFF;
+        }
+        cell.setTextColor(R.id.day_number, textColor);
+
+        for (int i = 0; i < DAY_DOT_IDS.length; i++) {
+            if (i < day.dotColors.size()) {
+                cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.VISIBLE);
+                cell.setInt(DAY_DOT_IDS[i], "setColorFilter", parseColor(day.dotColors.get(i)));
+            } else {
+                cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.GONE);
+            }
+        }
+
+        String path = "/calendario?view=day&date=" + Uri.encode(day.date);
+        cell.setOnClickPendingIntent(R.id.day_cell_root, openAppIntent(context, 100 + index, path));
+        return cell;
+    }
+
+    private static int parseColor(String value) {
+        try {
+            if (value != null && !value.isEmpty()) return Color.parseColor(value);
+        } catch (Exception ignored) {
+        }
+        return 0xFF14B8A6;
     }
 
     private static PendingIntent openAppIntent(Context context, int requestCode, String path) {
@@ -233,48 +302,27 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static String shortDate(String isoDate) {
-        if (isoDate == null || isoDate.length() < 10) return "";
-        try {
-            int month = Integer.parseInt(isoDate.substring(5, 7));
-            String day = isoDate.substring(8, 10);
-            String[] months = {"ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"};
-            if (month >= 1 && month <= 12) {
-                return Integer.parseInt(day) + " " + months[month - 1];
-            }
-        } catch (Exception ignored) {
-        }
-        return "";
-    }
-
-    private static String formatTime(String value) {
-        if (value == null || value.isEmpty()) return "";
-        String[] parts = value.split(":");
-        if (parts.length < 2) return value;
-        try {
-            int hour = Integer.parseInt(parts[0]);
-            String minute = parts[1].length() >= 2 ? parts[1].substring(0, 2) : "00";
-            int h12 = hour % 12 == 0 ? 12 : hour % 12;
-            String suffix = hour >= 12 ? "p.m." : "a.m.";
-            return h12 + ":" + minute + " " + suffix;
-        } catch (Exception e) {
-            return value;
-        }
+    private static PendingIntent broadcastIntent(Context context, String action, int requestCode) {
+        Intent intent = new Intent(context, CalendarWidgetProvider.class);
+        intent.setAction(action);
+        return PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** Minimal POJOs (kept static to avoid extra files). */
-    private static class WidgetOverview {
-        String date = "";
-        String userName = "";
-        final java.util.List<WidgetEvent> events = new java.util.ArrayList<>();
+    private static class WidgetMonth {
+        String label = "";
+        final List<List<WidgetDay>> weeks = new ArrayList<>();
     }
 
-    private static class WidgetEvent {
-        long id;
-        String title = "";
-        String patientName = "";
-        String startTime = "";
-        String endTime = "";
-        String color = "";
+    private static class WidgetDay {
+        String date = "";
+        int day;
+        boolean inMonth = true;
+        boolean isToday;
+        final List<String> dotColors = new ArrayList<>();
     }
 }
