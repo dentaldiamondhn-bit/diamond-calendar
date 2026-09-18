@@ -6,7 +6,7 @@
  * *production* Clerk ids, so a dev login would otherwise see an empty calendar.
  * This map re-links each dev user to their production id so the calendar and
  * "Próximos Eventos" render the real events while running next dev. It is a
- * no-op outside development, so the deployed app is untouched.
+ * no-op outside development/preview, so the deployed app is untouched.
  *
  * Dev and prod instances share the same emails; keep this map in sync when
  * staff change (diff prod vs dev users through the Clerk backend API).
@@ -28,37 +28,15 @@ const DEV_TO_PROD: Record<string, string> = {
   'user_390FlsnHRVbguZF1640Z4Fc36VE': 'user_3JKYsRMZqgNvZ4DMH29DJamUFle', // Dra. Jimena Molina
 };
 
-// Reverse mapping: prod ID → dev ID
-const PROD_TO_DEV: Record<string, string> = Object.fromEntries(
-  Object.entries(DEV_TO_PROD).map(([dev, prod]) => [prod, dev])
-);
-
 /** Returns true if we should use the dev→prod ID mapping (localhost dev or Vercel preview). */
 function shouldUseDevMapping(): boolean {
   return process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
 }
 
-/**
- * Returns the set of Clerk user IDs to query for a given caller.
- * In dev/preview: maps dev ID → prod ID (and vice versa) so the Supabase query
- * finds events owned by either identity. In prod: returns the caller's ID only.
- */
+/** Dev/Preview-only: the caller's id set (own dev id + mapped prod id) for calendar reads. */
 export function calendarAliasIds(userId: string): string[] {
   if (!userId) return [];
   if (!shouldUseDevMapping()) return [userId];
-
-  // If user ID is a dev ID, map to prod ID as well
   const prodId = DEV_TO_PROD[userId];
-  if (prodId) {
-    return [...new Set([userId, prodId])];
-  }
-
-  // If user ID is a prod ID, also include the dev ID (for completeness)
-  const devId = PROD_TO_DEV[userId];
-  if (devId) {
-    return [...new Set([userId, devId])];
-  }
-
-  // Unknown ID - return as-is (will query with this ID only)
-  return [userId];
+  return prodId ? [...new Set([userId, prodId])] : [userId];
 }
