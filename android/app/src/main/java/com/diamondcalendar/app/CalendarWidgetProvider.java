@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.webkit.CookieManager;
 import android.widget.RemoteViews;
@@ -58,6 +59,19 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final int[] DAY_DOT_IDS = {
             R.id.day_dot_1, R.id.day_dot_2, R.id.day_dot_3,
     };
+    private static final int[] DAY_LABEL_IDS = {
+            R.id.day_label_1, R.id.day_label_2,
+    };
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager,
+                                          int appWidgetId, Bundle newOptions) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
+        // Track the widget footprint so expanded layouts (event names) follow the
+        // user's resize, even on launchers that don't report sizes at request time.
+        isExpanded(context, appWidgetId, newOptions);
+        refreshAll(context);
+    }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -113,11 +127,42 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     error = "Toca para abrir la app";
                 }
             }
-            RemoteViews views = buildViews(appContext, month, offset, error);
             for (int id : ids) {
+                boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
+                RemoteViews views = buildViews(appContext, month, offset, error, expanded);
                 manager.updateAppWidget(id, views);
             }
         });
+    }
+
+    /**
+     * Detects the current widget footprint from the launcher options (dp, API 31+)
+     * and stores it per widget id. On older launchers that never report options we
+     * fall back to whatever was stored last (defaults to the compact dot view).
+     */
+    private static boolean isExpanded(Context context, int widgetId, Bundle options) {
+        float width = optSize(options, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+        float height = optSize(options, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean expanded;
+        if (width <= 0 && height <= 0) {
+            expanded = prefs.getBoolean("expanded_" + widgetId, false);
+        } else {
+            expanded = width >= 380 || height >= 330;
+            prefs.edit().putBoolean("expanded_" + widgetId, expanded).apply();
+        }
+        return expanded;
+    }
+
+    private static float optSize(Bundle options, String key) {
+        if (options == null || !options.containsKey(key)) return 0f;
+        Object value = options.get(key);
+        if (value instanceof Number) return ((Number) value).floatValue();
+        try {
+            return Float.parseFloat(String.valueOf(value));
+        } catch (Exception ignored) {
+            return 0f;
+        }
     }
 
     private static int getOffset(Context context) {
@@ -185,6 +230,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                                 JSONObject item = events.optJSONObject(e);
                                 if (item == null) continue;
                                 day.dotColors.add(item.optString("color", ""));
+                                if (day.labels.size() < DAY_LABEL_IDS.length) {
+                                    day.labels.add(item.optString("label", ""));
+                                }
                             }
                         }
                         week.add(day);
@@ -210,7 +258,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return builder.toString();
     }
 
-    private static RemoteViews buildViews(Context context, WidgetMonth month, int offset, String error) {
+    private static RemoteViews buildViews(Context context, WidgetMonth month, int offset, String error,
+                                          boolean expanded) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_layout);
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
@@ -242,36 +291,54 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             List<WidgetDay> week = month.weeks.size() > w ? month.weeks.get(w) : null;
             for (int d = 0; d < 7; d++) {
                 WidgetDay day = (week != null && week.size() > d) ? week.get(d) : null;
-                views.addView(WEEK_ROW_IDS[w], buildDayCell(context, day, w * 7 + d));
+                views.addView(WEEK_ROW_IDS[w], buildDayCell(context, day, w * 7 + d, expanded));
             }
         }
 
         return views;
     }
 
-    private static RemoteViews buildDayCell(Context context, WidgetDay day, int index) {
+    private static RemoteViews buildDayCell(Context context, WidgetDay day, int index, boolean expanded) {
         RemoteViews cell = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_day_cell);
 
         if (day == null) {
             cell.setViewVisibility(R.id.day_number, android.view.View.INVISIBLE);
             for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
+            for (int id : DAY_LABEL_IDS) cell.setViewVisibility(id, android.view.View.GONE);
             return cell;
         }
 
         cell.setTextViewText(R.id.day_number, String.valueOf(day.day));
-        int textColor = day.inMonth ? 0xFF0F172A : 0xFFCBD5E1;
+        int textColor = day.inMonth
+                ? context.getColor(R.color.widget_day_text)
+                : context.getColor(R.color.widget_day_dim);
         if (day.isToday) {
             cell.setInt(R.id.day_number, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
-            textColor = 0xFFFFFFFF;
+            textColor = context.getColor(R.color.widget_today_text);
         }
         cell.setTextColor(R.id.day_number, textColor);
 
-        for (int i = 0; i < DAY_DOT_IDS.length; i++) {
-            if (i < day.dotColors.size()) {
-                cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.VISIBLE);
-                cell.setInt(DAY_DOT_IDS[i], "setColorFilter", parseColor(day.dotColors.get(i)));
-            } else {
-                cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.GONE);
+        if (expanded) {
+            // Large footprint — show up to 2 event names per day instead of dots.
+            for (int id : DAY_DOT_IDS) cell.setViewVisibility(id, android.view.View.GONE);
+            for (int i = 0; i < DAY_LABEL_IDS.length; i++) {
+                String label = i < day.labels.size() ? day.labels.get(i) : "";
+                cell.setTextViewText(DAY_LABEL_IDS[i], label);
+                cell.setViewVisibility(DAY_LABEL_IDS[i], android.view.View.VISIBLE);
+            }
+        } else {
+            // Compact footprint — event dots.
+            for (int id : DAY_LABEL_IDS) {
+                cell.setViewVisibility(id, android.view.View.GONE);
+                cell.setTextViewText(id, "");
+            }
+            for (int i = 0; i < DAY_DOT_IDS.length; i++) {
+                if (i < day.dotColors.size()) {
+                    cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.VISIBLE);
+                    cell.setInt(DAY_DOT_IDS[i], "setColorFilter", parseColor(day.dotColors.get(i)));
+                } else {
+                    cell.setViewVisibility(DAY_DOT_IDS[i], android.view.View.GONE);
+                }
             }
         }
 
@@ -324,5 +391,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         boolean inMonth = true;
         boolean isToday;
         final List<String> dotColors = new ArrayList<>();
+        final List<String> labels = new ArrayList<>();
     }
 }

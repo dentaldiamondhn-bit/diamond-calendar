@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_surface">#0F172A</color>
+    <color name="widget_border">#1E293B</color>
+    <color name="widget_nav_bg">#1E293B</color>
+    <color name="widget_title">#2DD4BF</color>
+    <color name="widget_nav_fg">#5EEAD4</color>
+    <color name="widget_weekday">#64748B</color>
+    <color name="widget_divider">#1E293B</color>
+    <color name="widget_day_text">#E2E8F0</color>
+    <color name="widget_day_dim">#475569</color>
+    <color name="widget_label">#94A3B8</color>
+    <color name="widget_error">#94A3B8</color>
+    <color name="widget_today">#14B8A6</color>
+    <color name="widget_today_text">#FFFFFF</color>
+    <color name="widget_chip">#14B8A6</color>
+    <color name="widget_dot">#14B8A6</color>
+</resources>

@@ -26,6 +26,17 @@ interface CellEvent {
   time: string;
   color: string;
   title: string;
+  patientName: string;
+  label: string;
+}
+
+/** Display label: prefer the patient name; otherwise fall back to the title
+ *  with any "Cita con" prefix stripped (older events have no patient_name). */
+function eventLabel(title: string | null, patientName: string | null): string {
+  const patient = (patientName || '').trim();
+  if (patient) return patient;
+  const t = (title || '').trim();
+  return t.replace(/^Cita con\s*/i, '');
 }
 
 interface Cell {
@@ -124,6 +135,8 @@ export async function GET(request: NextRequest) {
         time: row.start_time || '',
         color: row.color || '#0d9488',
         title: row.title || row.patient_name || '',
+        patientName: row.patient_name || '',
+        label: eventLabel(row.title, row.patient_name || ''),
       });
       byDate.set(date, list);
     }

@@ -12,10 +12,11 @@
         android:layout_width="26dp"
         android:layout_height="26dp"
         android:gravity="center"
-        android:textColor="#0F172A"
+        android:textColor="@color/widget_day_text"
         android:textSize="12sp" />
 
     <LinearLayout
+        android:id="@+id/day_dots"
         android:layout_width="wrap_content"
         android:layout_height="6dp"
         android:layout_marginTop="1dp"
@@ -45,4 +46,30 @@
             android:src="@drawable/calendar_widget_dot"
             android:visibility="gone" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/day_label_1"
+        android:layout_width="match_parent"
+        android:layout_height="9dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp"
+        android:textColor="@color/widget_label"
+        android:textSize="9sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/day_label_2"
+        android:layout_width="match_parent"
+        android:layout_height="9dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp"
+        android:textColor="@color/widget_label"
+        android:textSize="9sp"
+        android:visibility="gone" />
 </LinearLayout>

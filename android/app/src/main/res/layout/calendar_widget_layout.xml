@@ -24,7 +24,7 @@
             android:background="@drawable/calendar_widget_nav"
             android:gravity="center"
             android:text="\u2039"
-            android:textColor="#0F766E"
+            android:textColor="@color/widget_nav_fg"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -37,7 +37,7 @@
             android:gravity="center"
             android:maxLines="1"
             android:text="Diamond Calendar"
-            android:textColor="#0F766E"
+            android:textColor="@color/widget_title"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
             android:background="@drawable/calendar_widget_nav"
             android:gravity="center"
             android:text="\u203a"
-            android:textColor="#0F766E"
+            android:textColor="@color/widget_nav_fg"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -63,7 +63,7 @@
             android:paddingRight="10dp"
             android:paddingBottom="3dp"
             android:text="Hoy"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/widget_today_text"
             android:textSize="11sp"
             android:textStyle="bold"
             android:visibility="gone" />
@@ -82,7 +82,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Lun"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -91,7 +91,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Mar"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -100,7 +100,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Mi\u00e9"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -109,7 +109,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Jue"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -118,7 +118,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Vie"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -127,7 +127,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="S\u00e1b"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
 
         <TextView
@@ -136,7 +136,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Dom"
-            android:textColor="#94A3B8"
+            android:textColor="@color/widget_weekday"
             android:textSize="10sp" />
     </LinearLayout>
 
@@ -146,7 +146,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="4dp"
-        android:background="#E2E8F0" />
+        android:background="@color/widget_divider" />
 
     <LinearLayout
         android:id="@+id/widget_week_1"
@@ -203,7 +203,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="Toca para abrir la app"
-        android:textColor="#94A3B8"
+        android:textColor="@color/widget_error"
         android:textSize="12sp"
         android:visibility="gone" />
 </LinearLayout>
