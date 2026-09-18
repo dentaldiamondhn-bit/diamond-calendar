@@ -1,5 +1,6 @@
 package com.diamondcalendar.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.webkit.WebView;
 
@@ -29,5 +30,42 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         });
+
+        handleWidgetIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleWidgetIntent(intent);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Keep the launcher widget in sync whenever the app (re)opens, so it
+        // reflects the latest session and appointments.
+        Intent refresh = new Intent(this, CalendarWidgetProvider.class)
+                .setAction(CalendarWidgetProvider.ACTION_REFRESH);
+        sendBroadcast(refresh);
+    }
+
+    /** App widget taps arrive as an ACTION_VIEW intent carrying the target path. */
+    private void handleWidgetIntent(Intent intent) {
+        if (intent == null) return;
+        String path = intent.getStringExtra(CalendarWidgetProvider.EXTRA_WIDGET_PATH);
+        if (path == null || path.isEmpty()) return;
+        intent.removeExtra(CalendarWidgetProvider.EXTRA_WIDGET_PATH);
+
+        if (bridge == null || bridge.getWebView() == null) {
+            return;
+        }
+        navigateTo(path);
+    }
+
+    private void navigateTo(String path) {
+        String url = "https://calendario.dentaldiamondhn.com" + path;
+        bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
     }
 }

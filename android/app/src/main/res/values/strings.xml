@@ -5,4 +5,5 @@
     <string name="package_name">com.diamondcalendar.app</string>
     <string name="custom_url_scheme">com.diamondcalendar.app</string>
     <string name="default_notification_channel_id">reminders</string>
+    <string name="widget_description">Citas de hoy</string>
 </resources>
