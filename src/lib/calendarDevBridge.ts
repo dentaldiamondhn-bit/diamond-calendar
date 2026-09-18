@@ -28,9 +28,14 @@ const DEV_TO_PROD: Record<string, string> = {
   'user_390FlsnHRVbguZF1640Z4Fc36VE': 'user_3JKYsRMZqgNvZ4DMH29DJamUFle', // Dra. Jimena Molina
 };
 
-/** Dev-only: the caller's id set (own dev id + mapped prod id) for calendar reads. */
+/** Returns true if we should use the dev→prod ID mapping (localhost dev or Vercel preview). */
+function shouldUseDevMapping(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
+}
+
+/** Dev/Preview-only: the caller's id set (own dev id + mapped prod id) for calendar reads. */
 export function calendarAliasIds(userId: string): string[] {
-  if (process.env.NODE_ENV !== 'development') return [userId];
+  if (!shouldUseDevMapping()) return [userId];
   const prodId = DEV_TO_PROD[userId];
   return prodId ? [...new Set([userId, prodId])] : [userId];
 }
