@@ -29,8 +29,8 @@ export default function AuthLayout({
           <NotificationProvider>
             <BellNotificationProvider>
               {showAuth ? (
-                  <div className="flex h-screen bg-gray-100">
-                    <div className="flex-1 flex flex-col">
+                  <div className="flex h-screen w-full min-w-0 bg-gray-100 overflow-x-clip">
+                    <div className="flex-1 flex min-w-0 flex-col">
                       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
@@ -58,7 +58,7 @@ export default function AuthLayout({
                           </div>
                         </div>
                       </header>
-                      <main className="flex-1 overflow-auto">
+                      <main className="flex-1 w-full min-w-0 overflow-auto">
                         {children}
                       </main>
                     </div>

@@ -385,15 +385,15 @@ if (eventsQuery.isPending && !eventsQuery.data) {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {queryError ? (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
           No se pudieron cargar algunos datos del calendario. Reintentando…
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-        <div>
+      <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
+        <div className="min-w-0">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-500 hidden sm:block">
               {events.length} {events.length === 1 ? 'cita' : 'citas'}
@@ -430,7 +430,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="hidden lg:block">
             <DayDetail
               dateStr={selectedDate}
