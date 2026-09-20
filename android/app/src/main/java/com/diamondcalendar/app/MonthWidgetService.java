@@ -48,6 +48,10 @@ public class MonthWidgetService extends RemoteViewsService {
             {R.id.day_dot_5_1, R.id.day_dot_5_2, R.id.day_dot_5_3},
             {R.id.day_dot_6_1, R.id.day_dot_6_2, R.id.day_dot_6_3},
     };
+    private static final int[] DOTS_CONTAINER_IDS = {
+            R.id.day_dots_0, R.id.day_dots_1, R.id.day_dots_2, R.id.day_dots_3,
+            R.id.day_dots_4, R.id.day_dots_5, R.id.day_dots_6,
+    };
     private static final int[] LABEL_1_IDS = {
             R.id.day_label_0_1, R.id.day_label_1_1, R.id.day_label_2_1, R.id.day_label_3_1,
             R.id.day_label_4_1, R.id.day_label_5_1, R.id.day_label_6_1,
@@ -213,6 +217,7 @@ public class MonthWidgetService extends RemoteViewsService {
 
             if (expanded) {
                 for (int dot : DOT_IDS[c]) row.setViewVisibility(dot, android.view.View.GONE);
+                row.setViewVisibility(DOTS_CONTAINER_IDS[c], android.view.View.GONE);
                 int eventCount = day.labels.size();
                 for (int k = 0; k < 2; k++) {
                     int labelId = (k == 0 ? LABEL_1_IDS : LABEL_2_IDS)[c];

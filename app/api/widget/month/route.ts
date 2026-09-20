@@ -89,10 +89,15 @@ export async function GET(request: NextRequest) {
     const target = addMonths(y, m, offset);
     const firstKey = keyOf(target.y, target.m, 1);
 
-    // Monday-start padding, then 6 fixed weeks (42 cells) so the grid height is stable.
+    // Monday-start padding. Rows are computed from the month's actual span:
+    // ceil((leading + daysInMonth) / 7) -> 5 for a month like Sept 2026
+    // (Tue start, 30 days) and only 6 when the trailing week is non-empty,
+    // so the widget never renders a phantom empty last row.
     const leading = (weekdayOf(firstKey) - 1 + 7) % 7;
+    const daysInMonth = new Date(Date.UTC(target.y, target.m, 0)).getUTCDate();
+    const rowCount = Math.ceil((leading + daysInMonth) / 7);
     const gridStart = addDaysKey(firstKey, -leading);
-    const gridEnd = addDaysKey(gridStart, 41);
+    const gridEnd = addDaysKey(gridStart, rowCount * 7 - 1);
 
     const aliasIds = calendarAliasIds(userId);
     const { data: inviteeRows } = await supabase
@@ -145,7 +150,7 @@ export async function GET(request: NextRequest) {
     }
 
     const weeks: Cell[][] = [];
-    for (let w = 0; w < 6; w++) {
+    for (let w = 0; w < rowCount; w++) {
       const week: Cell[] = [];
       for (let d = 0; d < 7; d++) {
         const date = addDaysKey(gridStart, w * 7 + d);

@@ -12,7 +12,6 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -22,6 +21,7 @@
                 android:id="@+id/day_number_0"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -29,6 +29,7 @@
                 android:id="@+id/day_dots_0"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -51,6 +52,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_0_1"
                 android:layout_width="match_parent"
@@ -135,13 +140,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_1"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -151,6 +159,7 @@
                 android:id="@+id/day_number_1"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -158,6 +167,7 @@
                 android:id="@+id/day_dots_1"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -180,6 +190,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_1_1"
                 android:layout_width="match_parent"
@@ -264,13 +278,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_2"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -280,6 +297,7 @@
                 android:id="@+id/day_number_2"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -287,6 +305,7 @@
                 android:id="@+id/day_dots_2"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -309,6 +328,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_2_1"
                 android:layout_width="match_parent"
@@ -393,13 +416,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_3"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -409,6 +435,7 @@
                 android:id="@+id/day_number_3"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -416,6 +443,7 @@
                 android:id="@+id/day_dots_3"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -438,6 +466,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_3_1"
                 android:layout_width="match_parent"
@@ -522,13 +554,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_4"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -538,6 +573,7 @@
                 android:id="@+id/day_number_4"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -545,6 +581,7 @@
                 android:id="@+id/day_dots_4"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -567,6 +604,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_4_1"
                 android:layout_width="match_parent"
@@ -651,13 +692,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_5"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -667,6 +711,7 @@
                 android:id="@+id/day_number_5"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -674,6 +719,7 @@
                 android:id="@+id/day_dots_5"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -696,6 +742,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_5_1"
                 android:layout_width="match_parent"
@@ -780,13 +830,16 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_6"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="3dp"
             android:paddingRight="3dp"
@@ -796,6 +849,7 @@
                 android:id="@+id/day_number_6"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="start"
                 android:gravity="center"
                 android:textColor="@color/widget_day_text"
                 android:textSize="12sp" />
@@ -803,6 +857,7 @@
                 android:id="@+id/day_dots_6"
                 android:layout_width="wrap_content"
                 android:layout_height="6dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -825,6 +880,10 @@
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
         </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
             <LinearLayout
                 android:id="@+id/day_label_6_1"
                 android:layout_width="match_parent"
@@ -909,6 +968,10 @@
                         android:textSize="7sp" />
                 </LinearLayout>
             </LinearLayout>
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
 
 </LinearLayout>
