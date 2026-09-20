@@ -1,12 +1,15 @@
 package com.diamondcalendar.app;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebView;
 
 import androidx.activity.OnBackPressedCallback;
 
 import com.getcapacitor.BridgeActivity;
+
+import java.lang.reflect.Method;
 
 public class MainActivity extends BridgeActivity {
 
@@ -32,6 +35,27 @@ public class MainActivity extends BridgeActivity {
         });
 
         handleWidgetIntent(getIntent());
+    }
+
+    @Override
+    protected void load() {
+        super.load();
+        // The calendar navigates by horizontal swipes; keep Android WebView's
+        // edge-swipe back/forward history gesture from stealing those touches.
+        // (setAllowBackForwardNavigationGestures is a hidden framework API.)
+        WebView webView = bridge != null ? bridge.getWebView() : null;
+        if (webView != null) disableHistoryGestures(webView);
+    }
+
+    @SuppressWarnings("JavaReflectionMemberAccess")
+    private static void disableHistoryGestures(WebView webView) {
+        if (webView == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return;
+        try {
+            Method m = WebView.class.getMethod("setAllowBackForwardNavigationGestures", boolean.class);
+            m.invoke(webView, false);
+        } catch (Throwable ignored) {
+            // Gesture nav support is best-effort; swipes still work in the page.
+        }
     }
 
     @Override
