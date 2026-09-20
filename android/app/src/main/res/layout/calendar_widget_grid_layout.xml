@@ -153,13 +153,17 @@
         android:layout_marginBottom="4dp"
         android:background="@color/widget_divider" />
 
-    <LinearLayout
-        android:id="@+id/widget_week_rows"
+    <ListView
+        android:id="@+id/widget_week_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="6dp"
         android:layout_weight="1"
-        android:orientation="vertical" />
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:listSelector="@android:color/transparent"
+        android:overScrollMode="never"
+        android:paddingTop="2dp"
+        android:scrollbars="none" />
 
     <TextView
         android:id="@+id/widget_error"

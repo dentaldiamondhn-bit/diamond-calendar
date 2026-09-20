@@ -30,11 +30,10 @@ import java.util.concurrent.Executors;
 /**
  * Home-launcher month-calendar widget (Google-Calendar style).
  *
- * The entire grid (header, weekday labels and every week row) is rendered as a
- * single static {@code RemoteViews} tree pushed with {@code updateAppWidget}.
- * No RemoteViewsService collection is involved, so launchers never show a
- * per-row "Loading..." placeholder that can stall — the launcher displays the
- * exact rows this provider pushed, and every refresh re-pushes the whole grid.
+ * The six week rows are served by {@link MonthWidgetService} as a RemoteViews
+ * collection so the launcher always re-queries the app for the grid content
+ * after widget re-creation (page switches, rotation, launcher restarts) instead
+ * of relying on the last pushed {@code RemoteViews}, which stock launchers drop.
  *
  * Auth reuses the Clerk session cookies the Capacitor WebView stores for the
  * app origin — the widget fetches {@code /api/widget/month} (cookie-authenticated).
@@ -63,12 +62,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
     /**
-     * Most recent fetch result. {@link #refreshAsync} renders the full grid from
-     * this, and on a failed re-fetch it keeps rendering the last good month so a
-     * navigation tap or resize that hits a network/auth hiccup never blanks the
-     * tiles out to the error placeholder.
+     * Most recent fetch result. The {@link MonthWidgetService} factory reads
+     * this on every launcher-driven re-render, so a recreated widget always
+     * shows current content without waiting for a fresh provider callback.
      *
-     * This is never overwritten with a failure.
+     * This is never overwritten with a failure: on a month-navigation tap or a
+     * resize that hits a network/auth hiccup the grid keeps rendering whatever
+     * was fetched last, so the tiles never blank out to the error placeholder.
      */
     static volatile WidgetMonth LAST_MONTH;
 
@@ -169,8 +169,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
             for (int id : ids) {
                 boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
-                RemoteViews views = buildViews(appContext, display, displayOffset, shownError, id, expanded);
+                RemoteViews views = buildViews(appContext, display, displayOffset, shownError, id);
                 manager.updateAppWidget(id, views);
+                manager.notifyAppWidgetViewDataChanged(id, R.id.widget_week_list);
             }
         });
     }
@@ -322,12 +323,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /**
      * Builds the root widget RemoteViews: header (month nav / Hoy), weekday row,
-     * and the full calendar grid rendered as static week rows. No RemoteViews
-     * collection is used, so launchers never have a per-row "Loading..." phase
-     * to stall on — the entire grid is one tree that updates atomically.
+     * and a ListView bound to {@link MonthWidgetService} for the six week rows.
      */
     private static RemoteViews buildViews(Context context, WidgetMonth month, int offset,
-                                          String error, int widgetId, boolean expanded) {
+                                          String error, int widgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_grid_layout);
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
@@ -348,233 +347,17 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widget_title, month.label);
             views.setViewVisibility(R.id.widget_today,
                     offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
-            int rowCount = Math.max(1, month.weeks.size());
-            int[] heightsPx = rowHeightsPx(context, widgetId, rowCount);
-            for (int w = 0; w < month.weeks.size(); w++) {
-                RemoteViews row = buildWeekRow(context, month.weeks.get(w),
-                        heightsPx[Math.min(w, heightsPx.length - 1)], expanded, 200 + w * 8);
-                views.addView(R.id.widget_week_rows, row);
-            }
         }
+
+        Intent service = new Intent(context, MonthWidgetService.class);
+        service.setData(Uri.parse("widget://calendar/" + widgetId));
+        service.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
+        views.setRemoteAdapter(R.id.widget_week_list, service);
+        views.setEmptyView(R.id.widget_week_list, R.id.widget_error);
+        views.setPendingIntentTemplate(R.id.widget_week_list,
+                openAppIntent(context, 50, "/calendario"));
 
         return views;
-    }
-
-    private static final int[] CELL_IDS = {
-            R.id.day_cell_0, R.id.day_cell_1, R.id.day_cell_2, R.id.day_cell_3,
-            R.id.day_cell_4, R.id.day_cell_5, R.id.day_cell_6,
-    };
-    private static final int[] NUMBER_IDS = {
-            R.id.day_number_0, R.id.day_number_1, R.id.day_number_2, R.id.day_number_3,
-            R.id.day_number_4, R.id.day_number_5, R.id.day_number_6,
-    };
-    private static final int[][] DOT_IDS = {
-            {R.id.day_dot_0_1, R.id.day_dot_0_2, R.id.day_dot_0_3},
-            {R.id.day_dot_1_1, R.id.day_dot_1_2, R.id.day_dot_1_3},
-            {R.id.day_dot_2_1, R.id.day_dot_2_2, R.id.day_dot_2_3},
-            {R.id.day_dot_3_1, R.id.day_dot_3_2, R.id.day_dot_3_3},
-            {R.id.day_dot_4_1, R.id.day_dot_4_2, R.id.day_dot_4_3},
-            {R.id.day_dot_5_1, R.id.day_dot_5_2, R.id.day_dot_5_3},
-            {R.id.day_dot_6_1, R.id.day_dot_6_2, R.id.day_dot_6_3},
-    };
-    private static final int[] DOTS_CONTAINER_IDS = {
-            R.id.day_dots_0, R.id.day_dots_1, R.id.day_dots_2, R.id.day_dots_3,
-            R.id.day_dots_4, R.id.day_dots_5, R.id.day_dots_6,
-    };
-    private static final int[] LABEL_1_IDS = {
-            R.id.day_label_0_1, R.id.day_label_1_1, R.id.day_label_2_1, R.id.day_label_3_1,
-            R.id.day_label_4_1, R.id.day_label_5_1, R.id.day_label_6_1,
-    };
-    private static final int[] LABEL_2_IDS = {
-            R.id.day_label_0_2, R.id.day_label_1_2, R.id.day_label_2_2, R.id.day_label_3_2,
-            R.id.day_label_4_2, R.id.day_label_5_2, R.id.day_label_6_2,
-    };
-    private static final int[] NAME_1_IDS = {
-            R.id.day_name_0_1, R.id.day_name_1_1, R.id.day_name_2_1, R.id.day_name_3_1,
-            R.id.day_name_4_1, R.id.day_name_5_1, R.id.day_name_6_1,
-    };
-    private static final int[] NAME_2_IDS = {
-            R.id.day_name_0_2, R.id.day_name_1_2, R.id.day_name_2_2, R.id.day_name_3_2,
-            R.id.day_name_4_2, R.id.day_name_5_2, R.id.day_name_6_2,
-    };
-    private static final int[] TIME_1_IDS = {
-            R.id.day_time_0_1, R.id.day_time_1_1, R.id.day_time_2_1, R.id.day_time_3_1,
-            R.id.day_time_4_1, R.id.day_time_5_1, R.id.day_time_6_1,
-    };
-    private static final int[] TIME_2_IDS = {
-            R.id.day_time_0_2, R.id.day_time_1_2, R.id.day_time_2_2, R.id.day_time_3_2,
-            R.id.day_time_4_2, R.id.day_time_5_2, R.id.day_time_6_2,
-    };
-    private static final int[] PILL_1_IDS = {
-            R.id.day_pill_0_1, R.id.day_pill_1_1, R.id.day_pill_2_1, R.id.day_pill_3_1,
-            R.id.day_pill_4_1, R.id.day_pill_5_1, R.id.day_pill_6_1,
-    };
-    private static final int[] PILL_2_IDS = {
-            R.id.day_pill_0_2, R.id.day_pill_1_2, R.id.day_pill_2_2, R.id.day_pill_3_2,
-            R.id.day_pill_4_2, R.id.day_pill_5_2, R.id.day_pill_6_2,
-    };
-
-    private static final int MAX_LABEL_LENGTH = 18;
-
-    /** Builds one 7-cell week row as a static RemoteViews. */
-    private static RemoteViews buildWeekRow(Context context, List<WidgetDay> week,
-                                            int rowHeightPx, boolean expanded, int cellBase) {
-        RemoteViews row = new RemoteViews(context.getPackageName(),
-                R.layout.calendar_widget_week_row);
-        if (rowHeightPx > 0) {
-            try {
-                row.setInt(R.id.widget_week_row, "setMinimumHeight", rowHeightPx);
-            } catch (Exception ignored) {
-            }
-        }
-        for (int c = 0; c < 7 && c < week.size(); c++) {
-            try {
-                fillCell(context, row, week.get(c), c, expanded, cellBase + c);
-            } catch (Exception ignored) {
-            }
-        }
-        return row;
-    }
-
-    private static void fillCell(Context context, RemoteViews row, WidgetDay day, int c,
-                                 boolean expanded, int requestCode) {
-        int numberId = NUMBER_IDS[c];
-        if (day == null) {
-            row.setViewVisibility(numberId, android.view.View.INVISIBLE);
-            return;
-        }
-
-        row.setTextViewText(numberId, String.valueOf(day.day));
-        int textColor = day.inMonth
-                ? context.getColor(R.color.widget_day_text)
-                : context.getColor(R.color.widget_day_dim);
-        if (day.isToday) {
-            row.setInt(numberId, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
-            textColor = context.getColor(R.color.widget_today_text);
-        }
-        row.setTextColor(numberId, textColor);
-
-        if (expanded) {
-            for (int dot : DOT_IDS[c]) row.setViewVisibility(dot, android.view.View.GONE);
-            row.setViewVisibility(DOTS_CONTAINER_IDS[c], android.view.View.GONE);
-            int eventCount = day.labels.size();
-            for (int k = 0; k < 2; k++) {
-                int labelId = (k == 0 ? LABEL_1_IDS : LABEL_2_IDS)[c];
-                int pillId = (k == 0 ? PILL_1_IDS : PILL_2_IDS)[c];
-                int nameId = (k == 0 ? NAME_1_IDS : NAME_2_IDS)[c];
-                int timeId = (k == 0 ? TIME_1_IDS : TIME_2_IDS)[c];
-                if ((k == 0 && eventCount > 0) || (k == 1 && eventCount > 2)) {
-                    boolean isMore = (k == 1);
-                    row.setViewVisibility(labelId, android.view.View.VISIBLE);
-                    row.setViewVisibility(pillId, android.view.View.VISIBLE);
-                    if (isMore) {
-                        // A busy day collapses every event after the first
-                        // into a "+N más" chip so pills never run together.
-                        row.setInt(pillId, "setBackgroundResource",
-                                R.drawable.calendar_widget_pill_more);
-                        row.setTextViewText(nameId, "+" + (eventCount - 1) + " más");
-                        row.setViewVisibility(timeId, android.view.View.GONE);
-                        row.setTextColor(nameId,
-                                context.getColor(R.color.widget_pill_more_text));
-                    } else {
-                        row.setInt(pillId, "setBackgroundResource",
-                                R.drawable.calendar_widget_pill);
-                        row.setTextViewText(nameId, shorten(day.labels.get(0)));
-                        row.setTextViewText(timeId, formatTime(
-                                day.times.size() > 0 ? day.times.get(0) : ""));
-                        row.setViewVisibility(timeId, android.view.View.VISIBLE);
-                        row.setTextColor(nameId, context.getColor(R.color.widget_today_text));
-                    }
-                } else if (k == 1 && eventCount == 2) {
-                    row.setViewVisibility(labelId, android.view.View.VISIBLE);
-                    row.setViewVisibility(pillId, android.view.View.VISIBLE);
-                    row.setInt(pillId, "setBackgroundResource", R.drawable.calendar_widget_pill);
-                    row.setTextViewText(nameId, shorten(day.labels.get(1)));
-                    row.setTextViewText(timeId, formatTime(
-                            day.times.size() > 1 ? day.times.get(1) : ""));
-                    row.setViewVisibility(timeId, android.view.View.VISIBLE);
-                    row.setTextColor(nameId, context.getColor(R.color.widget_today_text));
-                } else {
-                    row.setViewVisibility(labelId, android.view.View.GONE);
-                    row.setViewVisibility(pillId, android.view.View.GONE);
-                    row.setTextViewText(nameId, "");
-                    row.setTextViewText(timeId, "");
-                }
-            }
-        } else {
-            for (int label : new int[]{LABEL_1_IDS[c], LABEL_2_IDS[c]}) {
-                row.setViewVisibility(label, android.view.View.GONE);
-            }
-            for (int k = 0; k < 3; k++) {
-                int dotId = DOT_IDS[c][k];
-                if (k < day.dotColors.size()) {
-                    row.setViewVisibility(dotId, android.view.View.VISIBLE);
-                    row.setInt(dotId, "setColorFilter", parseColor(day.dotColors.get(k)));
-                } else {
-                    row.setViewVisibility(dotId, android.view.View.GONE);
-                }
-            }
-        }
-
-        // Tapping a day opens the day view of the app directly.
-        if (day.date != null && !day.date.isEmpty()) {
-            row.setOnClickPendingIntent(CELL_IDS[c],
-                    openAppIntent(context, requestCode,
-                            "/calendario?view=day&date=" + Uri.encode(day.date)));
-        }
-    }
-
-    /**
-     * Distributes the week rows so they exactly fill the launcher-reported
-     * footprint: every row gets availablePx / rowCount, and the remainder is
-     * absorbed by the last row so there is never an empty band below the grid.
-     */
-    private static int[] rowHeightsPx(Context context, int widgetId, int rowCount) {
-        try {
-            AppWidgetManager manager = AppWidgetManager.getInstance(context);
-            Bundle opts = manager.getAppWidgetOptions(widgetId);
-            float height = sizeFor(context, widgetId, KEY_SIZE_H);
-            if (height <= 0) height = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
-            float width = sizeFor(context, widgetId, KEY_SIZE_W);
-            if (width <= 0) width = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
-            if (height <= 0) {
-                int fallback = (int) dpToPx(context, 44);
-                int[] rows = new int[rowCount];
-                java.util.Arrays.fill(rows, fallback);
-                return rows;
-            }
-            int chromeDp = 82; // nav header + weekday labels + divider approx
-            int availableDp = Math.max(1, (int) height - chromeDp);
-            int count = Math.max(1, rowCount);
-            int target = availableDp / count;
-            boolean portrait = height > width;
-            int rowDp = portrait
-                    ? Math.max(40, Math.min(160, target))
-                    : Math.max(32, Math.min(76, target));
-            int rowPx = (int) dpToPx(context, rowDp);
-            int[] rows = new int[rowCount];
-            java.util.Arrays.fill(rows, rowPx);
-            int total = availableDp * (int) context.getResources().getDisplayMetrics().density;
-            if (rowCount > 0) rows[rowCount - 1] =
-                    Math.max(rowPx, total - rowPx * (rowCount - 1));
-            return rows;
-        } catch (Exception e) {
-            int fallback = (int) dpToPx(context, 44);
-            int[] rows = new int[Math.max(1, rowCount)];
-            java.util.Arrays.fill(rows, fallback);
-            return rows;
-        }
-    }
-
-    private static float dpToPx(Context context, float dp) {
-        return dp * context.getResources().getDisplayMetrics().density;
-    }
-
-    private static String shorten(String value) {
-        if (value == null) return "";
-        String trimmed = value.trim();
-        if (trimmed.length() <= MAX_LABEL_LENGTH) return trimmed;
-        return trimmed.substring(0, MAX_LABEL_LENGTH);
     }
 
     static int parseColor(String value) {

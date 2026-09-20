@@ -89,13 +89,13 @@ export async function GET(request: NextRequest) {
     const target = addMonths(y, m, offset);
     const firstKey = keyOf(target.y, target.m, 1);
 
-    // Monday-start padding. Rows are computed from the month's actual span:
-    // ceil((leading + daysInMonth) / 7) -> 5 for a month like Sept 2026
-    // (Tue start, 30 days) and only 6 when the trailing week is non-empty,
-    // so the widget never renders a phantom empty last row.
+    // Monday-start padding. The grid is ALWAYS 6 weeks long so the launcher
+    // collection always hands out the same number of rows to the widget list.
+    // Months that only span 5 weeks pad the trailing row with next-month days
+    // (inMonth=false, rendered dimmed) — dynamic 5/6 rows made Samsung's
+    // collection list keep rows stuck on its "Loading..." placeholder.
     const leading = (weekdayOf(firstKey) - 1 + 7) % 7;
-    const daysInMonth = new Date(Date.UTC(target.y, target.m, 0)).getUTCDate();
-    const rowCount = Math.ceil((leading + daysInMonth) / 7);
+    const rowCount = 6;
     const gridStart = addDaysKey(firstKey, -leading);
     const gridEnd = addDaysKey(gridStart, rowCount * 7 - 1);
 
