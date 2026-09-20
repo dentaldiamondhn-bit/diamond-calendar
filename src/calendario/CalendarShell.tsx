@@ -71,18 +71,11 @@ export default function CalendarShell({ userId }: Props) {
   /** Duplicate flow (request #3) — modal hydrates a NEW event copied from this one. */
   const [duplicateOf, setDuplicateOf] = useState<ClinicEvent | null>(null);
 
-  // Collapsible right sidebar (details/reminders/tasks). Open by default on
-  // desktop (lg+); starts closed on tablets/mobile but those panels stay
-  // visible below lg (they stack under the calendar) — collapsing only ever
-  // hides the sidebar on wide screens so the grid can use the full width.
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const sync = () => setSidebarOpen(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
+  // Collapsible right sidebar (details/reminders/tasks). Starts collapsed on
+  // every screen size — the toolbar toggle opens it. Below lg the panels stay
+  // visible stacked under the calendar (mobile); collapsing only ever hides
+  // the sidebar on wide screens so the grid can use the full width.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Server-side dentist conflict (409 DENTIST_CONFLICT) — offer a force-save.
   const [conflictOverride, setConflictOverride] = useState<{ message: string; retry: () => Promise<void> } | null>(null);
