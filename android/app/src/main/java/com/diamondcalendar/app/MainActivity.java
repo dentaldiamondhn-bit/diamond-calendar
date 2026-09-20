@@ -3,6 +3,7 @@ package com.diamondcalendar.app;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -44,7 +45,13 @@ public class MainActivity extends BridgeActivity {
         // edge-swipe back/forward history gesture from stealing those touches.
         // (setAllowBackForwardNavigationGestures is a hidden framework API.)
         WebView webView = bridge != null ? bridge.getWebView() : null;
-        if (webView != null) disableHistoryGestures(webView);
+        if (webView != null) {
+            // The app shell is the deployed web. A stale WebView HTTP cache made
+            // the installed APK show an older build than the browser — force the
+            // cache off so every launch reflects the current deployment.
+            webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+            disableHistoryGestures(webView);
+        }
     }
 
     @SuppressWarnings("JavaReflectionMemberAccess")
