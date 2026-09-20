@@ -105,7 +105,7 @@ export default function CalendarShell({ userId }: Props) {
   // Touch-only swipe navigation: left/right flicks flip month/week/day. The
   // "just swiped" flag is consumed by the slot/event handlers below so RBC's
   // touch selection side-effects (modal / drawer) never fire from a swipe.
-  const { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, justSwipedRef } =
+  const { onTouchStartCapture, onTouchMoveCapture, onTouchEndCapture, onTouchCancelCapture, justSwipedRef } =
     useSwipeNavigation(
       useCallback(
         (direction: 1 | -1) => setDate((current) => swipeStep(view, current, direction)),
@@ -466,10 +466,10 @@ if (eventsQuery.isPending && !eventsQuery.data) {
 
           <div
             className="min-w-0"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerCancel}
+            onTouchStartCapture={onTouchStartCapture}
+            onTouchMoveCapture={onTouchMoveCapture}
+            onTouchEndCapture={onTouchEndCapture}
+            onTouchCancelCapture={onTouchCancelCapture}
           >
             <RbcCalendar
               events={rbcEvents}
