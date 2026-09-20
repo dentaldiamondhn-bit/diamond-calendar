@@ -419,18 +419,18 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             </p>
             <div className="flex items-center gap-2">
               <button
+                onClick={openNewEvent}
+                className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
+              >
+                <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
+              </button>
+              <button
                 onClick={() => setSidebarOpen((open) => !open)}
                 className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                 title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
                 aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
               >
                 {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-              </button>
-              <button
-                onClick={openNewEvent}
-                className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
-              >
-                <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
               </button>
             </div>
           </div>
