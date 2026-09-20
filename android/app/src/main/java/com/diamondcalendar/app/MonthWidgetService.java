@@ -103,6 +103,7 @@ public class MonthWidgetService extends RemoteViewsService {
 
         @Override
         public void onCreate() {
+            rowHeightPx = (int) dpToPx(48);
         }
 
         @Override
@@ -177,13 +178,14 @@ public class MonthWidgetService extends RemoteViewsService {
 
         @Override
         public int getCount() {
-            return weeks.size();
+            return Math.max(0, weeks.size());
         }
 
         @Override
         public RemoteViews getViewAt(int position) {
-            if (position < 0 || position >= weeks.size()) return null;
-            List<CalendarWidgetProvider.WidgetDay> week = weeks.get(position);
+            // Build the row first so a stale/out-of-range position still yields
+            // a valid (empty) view. Returning null here makes some launchers
+            // leave the row stuck on their "Loading..." placeholder.
             RemoteViews row = new RemoteViews(context.getPackageName(),
                     R.layout.calendar_widget_week_row);
             if (rowHeightPx > 0) {
@@ -192,8 +194,17 @@ public class MonthWidgetService extends RemoteViewsService {
                 } catch (Exception ignored) {
                 }
             }
+            if (position < 0 || position >= weeks.size()) {
+                return row;
+            }
+            List<CalendarWidgetProvider.WidgetDay> week = weeks.get(position);
             for (int c = 0; c < 7 && c < week.size(); c++) {
-                fillCell(row, week.get(c), c);
+                try {
+                    fillCell(row, week.get(c), c);
+                } catch (Exception ignored) {
+                    // A broken cell must never take the row down: launchers pin
+                    // a row to "Loading..." forever when getViewAt() throws.
+                }
             }
             return row;
         }
@@ -291,7 +302,16 @@ public class MonthWidgetService extends RemoteViewsService {
 
         @Override
         public RemoteViews getLoadingView() {
-            return null;
+            // Favoured over null: launchers (Samsung One UI especially) paint
+            // their own literal "Loading..." placeholder per row when this
+            // returns null, and that text never swaps out if the adapter is
+            // mid-bind. A plain week row shows a neutral empty grid instead.
+            try {
+                return new RemoteViews(context.getPackageName(),
+                        R.layout.calendar_widget_week_row);
+            } catch (Exception ignored) {
+                return null;
+            }
         }
 
         @Override
