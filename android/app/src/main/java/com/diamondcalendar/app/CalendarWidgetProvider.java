@@ -30,10 +30,11 @@ import java.util.concurrent.Executors;
 /**
  * Home-launcher month-calendar widget (Google-Calendar style).
  *
- * The six week rows are served by {@link MonthWidgetService} as a RemoteViews
- * collection so the launcher always re-queries the app for the grid content
- * after widget re-creation (page switches, rotation, launcher restarts) instead
- * of relying on the last pushed {@code RemoteViews}, which stock launchers drop.
+ * The whole grid — header, weekday labels and all six week rows — is baked
+ * into the widget layout and filled by this provider with static RemoteViews
+ * actions (text/color/visibility). No RemoteViewsService collection is used,
+ * so a launcher can never fall into a per-row "Loading..." state, and no
+ * view-tree injection is needed, so "Couldn't add widget" can't occur either.
  *
  * Auth reuses the Clerk session cookies the Capacitor WebView stores for the
  * app origin — the widget fetches {@code /api/widget/month} (cookie-authenticated).
@@ -61,12 +62,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
-    /**
-     * Most recent fetch result. The {@link MonthWidgetService} factory reads
-     * this on every launcher-driven re-render, so a recreated widget always
-     * shows current content without waiting for a fresh provider callback.
-     *
-     * This is never overwritten with a failure: on a month-navigation tap or a
+/**
+     * Most recent fetch result, read by {@link #refreshAsync} to re-render the
+     * grid. Never overwritten with a failure: on a month-navigation tap or a
      * resize that hits a network/auth hiccup the grid keeps rendering whatever
      * was fetched last, so the tiles never blank out to the error placeholder.
      */
@@ -169,9 +167,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
             for (int id : ids) {
                 boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
-                RemoteViews views = buildViews(appContext, display, displayOffset, shownError, id);
+                RemoteViews views = buildViews(appContext, display, displayOffset, shownError, id, expanded);
                 manager.updateAppWidget(id, views);
-                manager.notifyAppWidgetViewDataChanged(id, R.id.widget_week_list);
             }
         });
     }
@@ -323,10 +320,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
 
     /**
      * Builds the root widget RemoteViews: header (month nav / Hoy), weekday row,
-     * and a ListView bound to {@link MonthWidgetService} for the six week rows.
+     * and all six week rows embedded statically in the host layout. The provider
+     * only sets text/colors/visibility on those fixed view ids — there is no
+     * RemoteViewsService collection and no view-tree injection, so no launcher
+     * "Loading..." placeholder or "Couldn't add widget" phase can ever exist.
      */
     private static RemoteViews buildViews(Context context, WidgetMonth month, int offset,
-                                          String error, int widgetId) {
+                                          String error, int widgetId, boolean expanded) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_widget_grid_layout);
 
         views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 0, "/calendario"));
@@ -343,21 +343,269 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.widget_error, error);
             views.setTextViewText(R.id.widget_title, "Diamond Calendar");
             views.setViewVisibility(R.id.widget_today, android.view.View.GONE);
+            views.setViewVisibility(R.id.widget_weeks, android.view.View.GONE);
         } else {
             views.setTextViewText(R.id.widget_title, month.label);
             views.setViewVisibility(R.id.widget_today,
                     offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
+            views.setViewVisibility(R.id.widget_weeks, android.view.View.VISIBLE);
+            // The API always returns 6 weeks now; render them defensively anyway.
+            for (int w = 0; w < 6; w++) {
+                List<WidgetDay> week = w < month.weeks.size() ? month.weeks.get(w) : null;
+                fillWeek(context, views, week, w, expanded);
+            }
         }
 
-        Intent service = new Intent(context, MonthWidgetService.class);
-        service.setData(Uri.parse("widget://calendar/" + widgetId));
-        service.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
-        views.setRemoteAdapter(R.id.widget_week_list, service);
-        views.setEmptyView(R.id.widget_week_list, R.id.widget_error);
-        views.setPendingIntentTemplate(R.id.widget_week_list,
-                openAppIntent(context, 50, "/calendario"));
-
         return views;
+    }
+
+    private static final int[][] CELL_IDS = {
+        {R.id.day_cell_0_0, R.id.day_cell_0_1, R.id.day_cell_0_2, R.id.day_cell_0_3, R.id.day_cell_0_4, R.id.day_cell_0_5, R.id.day_cell_0_6},
+        {R.id.day_cell_1_0, R.id.day_cell_1_1, R.id.day_cell_1_2, R.id.day_cell_1_3, R.id.day_cell_1_4, R.id.day_cell_1_5, R.id.day_cell_1_6},
+        {R.id.day_cell_2_0, R.id.day_cell_2_1, R.id.day_cell_2_2, R.id.day_cell_2_3, R.id.day_cell_2_4, R.id.day_cell_2_5, R.id.day_cell_2_6},
+        {R.id.day_cell_3_0, R.id.day_cell_3_1, R.id.day_cell_3_2, R.id.day_cell_3_3, R.id.day_cell_3_4, R.id.day_cell_3_5, R.id.day_cell_3_6},
+        {R.id.day_cell_4_0, R.id.day_cell_4_1, R.id.day_cell_4_2, R.id.day_cell_4_3, R.id.day_cell_4_4, R.id.day_cell_4_5, R.id.day_cell_4_6},
+        {R.id.day_cell_5_0, R.id.day_cell_5_1, R.id.day_cell_5_2, R.id.day_cell_5_3, R.id.day_cell_5_4, R.id.day_cell_5_5, R.id.day_cell_5_6},
+    };
+    private static final int[][] NUMBER_IDS = {
+        {R.id.day_number_0_0, R.id.day_number_0_1, R.id.day_number_0_2, R.id.day_number_0_3, R.id.day_number_0_4, R.id.day_number_0_5, R.id.day_number_0_6},
+        {R.id.day_number_1_0, R.id.day_number_1_1, R.id.day_number_1_2, R.id.day_number_1_3, R.id.day_number_1_4, R.id.day_number_1_5, R.id.day_number_1_6},
+        {R.id.day_number_2_0, R.id.day_number_2_1, R.id.day_number_2_2, R.id.day_number_2_3, R.id.day_number_2_4, R.id.day_number_2_5, R.id.day_number_2_6},
+        {R.id.day_number_3_0, R.id.day_number_3_1, R.id.day_number_3_2, R.id.day_number_3_3, R.id.day_number_3_4, R.id.day_number_3_5, R.id.day_number_3_6},
+        {R.id.day_number_4_0, R.id.day_number_4_1, R.id.day_number_4_2, R.id.day_number_4_3, R.id.day_number_4_4, R.id.day_number_4_5, R.id.day_number_4_6},
+        {R.id.day_number_5_0, R.id.day_number_5_1, R.id.day_number_5_2, R.id.day_number_5_3, R.id.day_number_5_4, R.id.day_number_5_5, R.id.day_number_5_6},
+    };
+    private static final int[][][] DOT_IDS = {
+        {
+            {R.id.day_dot_0_0_1, R.id.day_dot_0_0_2, R.id.day_dot_0_0_3},
+            {R.id.day_dot_0_1_1, R.id.day_dot_0_1_2, R.id.day_dot_0_1_3},
+            {R.id.day_dot_0_2_1, R.id.day_dot_0_2_2, R.id.day_dot_0_2_3},
+            {R.id.day_dot_0_3_1, R.id.day_dot_0_3_2, R.id.day_dot_0_3_3},
+            {R.id.day_dot_0_4_1, R.id.day_dot_0_4_2, R.id.day_dot_0_4_3},
+            {R.id.day_dot_0_5_1, R.id.day_dot_0_5_2, R.id.day_dot_0_5_3},
+            {R.id.day_dot_0_6_1, R.id.day_dot_0_6_2, R.id.day_dot_0_6_3},
+        },
+        {
+            {R.id.day_dot_1_0_1, R.id.day_dot_1_0_2, R.id.day_dot_1_0_3},
+            {R.id.day_dot_1_1_1, R.id.day_dot_1_1_2, R.id.day_dot_1_1_3},
+            {R.id.day_dot_1_2_1, R.id.day_dot_1_2_2, R.id.day_dot_1_2_3},
+            {R.id.day_dot_1_3_1, R.id.day_dot_1_3_2, R.id.day_dot_1_3_3},
+            {R.id.day_dot_1_4_1, R.id.day_dot_1_4_2, R.id.day_dot_1_4_3},
+            {R.id.day_dot_1_5_1, R.id.day_dot_1_5_2, R.id.day_dot_1_5_3},
+            {R.id.day_dot_1_6_1, R.id.day_dot_1_6_2, R.id.day_dot_1_6_3},
+        },
+        {
+            {R.id.day_dot_2_0_1, R.id.day_dot_2_0_2, R.id.day_dot_2_0_3},
+            {R.id.day_dot_2_1_1, R.id.day_dot_2_1_2, R.id.day_dot_2_1_3},
+            {R.id.day_dot_2_2_1, R.id.day_dot_2_2_2, R.id.day_dot_2_2_3},
+            {R.id.day_dot_2_3_1, R.id.day_dot_2_3_2, R.id.day_dot_2_3_3},
+            {R.id.day_dot_2_4_1, R.id.day_dot_2_4_2, R.id.day_dot_2_4_3},
+            {R.id.day_dot_2_5_1, R.id.day_dot_2_5_2, R.id.day_dot_2_5_3},
+            {R.id.day_dot_2_6_1, R.id.day_dot_2_6_2, R.id.day_dot_2_6_3},
+        },
+        {
+            {R.id.day_dot_3_0_1, R.id.day_dot_3_0_2, R.id.day_dot_3_0_3},
+            {R.id.day_dot_3_1_1, R.id.day_dot_3_1_2, R.id.day_dot_3_1_3},
+            {R.id.day_dot_3_2_1, R.id.day_dot_3_2_2, R.id.day_dot_3_2_3},
+            {R.id.day_dot_3_3_1, R.id.day_dot_3_3_2, R.id.day_dot_3_3_3},
+            {R.id.day_dot_3_4_1, R.id.day_dot_3_4_2, R.id.day_dot_3_4_3},
+            {R.id.day_dot_3_5_1, R.id.day_dot_3_5_2, R.id.day_dot_3_5_3},
+            {R.id.day_dot_3_6_1, R.id.day_dot_3_6_2, R.id.day_dot_3_6_3},
+        },
+        {
+            {R.id.day_dot_4_0_1, R.id.day_dot_4_0_2, R.id.day_dot_4_0_3},
+            {R.id.day_dot_4_1_1, R.id.day_dot_4_1_2, R.id.day_dot_4_1_3},
+            {R.id.day_dot_4_2_1, R.id.day_dot_4_2_2, R.id.day_dot_4_2_3},
+            {R.id.day_dot_4_3_1, R.id.day_dot_4_3_2, R.id.day_dot_4_3_3},
+            {R.id.day_dot_4_4_1, R.id.day_dot_4_4_2, R.id.day_dot_4_4_3},
+            {R.id.day_dot_4_5_1, R.id.day_dot_4_5_2, R.id.day_dot_4_5_3},
+            {R.id.day_dot_4_6_1, R.id.day_dot_4_6_2, R.id.day_dot_4_6_3},
+        },
+        {
+            {R.id.day_dot_5_0_1, R.id.day_dot_5_0_2, R.id.day_dot_5_0_3},
+            {R.id.day_dot_5_1_1, R.id.day_dot_5_1_2, R.id.day_dot_5_1_3},
+            {R.id.day_dot_5_2_1, R.id.day_dot_5_2_2, R.id.day_dot_5_2_3},
+            {R.id.day_dot_5_3_1, R.id.day_dot_5_3_2, R.id.day_dot_5_3_3},
+            {R.id.day_dot_5_4_1, R.id.day_dot_5_4_2, R.id.day_dot_5_4_3},
+            {R.id.day_dot_5_5_1, R.id.day_dot_5_5_2, R.id.day_dot_5_5_3},
+            {R.id.day_dot_5_6_1, R.id.day_dot_5_6_2, R.id.day_dot_5_6_3},
+        },
+    };
+
+    private static final int[][] DOTS_CONTAINER_IDS = {
+        {R.id.day_dots_0_0, R.id.day_dots_0_1, R.id.day_dots_0_2, R.id.day_dots_0_3, R.id.day_dots_0_4, R.id.day_dots_0_5, R.id.day_dots_0_6},
+        {R.id.day_dots_1_0, R.id.day_dots_1_1, R.id.day_dots_1_2, R.id.day_dots_1_3, R.id.day_dots_1_4, R.id.day_dots_1_5, R.id.day_dots_1_6},
+        {R.id.day_dots_2_0, R.id.day_dots_2_1, R.id.day_dots_2_2, R.id.day_dots_2_3, R.id.day_dots_2_4, R.id.day_dots_2_5, R.id.day_dots_2_6},
+        {R.id.day_dots_3_0, R.id.day_dots_3_1, R.id.day_dots_3_2, R.id.day_dots_3_3, R.id.day_dots_3_4, R.id.day_dots_3_5, R.id.day_dots_3_6},
+        {R.id.day_dots_4_0, R.id.day_dots_4_1, R.id.day_dots_4_2, R.id.day_dots_4_3, R.id.day_dots_4_4, R.id.day_dots_4_5, R.id.day_dots_4_6},
+        {R.id.day_dots_5_0, R.id.day_dots_5_1, R.id.day_dots_5_2, R.id.day_dots_5_3, R.id.day_dots_5_4, R.id.day_dots_5_5, R.id.day_dots_5_6},
+    };
+    private static final int[][] PILL_A_IDS = {
+        {R.id.day_pill_0_0_1, R.id.day_pill_0_1_1, R.id.day_pill_0_2_1, R.id.day_pill_0_3_1, R.id.day_pill_0_4_1, R.id.day_pill_0_5_1, R.id.day_pill_0_6_1},
+        {R.id.day_pill_1_0_1, R.id.day_pill_1_1_1, R.id.day_pill_1_2_1, R.id.day_pill_1_3_1, R.id.day_pill_1_4_1, R.id.day_pill_1_5_1, R.id.day_pill_1_6_1},
+        {R.id.day_pill_2_0_1, R.id.day_pill_2_1_1, R.id.day_pill_2_2_1, R.id.day_pill_2_3_1, R.id.day_pill_2_4_1, R.id.day_pill_2_5_1, R.id.day_pill_2_6_1},
+        {R.id.day_pill_3_0_1, R.id.day_pill_3_1_1, R.id.day_pill_3_2_1, R.id.day_pill_3_3_1, R.id.day_pill_3_4_1, R.id.day_pill_3_5_1, R.id.day_pill_3_6_1},
+        {R.id.day_pill_4_0_1, R.id.day_pill_4_1_1, R.id.day_pill_4_2_1, R.id.day_pill_4_3_1, R.id.day_pill_4_4_1, R.id.day_pill_4_5_1, R.id.day_pill_4_6_1},
+        {R.id.day_pill_5_0_1, R.id.day_pill_5_1_1, R.id.day_pill_5_2_1, R.id.day_pill_5_3_1, R.id.day_pill_5_4_1, R.id.day_pill_5_5_1, R.id.day_pill_5_6_1},
+    };
+    private static final int[][] PILL_B_IDS = {
+        {R.id.day_pill_0_0_2, R.id.day_pill_0_1_2, R.id.day_pill_0_2_2, R.id.day_pill_0_3_2, R.id.day_pill_0_4_2, R.id.day_pill_0_5_2, R.id.day_pill_0_6_2},
+        {R.id.day_pill_1_0_2, R.id.day_pill_1_1_2, R.id.day_pill_1_2_2, R.id.day_pill_1_3_2, R.id.day_pill_1_4_2, R.id.day_pill_1_5_2, R.id.day_pill_1_6_2},
+        {R.id.day_pill_2_0_2, R.id.day_pill_2_1_2, R.id.day_pill_2_2_2, R.id.day_pill_2_3_2, R.id.day_pill_2_4_2, R.id.day_pill_2_5_2, R.id.day_pill_2_6_2},
+        {R.id.day_pill_3_0_2, R.id.day_pill_3_1_2, R.id.day_pill_3_2_2, R.id.day_pill_3_3_2, R.id.day_pill_3_4_2, R.id.day_pill_3_5_2, R.id.day_pill_3_6_2},
+        {R.id.day_pill_4_0_2, R.id.day_pill_4_1_2, R.id.day_pill_4_2_2, R.id.day_pill_4_3_2, R.id.day_pill_4_4_2, R.id.day_pill_4_5_2, R.id.day_pill_4_6_2},
+        {R.id.day_pill_5_0_2, R.id.day_pill_5_1_2, R.id.day_pill_5_2_2, R.id.day_pill_5_3_2, R.id.day_pill_5_4_2, R.id.day_pill_5_5_2, R.id.day_pill_5_6_2},
+    };
+    private static final int[][] NAME_A_IDS = {
+        {R.id.day_name_0_0_1, R.id.day_name_0_1_1, R.id.day_name_0_2_1, R.id.day_name_0_3_1, R.id.day_name_0_4_1, R.id.day_name_0_5_1, R.id.day_name_0_6_1},
+        {R.id.day_name_1_0_1, R.id.day_name_1_1_1, R.id.day_name_1_2_1, R.id.day_name_1_3_1, R.id.day_name_1_4_1, R.id.day_name_1_5_1, R.id.day_name_1_6_1},
+        {R.id.day_name_2_0_1, R.id.day_name_2_1_1, R.id.day_name_2_2_1, R.id.day_name_2_3_1, R.id.day_name_2_4_1, R.id.day_name_2_5_1, R.id.day_name_2_6_1},
+        {R.id.day_name_3_0_1, R.id.day_name_3_1_1, R.id.day_name_3_2_1, R.id.day_name_3_3_1, R.id.day_name_3_4_1, R.id.day_name_3_5_1, R.id.day_name_3_6_1},
+        {R.id.day_name_4_0_1, R.id.day_name_4_1_1, R.id.day_name_4_2_1, R.id.day_name_4_3_1, R.id.day_name_4_4_1, R.id.day_name_4_5_1, R.id.day_name_4_6_1},
+        {R.id.day_name_5_0_1, R.id.day_name_5_1_1, R.id.day_name_5_2_1, R.id.day_name_5_3_1, R.id.day_name_5_4_1, R.id.day_name_5_5_1, R.id.day_name_5_6_1},
+    };
+    private static final int[][] NAME_B_IDS = {
+        {R.id.day_name_0_0_2, R.id.day_name_0_1_2, R.id.day_name_0_2_2, R.id.day_name_0_3_2, R.id.day_name_0_4_2, R.id.day_name_0_5_2, R.id.day_name_0_6_2},
+        {R.id.day_name_1_0_2, R.id.day_name_1_1_2, R.id.day_name_1_2_2, R.id.day_name_1_3_2, R.id.day_name_1_4_2, R.id.day_name_1_5_2, R.id.day_name_1_6_2},
+        {R.id.day_name_2_0_2, R.id.day_name_2_1_2, R.id.day_name_2_2_2, R.id.day_name_2_3_2, R.id.day_name_2_4_2, R.id.day_name_2_5_2, R.id.day_name_2_6_2},
+        {R.id.day_name_3_0_2, R.id.day_name_3_1_2, R.id.day_name_3_2_2, R.id.day_name_3_3_2, R.id.day_name_3_4_2, R.id.day_name_3_5_2, R.id.day_name_3_6_2},
+        {R.id.day_name_4_0_2, R.id.day_name_4_1_2, R.id.day_name_4_2_2, R.id.day_name_4_3_2, R.id.day_name_4_4_2, R.id.day_name_4_5_2, R.id.day_name_4_6_2},
+        {R.id.day_name_5_0_2, R.id.day_name_5_1_2, R.id.day_name_5_2_2, R.id.day_name_5_3_2, R.id.day_name_5_4_2, R.id.day_name_5_5_2, R.id.day_name_5_6_2},
+    };
+    private static final int[][] TIME_A_IDS = {
+        {R.id.day_time_0_0_1, R.id.day_time_0_1_1, R.id.day_time_0_2_1, R.id.day_time_0_3_1, R.id.day_time_0_4_1, R.id.day_time_0_5_1, R.id.day_time_0_6_1},
+        {R.id.day_time_1_0_1, R.id.day_time_1_1_1, R.id.day_time_1_2_1, R.id.day_time_1_3_1, R.id.day_time_1_4_1, R.id.day_time_1_5_1, R.id.day_time_1_6_1},
+        {R.id.day_time_2_0_1, R.id.day_time_2_1_1, R.id.day_time_2_2_1, R.id.day_time_2_3_1, R.id.day_time_2_4_1, R.id.day_time_2_5_1, R.id.day_time_2_6_1},
+        {R.id.day_time_3_0_1, R.id.day_time_3_1_1, R.id.day_time_3_2_1, R.id.day_time_3_3_1, R.id.day_time_3_4_1, R.id.day_time_3_5_1, R.id.day_time_3_6_1},
+        {R.id.day_time_4_0_1, R.id.day_time_4_1_1, R.id.day_time_4_2_1, R.id.day_time_4_3_1, R.id.day_time_4_4_1, R.id.day_time_4_5_1, R.id.day_time_4_6_1},
+        {R.id.day_time_5_0_1, R.id.day_time_5_1_1, R.id.day_time_5_2_1, R.id.day_time_5_3_1, R.id.day_time_5_4_1, R.id.day_time_5_5_1, R.id.day_time_5_6_1},
+    };
+    private static final int[][] TIME_B_IDS = {
+        {R.id.day_time_0_0_2, R.id.day_time_0_1_2, R.id.day_time_0_2_2, R.id.day_time_0_3_2, R.id.day_time_0_4_2, R.id.day_time_0_5_2, R.id.day_time_0_6_2},
+        {R.id.day_time_1_0_2, R.id.day_time_1_1_2, R.id.day_time_1_2_2, R.id.day_time_1_3_2, R.id.day_time_1_4_2, R.id.day_time_1_5_2, R.id.day_time_1_6_2},
+        {R.id.day_time_2_0_2, R.id.day_time_2_1_2, R.id.day_time_2_2_2, R.id.day_time_2_3_2, R.id.day_time_2_4_2, R.id.day_time_2_5_2, R.id.day_time_2_6_2},
+        {R.id.day_time_3_0_2, R.id.day_time_3_1_2, R.id.day_time_3_2_2, R.id.day_time_3_3_2, R.id.day_time_3_4_2, R.id.day_time_3_5_2, R.id.day_time_3_6_2},
+        {R.id.day_time_4_0_2, R.id.day_time_4_1_2, R.id.day_time_4_2_2, R.id.day_time_4_3_2, R.id.day_time_4_4_2, R.id.day_time_4_5_2, R.id.day_time_4_6_2},
+        {R.id.day_time_5_0_2, R.id.day_time_5_1_2, R.id.day_time_5_2_2, R.id.day_time_5_3_2, R.id.day_time_5_4_2, R.id.day_time_5_5_2, R.id.day_time_5_6_2},
+    };
+    private static final int MAX_LABEL_LENGTH = 18;
+
+    /**
+     * Fills one of the 6 statically-embedded week rows. A null week (e.g. a
+     * defensive carry-over with fewer rows) leaves blank cells.
+     */
+    private static void fillWeek(Context context, RemoteViews views, List<WidgetDay> week,
+                                 int w, boolean expanded) {
+        if (week == null) return;
+        for (int c = 0; c < 7 && c < week.size(); c++) {
+            try {
+                fillCell(context, views, week.get(c), w, c, expanded);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static void fillCell(Context context, RemoteViews views, WidgetDay day,
+                                 int r, int c, boolean expanded) {
+        int numberId = NUMBER_IDS[r][c];
+        if (day == null) {
+            views.setViewVisibility(numberId, android.view.View.INVISIBLE);
+            return;
+        }
+
+        views.setTextViewText(numberId, String.valueOf(day.day));
+        int textColor = day.inMonth
+                ? context.getColor(R.color.widget_day_text)
+                : context.getColor(R.color.widget_day_dim);
+        if (day.isToday) {
+            views.setInt(numberId, "setBackgroundResource", R.drawable.calendar_widget_today_bg);
+            textColor = context.getColor(R.color.widget_today_text);
+        }
+        views.setTextColor(numberId, textColor);
+
+        if (expanded) {
+            for (int dot : DOT_IDS[r][c]) views.setViewVisibility(dot, android.view.View.GONE);
+            views.setViewVisibility(DOTS_CONTAINER_IDS[r][c], android.view.View.GONE);
+            int eventCount = day.labels.size();
+            for (int k = 0; k < 2; k++) {
+                int labelId = DAY_LABEL_IDS[r][c][k];
+                int pillId = (k == 0 ? PILL_A_IDS : PILL_B_IDS)[r][c];
+                int nameId = (k == 0 ? NAME_A_IDS : NAME_B_IDS)[r][c];
+                int timeId = (k == 0 ? TIME_A_IDS : TIME_B_IDS)[r][c];
+                if ((k == 0 && eventCount > 0) || (k == 1 && eventCount > 2)) {
+                    boolean isMore = (k == 1);
+                    views.setViewVisibility(labelId, android.view.View.VISIBLE);
+                    views.setViewVisibility(pillId, android.view.View.VISIBLE);
+                    if (isMore) {
+                        views.setInt(pillId, "setBackgroundResource",
+                                R.drawable.calendar_widget_pill_more);
+                        views.setTextViewText(nameId, "+" + (eventCount - 1) + " más");
+                        views.setViewVisibility(timeId, android.view.View.GONE);
+                        views.setTextColor(nameId,
+                                context.getColor(R.color.widget_pill_more_text));
+                    } else {
+                        views.setInt(pillId, "setBackgroundResource",
+                                R.drawable.calendar_widget_pill);
+                        views.setTextViewText(nameId, shorten(day.labels.get(0)));
+                        views.setTextViewText(timeId, formatTime(
+                                day.times.size() > 0 ? day.times.get(0) : ""));
+                        views.setViewVisibility(timeId, android.view.View.VISIBLE);
+                        views.setTextColor(nameId, context.getColor(R.color.widget_today_text));
+                    }
+                } else if (k == 1 && eventCount == 2) {
+                    views.setViewVisibility(labelId, android.view.View.VISIBLE);
+                    views.setViewVisibility(pillId, android.view.View.VISIBLE);
+                    views.setInt(pillId, "setBackgroundResource", R.drawable.calendar_widget_pill);
+                    views.setTextViewText(nameId, shorten(day.labels.get(1)));
+                    views.setTextViewText(timeId, formatTime(
+                            day.times.size() > 1 ? day.times.get(1) : ""));
+                    views.setViewVisibility(timeId, android.view.View.VISIBLE);
+                    views.setTextColor(nameId, context.getColor(R.color.widget_today_text));
+                } else {
+                    views.setViewVisibility(labelId, android.view.View.GONE);
+                    views.setViewVisibility(pillId, android.view.View.GONE);
+                    views.setTextViewText(nameId, "");
+                    views.setTextViewText(timeId, "");
+                }
+            }
+        } else {
+            for (int i = 0; i < DAY_LABEL_IDS.length; i++) {
+                views.setViewVisibility(DAY_LABEL_IDS[i][r][c], android.view.View.GONE);
+            }
+            for (int k = 0; k < 3; k++) {
+                int dotId = DOT_IDS[r][c][k];
+                if (k < day.dotColors.size()) {
+                    views.setViewVisibility(dotId, android.view.View.VISIBLE);
+                    views.setInt(dotId, "setColorFilter", parseColor(day.dotColors.get(k)));
+                } else {
+                    views.setViewVisibility(dotId, android.view.View.GONE);
+                }
+            }
+        }
+
+        // Tapping a day opens the day view of the app directly.
+        if (day.date != null && !day.date.isEmpty()) {
+            views.setOnClickPendingIntent(CELL_IDS[r][c],
+                    openAppIntent(context, 1000 + r * 8 + c,
+                            "/calendario?view=day&date=" + Uri.encode(day.date)));
+        }
+    }
+
+    /** Wrapper for the label containers (hidden in compact/dot mode). */
+    private static final int[][][] DAY_LABEL_IDS = {
+        {{R.id.day_label_0_0_1, R.id.day_label_0_0_2}, {R.id.day_label_0_1_1, R.id.day_label_0_1_2}, {R.id.day_label_0_2_1, R.id.day_label_0_2_2}, {R.id.day_label_0_3_1, R.id.day_label_0_3_2}, {R.id.day_label_0_4_1, R.id.day_label_0_4_2}, {R.id.day_label_0_5_1, R.id.day_label_0_5_2}, {R.id.day_label_0_6_1, R.id.day_label_0_6_2}},
+        {{R.id.day_label_1_0_1, R.id.day_label_1_0_2}, {R.id.day_label_1_1_1, R.id.day_label_1_1_2}, {R.id.day_label_1_2_1, R.id.day_label_1_2_2}, {R.id.day_label_1_3_1, R.id.day_label_1_3_2}, {R.id.day_label_1_4_1, R.id.day_label_1_4_2}, {R.id.day_label_1_5_1, R.id.day_label_1_5_2}, {R.id.day_label_1_6_1, R.id.day_label_1_6_2}},
+        {{R.id.day_label_2_0_1, R.id.day_label_2_0_2}, {R.id.day_label_2_1_1, R.id.day_label_2_1_2}, {R.id.day_label_2_2_1, R.id.day_label_2_2_2}, {R.id.day_label_2_3_1, R.id.day_label_2_3_2}, {R.id.day_label_2_4_1, R.id.day_label_2_4_2}, {R.id.day_label_2_5_1, R.id.day_label_2_5_2}, {R.id.day_label_2_6_1, R.id.day_label_2_6_2}},
+        {{R.id.day_label_3_0_1, R.id.day_label_3_0_2}, {R.id.day_label_3_1_1, R.id.day_label_3_1_2}, {R.id.day_label_3_2_1, R.id.day_label_3_2_2}, {R.id.day_label_3_3_1, R.id.day_label_3_3_2}, {R.id.day_label_3_4_1, R.id.day_label_3_4_2}, {R.id.day_label_3_5_1, R.id.day_label_3_5_2}, {R.id.day_label_3_6_1, R.id.day_label_3_6_2}},
+        {{R.id.day_label_4_0_1, R.id.day_label_4_0_2}, {R.id.day_label_4_1_1, R.id.day_label_4_1_2}, {R.id.day_label_4_2_1, R.id.day_label_4_2_2}, {R.id.day_label_4_3_1, R.id.day_label_4_3_2}, {R.id.day_label_4_4_1, R.id.day_label_4_4_2}, {R.id.day_label_4_5_1, R.id.day_label_4_5_2}, {R.id.day_label_4_6_1, R.id.day_label_4_6_2}},
+        {{R.id.day_label_5_0_1, R.id.day_label_5_0_2}, {R.id.day_label_5_1_1, R.id.day_label_5_1_2}, {R.id.day_label_5_2_1, R.id.day_label_5_2_2}, {R.id.day_label_5_3_1, R.id.day_label_5_3_2}, {R.id.day_label_5_4_1, R.id.day_label_5_4_2}, {R.id.day_label_5_5_1, R.id.day_label_5_5_2}, {R.id.day_label_5_6_1, R.id.day_label_5_6_2}},
+    };
+
+    /** Ellipsizes a label to {@link #MAX_LABEL_LENGTH} chars. */
+    static String shorten(String value) {
+        if (value == null || value.isEmpty()) return "";
+        if (value.length() <= MAX_LABEL_LENGTH) return value;
+        return value.substring(0, MAX_LABEL_LENGTH - 1) + "…";
     }
 
     static int parseColor(String value) {
