@@ -38,6 +38,10 @@ const messages = {
   noEventsInRange: 'No hay citas en este rango',
 };
 
+// First visible hour on the week/work_week/day surfaces — clinic day starts at
+// 09:00, not midnight (requested default).
+const MIN_TIME = new Date(2000, 0, 1, 9, 0, 0);
+
 // 12-hour hh:mm a.m./p.m. on the time surfaces (request #2) — es meridiem.
 // Date/day-tile labels keep their existing RBC defaults (unchanged).
 const formats = {
@@ -135,6 +139,7 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
         onView={onView}
         onNavigate={handleNavigate}
         views={[Views.MONTH, Views.WEEK, Views.WORK_WEEK, Views.DAY, Views.AGENDA]}
+        min={MIN_TIME}
         selectable="ignoreEvents"
         popup
         onSelectSlot={handleSelectSlot}
