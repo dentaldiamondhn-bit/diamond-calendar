@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import type { View } from 'react-big-calendar';
 import type { ClinicEvent, Task } from '@/lib/types-calendar';
 import { eventsToRbc, dateToDateStr, dateToTimeStr } from '@/calendario/rbcAdapter';
@@ -70,6 +70,19 @@ export default function CalendarShell({ userId }: Props) {
   const [drawerEvent, setDrawerEvent] = useState<ClinicEvent | null>(null);
   /** Duplicate flow (request #3) — modal hydrates a NEW event copied from this one. */
   const [duplicateOf, setDuplicateOf] = useState<ClinicEvent | null>(null);
+
+  // Collapsible right sidebar (details/reminders/tasks). Open by default on
+  // desktop (lg+); starts closed on tablets/mobile but those panels stay
+  // visible below lg (they stack under the calendar) — collapsing only ever
+  // hides the sidebar on wide screens so the grid can use the full width.
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setSidebarOpen(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   // Server-side dentist conflict (409 DENTIST_CONFLICT) — offer a force-save.
   const [conflictOverride, setConflictOverride] = useState<{ message: string; retry: () => Promise<void> } | null>(null);
@@ -392,18 +405,34 @@ if (eventsQuery.isPending && !eventsQuery.data) {
         </div>
       ) : null}
 
-      <div className="grid w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
+      <div
+        className={`grid w-full gap-6 ${
+          sidebarOpen
+            ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]'
+            : 'grid-cols-1'
+        }`}
+      >
         <div className="min-w-0">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-500 hidden sm:block">
               {events.length} {events.length === 1 ? 'cita' : 'citas'}
             </p>
-            <button
-              onClick={openNewEvent}
-              className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
-            >
-              <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSidebarOpen((open) => !open)}
+                className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
+                aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
+              >
+                {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+              </button>
+              <button
+                onClick={openNewEvent}
+                className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
+              >
+                <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
+              </button>
+            </div>
           </div>
 
           <RbcCalendar
@@ -430,7 +459,18 @@ if (eventsQuery.isPending && !eventsQuery.data) {
           </div>
         </div>
 
-        <div className="space-y-4 min-w-0">
+        <div className={`space-y-4 min-w-0 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+          <div className="hidden lg:flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Panel</p>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+              title="Cerrar panel"
+              aria-label="Cerrar panel"
+            >
+              <X size={18} />
+            </button>
+          </div>
           <div className="hidden lg:block">
             <DayDetail
               dateStr={selectedDate}

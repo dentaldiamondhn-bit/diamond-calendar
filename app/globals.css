@@ -633,3 +633,40 @@ pre code {
 .dark .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
   border-color: rgb(55 65 81);
 }
+
+/* ------------------------------------------------------------------ *
+ * React Big Calendar — month grid columns must SHRINK below content
+ * (repeat(7, minmax(0, 1fr)) equivalent) so Saturday/Sunday never get
+ * clipped at the viewport edge. RBC ships `flex: 1 0 0%` (no shrink) on
+ * the column cells, which lets a long event name force the 7 columns
+ * wider than the container. Allow shrink + min-width: 0 everywhere a
+ * column is laid out, and bound event chips to their cell.
+ * ------------------------------------------------------------------ */
+.rbc-month-header .rbc-header {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.rbc-month-header .rbc-header > * {
+  max-width: 100%;
+  overflow: hidden;
+}
+.rbc-month-row .rbc-row-content {
+  min-width: 0;
+}
+.rbc-month-row .rbc-row,
+.rbc-month-row .rbc-row-bg {
+  min-width: 0;
+}
+.rbc-month-row .rbc-day-bg,
+.rbc-month-row .rbc-date-cell {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.rbc-month-row .rbc-event {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.rbc-month-row .rbc-event-content {
+  overflow: hidden;
+}

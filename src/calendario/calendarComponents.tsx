@@ -193,14 +193,29 @@ export function WeekdayHeader({ date }: HeaderProps) {
   );
 }
 
-/** Month cell date header — day number with a today highlight. */
-export function MonthDateHeader({ date }: HeaderProps) {
+/** Month weekday column header — shows ONLY the weekday name (no date), so the
+ * date number never renders twice (the per-cell date heading owns the number). */
+export function MonthWeekdayHeader({ date }: HeaderProps) {
+  return (
+    <div className="py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      {format(date, 'EEEEEE', { locale: es })}
+    </div>
+  );
+}
+
+/** Month cell date heading — the single date number, right-aligned, with a today
+ * highlight and a muted style for off-range (previous/next month) days. */
+export function MonthDateHeader({ date, isOffRange }: { date: Date; isOffRange?: boolean }) {
   const today = isSameDay(date, new Date());
   return (
     <div className="flex items-center justify-end px-1.5 py-1">
       <span
-        className={`h-6 w-6 flex items-center justify-center rounded-full text-xs font-medium ${
-          today ? 'bg-teal-600 text-white font-bold' : 'text-gray-600 dark:text-gray-300'
+        className={`h-6 min-w-6 flex items-center justify-center rounded-full text-xs font-medium ${
+          today
+            ? 'bg-teal-600 text-white font-bold'
+            : isOffRange
+              ? 'text-gray-400 dark:text-gray-600'
+              : 'text-gray-600 dark:text-gray-300'
         }`}
       >
         {format(date, 'd', { locale: es })}
@@ -213,6 +228,6 @@ export const calendarComponents: Components<RbcEvent, object> = {
   event: EventPill,
   toolbar: CalendarToolbar,
   header: WeekdayHeader,
-  month: { header: MonthDateHeader },
+  month: { header: MonthWeekdayHeader, dateHeader: MonthDateHeader },
   agenda: { event: AgendaEventRow },
 };
