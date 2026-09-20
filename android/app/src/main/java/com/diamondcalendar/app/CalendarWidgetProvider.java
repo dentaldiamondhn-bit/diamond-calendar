@@ -53,6 +53,12 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     static final String PREFS = "calendar_widget";
     private static final String KEY_OFFSET = "month_offset";
 
+    /** Per-widget launcher-reported footprint (dp), persisted so the week-row
+     * factory can size the grid to the real portrait/landscape dimensions even
+     * when a launcher later reports only the nominal minimum sizes. */
+    static final String KEY_SIZE_W = "size_w_";
+    static final String KEY_SIZE_H = "size_h_";
+
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
     /**
@@ -179,14 +185,35 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         float width = optSize(options, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
         float height = optSize(options, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (width > 0 && height > 0) {
+            prefs.edit()
+                    .putFloat(KEY_SIZE_W + widgetId, width)
+                    .putFloat(KEY_SIZE_H + widgetId, height)
+                    .apply();
+        } else {
+            if (width <= 0) width = prefs.getFloat(KEY_SIZE_W + widgetId, 0f);
+            if (height <= 0) height = prefs.getFloat(KEY_SIZE_H + widgetId, 0f);
+        }
         boolean expanded;
         if (width <= 0 && height <= 0) {
             expanded = prefs.getBoolean("expanded_" + widgetId, false);
         } else {
-            expanded = width >= 380 || height >= 330;
+            // Portrait (height > width) shows event pills as soon as it's tall
+            // enough; wide/landscape footprints qualify on width.
+            boolean portrait = height > width;
+            expanded = width >= 380 || height >= 330 || (portrait && height >= 280);
             prefs.edit().putBoolean("expanded_" + widgetId, expanded).apply();
         }
         return expanded;
+    }
+
+    /**
+     * Last launcher-reported footprint for a widget id (0 when unknown).
+     * Used by the week-row factory to distribute the row heights evenly.
+     */
+    static float sizeFor(Context context, int widgetId, String keyBase) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getFloat(keyBase + widgetId, 0f);
     }
 
     private static float optSize(Bundle options, String key) {

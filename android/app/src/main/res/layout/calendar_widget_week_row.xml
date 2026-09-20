@@ -13,7 +13,11 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_0"
                 android:layout_width="26dp"
@@ -37,96 +41,112 @@
                 <ImageView
                     android:id="@+id/day_dot_0_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_0_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_0_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_0_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_0_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_0_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_0_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_0_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_0_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_0_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_0_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_0_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_0_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_0_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_1"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_1"
                 android:layout_width="26dp"
@@ -150,96 +170,112 @@
                 <ImageView
                     android:id="@+id/day_dot_1_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_1_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_1_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_1_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_1_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_1_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_1_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_1_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_1_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_1_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_1_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_1_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_1_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_1_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_2"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_2"
                 android:layout_width="26dp"
@@ -263,96 +299,112 @@
                 <ImageView
                     android:id="@+id/day_dot_2_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_2_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_2_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_2_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_2_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_2_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_2_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_2_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_2_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_2_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_2_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_2_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_2_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_2_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_3"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_3"
                 android:layout_width="26dp"
@@ -376,96 +428,112 @@
                 <ImageView
                     android:id="@+id/day_dot_3_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_3_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_3_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_3_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_3_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_3_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_3_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_3_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_3_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_3_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_3_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_3_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_3_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_3_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_4"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_4"
                 android:layout_width="26dp"
@@ -489,96 +557,112 @@
                 <ImageView
                     android:id="@+id/day_dot_4_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_4_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_4_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_4_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_4_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_4_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_4_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_4_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_4_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_4_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_4_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_4_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_4_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_4_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_5"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_5"
                 android:layout_width="26dp"
@@ -602,96 +686,112 @@
                 <ImageView
                     android:id="@+id/day_dot_5_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_5_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_5_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_5_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_5_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_5_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_5_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_5_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_5_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_5_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_5_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_5_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_5_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_5_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/day_cell_6"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingLeft="3dp"
+            android:paddingRight="3dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
             <TextView
                 android:id="@+id/day_number_6"
                 android:layout_width="26dp"
@@ -715,88 +815,100 @@
                 <ImageView
                     android:id="@+id/day_dot_6_2"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
                 <ImageView
                     android:id="@+id/day_dot_6_3"
                     android:layout_width="5dp"
-                    android:layout_height="5dp"
-                    android:layout_marginStart="2dp"
+                    android:layout_height="5dp" android:layout_marginStart="2dp"
                     android:src="@drawable/calendar_widget_dot"
                     android:visibility="gone" />
-                </LinearLayout>
+        </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_6_1"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_6_1"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_6_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_6_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_6_1"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_6_1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
+            </LinearLayout>
             <LinearLayout
                 android:id="@+id/day_label_6_2"
                 android:layout_width="match_parent"
-                android:layout_height="12dp"
+                android:layout_height="13dp"
                 android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:visibility="gone">
-                <TextView
-                    android:id="@+id/day_name_6_2"
-                    android:layout_width="0dp"
-                    android:layout_height="12dp"
-                    android:layout_weight="1"
+                <LinearLayout
+                    android:id="@+id/day_pill_6_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="13dp"
                     android:background="@drawable/calendar_widget_pill"
-                    android:ellipsize="end"
                     android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:paddingLeft="5dp"
-                    android:paddingRight="5dp"
-                    android:textColor="@color/widget_today_text"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/day_time_6_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="12dp"
-                    android:layout_marginStart="2dp"
-                    android:ellipsize="end"
-                    android:gravity="center_vertical"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_label"
-                    android:textSize="7sp"
-                    android:visibility="gone" />
+                    android:orientation="horizontal"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp">
+                    <TextView
+                        android:id="@+id/day_name_6_2"
+                        android:layout_width="0dp"
+                        android:layout_height="13dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_today_text"
+                        android:textSize="8sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/day_time_6_2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="13dp"
+                        android:layout_marginStart="4dp"
+                        android:ellipsize="end"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/widget_pill_time"
+                        android:textSize="7sp" />
                 </LinearLayout>
-                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
 
 </LinearLayout>

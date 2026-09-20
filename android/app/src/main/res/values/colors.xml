@@ -15,4 +15,7 @@
     <color name="widget_today_text">#FFFFFF</color>
     <color name="widget_chip">#14B8A6</color>
     <color name="widget_dot">#14B8A6</color>
+    <color name="widget_pill_time">#EAFFFFFF</color>
+    <color name="widget_pill_more_bg">#E2E8F0</color>
+    <color name="widget_pill_more_text">#334155</color>
 </resources>

@@ -72,6 +72,14 @@ public class MonthWidgetService extends RemoteViewsService {
             R.id.day_time_0_2, R.id.day_time_1_2, R.id.day_time_2_2, R.id.day_time_3_2,
             R.id.day_time_4_2, R.id.day_time_5_2, R.id.day_time_6_2,
     };
+    private static final int[] PILL_1_IDS = {
+            R.id.day_pill_0_1, R.id.day_pill_1_1, R.id.day_pill_2_1, R.id.day_pill_3_1,
+            R.id.day_pill_4_1, R.id.day_pill_5_1, R.id.day_pill_6_1,
+    };
+    private static final int[] PILL_2_IDS = {
+            R.id.day_pill_0_2, R.id.day_pill_1_2, R.id.day_pill_2_2, R.id.day_pill_3_2,
+            R.id.day_pill_4_2, R.id.day_pill_5_2, R.id.day_pill_6_2,
+    };
 
     private static final int MAX_LABEL_LENGTH = 18;
 
@@ -111,26 +119,40 @@ public class MonthWidgetService extends RemoteViewsService {
         /**
          * Makes the week rows fill the launcher-provided widget footprint evenly
          * (portrait vs landscape, compact vs expanded), instead of stacking the
-         * fixed 40dp rows and leaving an empty band at the bottom or crushing
-         * the event tags on squat landscape footprints.
+         * fixed 40dp rows and leaving an empty band at the bottom of tall
+         * portrait widgets. Uses the real footprint persisted from the launcher
+         * when the current options only report nominal minimum sizes.
          */
         private int computeRowHeightPx() {
             try {
                 AppWidgetManager manager = AppWidgetManager.getInstance(context);
                 Bundle opts = manager.getAppWidgetOptions(widgetId);
-                float heightDp = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
-                if (heightDp <= 0) {
-                    return (int) (dpToPx(expanded ? 52 : 40));
+                float height = CalendarWidgetProvider.sizeFor(context, widgetId,
+                        CalendarWidgetProvider.KEY_SIZE_H);
+                if (height <= 0) {
+                    height = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
                 }
-                int headerDp = 82; // nav header + weekday labels + divider approx
-                int availableDp = Math.max(1, (int) heightDp - headerDp);
+                float width = CalendarWidgetProvider.sizeFor(context, widgetId,
+                        CalendarWidgetProvider.KEY_SIZE_W);
+                if (width <= 0) {
+                    width = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
+                }
+                if (height <= 0) {
+                    // No launcher sizes at all: default rows tall enough that
+                    // typical portrait home-screen slots are mostly filled.
+                    return (int) dpToPx(expanded ? 72 : 44);
+                }
+                int chromeDp = 82; // nav header + weekday labels + divider approx
+                int availableDp = Math.max(1, (int) height - chromeDp);
                 int count = Math.max(1, weeks.size());
-                int minDp = expanded ? 46 : 30;
-                int maxDp = expanded ? 76 : 46;
-                int rowDp = Math.max(minDp, Math.min(maxDp, availableDp / count));
+                int target = availableDp / count;
+                boolean portrait = height > width;
+                int rowDp = portrait
+                        ? Math.max(40, Math.min(160, target))
+                        : Math.max(32, Math.min(76, target));
                 return (int) dpToPx(rowDp);
             } catch (Exception e) {
-                return (int) dpToPx(expanded ? 52 : 40);
+                return (int) dpToPx(expanded ? 72 : 44);
             }
         }
 
@@ -191,23 +213,50 @@ public class MonthWidgetService extends RemoteViewsService {
 
             if (expanded) {
                 for (int dot : DOT_IDS[c]) row.setViewVisibility(dot, android.view.View.GONE);
+                int eventCount = day.labels.size();
                 for (int k = 0; k < 2; k++) {
                     int labelId = (k == 0 ? LABEL_1_IDS : LABEL_2_IDS)[c];
+                    int pillId = (k == 0 ? PILL_1_IDS : PILL_2_IDS)[c];
                     int nameId = (k == 0 ? NAME_1_IDS : NAME_2_IDS)[c];
                     int timeId = (k == 0 ? TIME_1_IDS : TIME_2_IDS)[c];
-                    row.setViewVisibility(labelId, android.view.View.VISIBLE);
-                    boolean has = k < day.labels.size();
-                    if (has) {
-                        row.setTextViewText(nameId, shorten(day.labels.get(k)));
+                    if ((k == 0 && eventCount > 0) || (k == 1 && eventCount > 2)) {
+                        boolean isMore = (k == 1);
+                        row.setViewVisibility(labelId, android.view.View.VISIBLE);
+                        row.setViewVisibility(pillId, android.view.View.VISIBLE);
+                        if (isMore) {
+                            // A busy day collapses every event after the first
+                            // into a "+N más" chip so pills never run together.
+                            row.setInt(pillId, "setBackgroundResource",
+                                    R.drawable.calendar_widget_pill_more);
+                            row.setTextViewText(nameId, "+" + (eventCount - 1) + " más");
+                            row.setViewVisibility(timeId, android.view.View.GONE);
+                            row.setTextColor(nameId,
+                                    context.getColor(R.color.widget_pill_more_text));
+                        } else {
+                            row.setInt(pillId, "setBackgroundResource",
+                                    R.drawable.calendar_widget_pill);
+                            row.setTextViewText(nameId, shorten(day.labels.get(0)));
+                            row.setTextViewText(timeId, CalendarWidgetProvider.formatTime(
+                                    day.times.size() > 0 ? day.times.get(0) : ""));
+                            row.setViewVisibility(timeId, android.view.View.VISIBLE);
+                            row.setTextColor(nameId,
+                                    context.getColor(R.color.widget_today_text));
+                        }
+                    } else if (k == 1 && eventCount == 2) {
+                        row.setViewVisibility(labelId, android.view.View.VISIBLE);
+                        row.setViewVisibility(pillId, android.view.View.VISIBLE);
+                        row.setInt(pillId, "setBackgroundResource",
+                                R.drawable.calendar_widget_pill);
+                        row.setTextViewText(nameId, shorten(day.labels.get(1)));
                         row.setTextViewText(timeId, CalendarWidgetProvider.formatTime(
-                                day.times.size() > k ? day.times.get(k) : ""));
-                        row.setViewVisibility(nameId, android.view.View.VISIBLE);
+                                day.times.size() > 1 ? day.times.get(1) : ""));
                         row.setViewVisibility(timeId, android.view.View.VISIBLE);
+                        row.setTextColor(nameId, context.getColor(R.color.widget_today_text));
                     } else {
+                        row.setViewVisibility(labelId, android.view.View.GONE);
+                        row.setViewVisibility(pillId, android.view.View.GONE);
                         row.setTextViewText(nameId, "");
                         row.setTextViewText(timeId, "");
-                        row.setViewVisibility(nameId, android.view.View.GONE);
-                        row.setViewVisibility(timeId, android.view.View.GONE);
                     }
                 }
             } else {
