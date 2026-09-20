@@ -38,10 +38,6 @@ const messages = {
   noEventsInRange: 'No hay citas en este rango',
 };
 
-// First visible hour on the week/work_week/day surfaces — clinic day starts at
-// 09:00, not midnight (requested default).
-const MIN_TIME = new Date(2000, 0, 1, 9, 0, 0);
-
 // 12-hour hh:mm a.m./p.m. on the time surfaces (request #2) — es meridiem.
 // Date/day-tile labels keep their existing RBC defaults (unchanged).
 const formats = {
@@ -126,6 +122,15 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
     [onEventResize],
   );
 
+  // Default scroll position for the time grids: the clinic day opens at 09:00
+  // (Mon–Sat) and 13:00 on Sundays. The full 24h grid stays reachable — this
+  // only sets where the week/work_week/day viewports start. Week views anchor
+  // on Monday, so they default to 09:00.
+  const scrollToTime = useMemo(() => {
+    const hour = date.getDay() === 0 ? 13 : 9;
+    return new Date(2000, 0, 1, hour, 0, 0);
+  }, [date]);
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={{ height: '600px' }}>
       <DragCalendar
@@ -136,10 +141,10 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
         events={events}
         date={date}
         view={view}
+        scrollToTime={scrollToTime}
         onView={onView}
         onNavigate={handleNavigate}
         views={[Views.MONTH, Views.WEEK, Views.WORK_WEEK, Views.DAY, Views.AGENDA]}
-        min={MIN_TIME}
         selectable="ignoreEvents"
         popup
         onSelectSlot={handleSelectSlot}
