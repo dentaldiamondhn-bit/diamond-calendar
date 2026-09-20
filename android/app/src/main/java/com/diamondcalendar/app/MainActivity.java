@@ -73,15 +73,71 @@ public class MainActivity extends BridgeActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (super.shouldOverrideUrlLoading(view, request)) return true;
+                if (relayWhatsAppDeepLink(view, request.getUrl())) return true;
                 return launchExternalIfCustomScheme(view, request.getUrl());
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (super.shouldOverrideUrlLoading(view, url)) return true;
+                if (relayWhatsAppDeepLink(view, Uri.parse(url))) return true;
                 return launchExternalIfCustomScheme(view, Uri.parse(url));
             }
         });
+    }
+
+    /**
+     * wa.me / api.whatsapp.com links are WhatsApp's own deep-link hosts: convert
+     * them straight to a whatsapp:// intent instead of loading the interstitial
+     * in the WebView, so the calendar never gets replaced by (or left on) the
+     * WhatsApp redirect page. Falls back to loading the gateway in-app when no
+     * WhatsApp handler exists.
+     */
+    private boolean relayWhatsAppDeepLink(WebView view, Uri url) {
+        String scheme = url.getScheme();
+        String host = url.getHost();
+        if (scheme == null || host == null) return false;
+        scheme = scheme.toLowerCase();
+        host = host.toLowerCase();
+        if (!scheme.equals("http") && !scheme.equals("https")) return false;
+
+        String phone = null;
+        String text = null;
+        if (host.equals("wa.me")) {
+            String path = url.getPath();
+            if (path == null || path.isEmpty()) return false;
+            phone = path.replace("/", "");
+            text = url.getQueryParameter("text");
+        } else if (host.equals("api.whatsapp.com") && isSendPath(url.getPath())) {
+            phone = url.getQueryParameter("phone");
+            text = url.getQueryParameter("text");
+            if (phone == null) return false;
+        } else {
+            return false;
+        }
+
+        Uri deepLink = new Uri.Builder()
+                .scheme("whatsapp")
+                .authority("send")
+                .appendQueryParameter("phone", phone)
+                .build();
+        if (text != null && !text.isEmpty()) {
+            deepLink = deepLink.buildUpon().appendQueryParameter("text", text).build();
+        }
+        try {
+            Intent relay = new Intent(Intent.ACTION_VIEW, deepLink);
+            relay.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getApplicationContext().startActivity(relay);
+            return true;
+        } catch (ActivityNotFoundException notFound) {
+            view.loadUrl(url.toString());
+            return true;
+        }
+    }
+
+    private static boolean isSendPath(String path) {
+        if (path == null) return false;
+        return path.equals("/send") || path.equals("/send/");
     }
 
     private boolean launchExternalIfCustomScheme(WebView view, Uri url) {
