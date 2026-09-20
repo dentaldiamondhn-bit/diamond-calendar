@@ -1,14 +1,19 @@
 package com.diamondcalendar.app;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import androidx.activity.OnBackPressedCallback;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 
 import java.lang.reflect.Method;
 
@@ -51,7 +56,70 @@ public class MainActivity extends BridgeActivity {
             // cache off so every launch reflects the current deployment.
             webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
             disableHistoryGestures(webView);
+            relayExternalSchemes(webView);
         }
+    }
+
+    /**
+     * WhatsApp (and other custom-scheme) links are app-to-app deep links, not
+     * pages the WebView can render. server.allowNavigation is '*' so Capacitor
+     * treats every host as in-app and never forwards these itself, and the
+     * WebView fails with net::ERR_UNKNOWN_URL_SCHEME (e.g. the wa.me/api
+     * interstitial's redirect to whatsapp://send/?phone=…). Relay custom
+     * schemes to the OS instead; keep Capacitor/plugin handling in front.
+     */
+    private void relayExternalSchemes(WebView webView) {
+        webView.setWebViewClient(new BridgeWebViewClient(bridge) {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (super.shouldOverrideUrlLoading(view, request)) return true;
+                return launchExternalIfCustomScheme(view, request.getUrl());
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (super.shouldOverrideUrlLoading(view, url)) return true;
+                return launchExternalIfCustomScheme(view, Uri.parse(url));
+            }
+        });
+    }
+
+    private boolean launchExternalIfCustomScheme(WebView view, Uri url) {
+        String scheme = url.getScheme();
+        if (scheme == null) return false;
+        scheme = scheme.toLowerCase();
+        if (scheme.equals("http") || scheme.equals("https") || scheme.equals("about")
+                || scheme.equals("data") || scheme.equals("blob") || scheme.equals("file")
+                || scheme.equals("javascript") || scheme.equals("capacitor")) {
+            return false; // real pages / internal — load in the WebView
+        }
+        try {
+            Intent relay = new Intent(Intent.ACTION_VIEW, url);
+            relay.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getApplicationContext().startActivity(relay);
+            return true;
+        } catch (ActivityNotFoundException noHandler) {
+            // No app owns the scheme. For WhatsApp fall back to the web gateway
+            // so the user still sees the chat / install screen instead of the
+            // raw error.
+            if (scheme.equals("whatsapp")) {
+                view.loadUrl(whatsAppGateUrl(url));
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private static String whatsAppGateUrl(Uri deepLink) {
+        Uri.Builder gate = new Uri.Builder()
+                .scheme("https")
+                .authority("api.whatsapp.com")
+                .path("send");
+        String phone = deepLink.getQueryParameter("phone");
+        gate.appendQueryParameter("phone", phone != null ? phone : "");
+        String text = deepLink.getQueryParameter("text");
+        if (text != null && !text.isEmpty()) gate.appendQueryParameter("text", text);
+        return gate.build().toString();
     }
 
     @SuppressWarnings("JavaReflectionMemberAccess")
