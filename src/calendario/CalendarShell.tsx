@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { addMonths, addDays } from 'date-fns';
 import { Plus, Loader2, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import type { View } from 'react-big-calendar';
 import type { ClinicEvent, Task } from '@/lib/types-calendar';
 import { eventsToRbc, dateToDateStr, dateToTimeStr } from '@/calendario/rbcAdapter';
 import { viewToRange } from '@/calendario/range';
+import { useSwipeNavigation } from '@/calendario/useSwipeNavigation';
 import {
   useCalendarEvents,
   useCalendarTasks,
@@ -55,6 +57,21 @@ function initialDateStr(): string {
   return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : dateToDateStr(new Date());
 }
 
+/** Period a "next/previous" swipe moves, per view (mirrors RBC's toolbar). */
+function swipeStep(view: View, date: Date, direction: 1 | -1): Date {
+  switch (view) {
+    case 'week':
+    case 'work_week':
+      return addDays(date, direction * 7);
+    case 'day':
+      return addDays(date, direction);
+    case 'month':
+    case 'agenda':
+    default:
+      return addMonths(date, direction);
+  }
+}
+
 interface Props {
   userId: string;
 }
@@ -84,6 +101,23 @@ export default function CalendarShell({ userId }: Props) {
   // The fetch window is derived from view + date (deterministic URL restore),
   // and mirrored into ?from=&to= for deep links / debugging.
   const range = useMemo(() => viewToRange(view, date), [view, date]);
+
+  // Touch-only swipe navigation: left/right flicks flip month/week/day. The
+  // "just swiped" flag is consumed by the slot/event handlers below so RBC's
+  // touch selection side-effects (modal / drawer) never fire from a swipe.
+  const { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, justSwipedRef } =
+    useSwipeNavigation(
+      useCallback(
+        (direction: 1 | -1) => setDate((current) => swipeStep(view, current, direction)),
+        [view],
+      ),
+    );
+
+  const consumeSwipe = () => {
+    const swiped = justSwipedRef.current;
+    justSwipedRef.current = false;
+    return swiped;
+  };
 
   const eventsQuery = useCalendarEvents(range);
   const tasksQuery = useCalendarTasks();
@@ -242,6 +276,7 @@ export default function CalendarShell({ userId }: Props) {
    * to the clinic default window.
    */
   const handleSelectSlot = (slot: { start: Date; end: Date }) => {
+    if (consumeSwipe()) return;
     setSelectedDate(dateToDateStr(slot.start));
     const timeView = view === 'week' || view === 'work_week' || view === 'day';
     setModalPrefill({
@@ -256,6 +291,7 @@ export default function CalendarShell({ userId }: Props) {
 
   /** Phase 3 C18 — selecting an event opens the detail drawer (Edit/Delete inside). */
   const handleSelectEvent = (rbcEvent: RbcEvent) => {
+    if (consumeSwipe()) return;
     setSelectedDate(dateToDateStr(rbcEvent.start));
     setDrawerEvent(rbcEvent.resource);
   };
@@ -428,17 +464,25 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             </div>
           </div>
 
-          <RbcCalendar
-            events={rbcEvents}
-            date={date}
-            view={view}
-            onView={setView}
-            onNavigate={setDate}
-            onSelectSlot={handleSelectSlot}
-            onSelectEvent={handleSelectEvent}
-            onEventDrop={handleEventDrop}
-            onEventResize={handleEventResize}
-          />
+          <div
+            className="min-w-0"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
+          >
+            <RbcCalendar
+              events={rbcEvents}
+              date={date}
+              view={view}
+              onView={setView}
+              onNavigate={setDate}
+              onSelectSlot={handleSelectSlot}
+              onSelectEvent={handleSelectEvent}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+            />
+          </div>
 
           <div className="mt-6 lg:hidden">
             <DayDetail
