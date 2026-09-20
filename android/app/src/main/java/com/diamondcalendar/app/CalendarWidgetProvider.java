@@ -59,8 +59,15 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
      * Most recent fetch result. The {@link MonthWidgetService} factory reads
      * this on every launcher-driven re-render, so a recreated widget always
      * shows current content without waiting for a fresh provider callback.
+     *
+     * This is never overwritten with a failure: on a month-navigation tap or a
+     * resize that hits a network/auth hiccup the grid keeps rendering whatever
+     * was fetched last, so the tiles never blank out to the error placeholder.
      */
     static volatile WidgetMonth LAST_MONTH;
+
+    /** Offset {@link #LAST_MONTH} was rendered for (keeps title/grid/nav aligned). */
+    static volatile int LAST_OFFSET = 0;
 
     @Override
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager,
@@ -123,18 +130,41 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             } else {
                 try {
                     month = fetchMonth(cookies, monthOffset);
+                    if (month != null && month.weeks.isEmpty()) {
+                        month = null;
+                        error = "Sin datos";
+                    }
                 } catch (Exception e) {
                     Log.w(TAG, "widget fetch failed: " + e.getMessage());
                     error = "Toca para abrir la app";
                 }
             }
-            LAST_MONTH = month;
+
+            WidgetMonth display;
+            int displayOffset;
+            if (month != null) {
+                // Publish the freshly fetched month atomically.
+                LAST_MONTH = month;
+                LAST_OFFSET = monthOffset;
+                display = month;
+                displayOffset = monthOffset;
+                setOffset(appContext, monthOffset);
+            } else {
+                // Failed fetch or missing session: never blank the grid. Keep
+                // rendering the most recent month (title, tiles and nav all
+                // stay aligned to it), so month-nav / resize / re-render can
+                // never clear the days out to the empty placeholder.
+                display = LAST_MONTH;
+                displayOffset = LAST_OFFSET;
+                if (LAST_MONTH != null) setOffset(appContext, LAST_OFFSET);
+            }
+            // Surface text only when there is no grid to show at all.
+            String shownError = (display == null) ? error : null;
+
             for (int id : ids) {
                 boolean expanded = isExpanded(appContext, id, manager.getAppWidgetOptions(id));
-                RemoteViews views = buildViews(appContext, month, monthOffset, error, id);
+                RemoteViews views = buildViews(appContext, display, displayOffset, shownError, id);
                 manager.updateAppWidget(id, views);
-                // Ask the launcher to re-query the week rows from the service;
-                // the factory pulls LAST_MONTH so the grid tracks this fetch.
                 manager.notifyAppWidgetViewDataChanged(id, R.id.widget_week_list);
             }
         });
@@ -280,8 +310,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 broadcastIntent(context, ACTION_NEXT_MONTH, 3, offset + 1));
         views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4, 0));
 
-        if (error != null || month == null || month.weeks.isEmpty()) {
-            views.setTextViewText(R.id.widget_error, error != null ? error : "Sin datos");
+        // An error is only supplied when there is no grid data at all; otherwise
+        // the month header + tiles keep rendering (e.g. after a failed refresh).
+        if (error != null) {
+            views.setTextViewText(R.id.widget_error, error);
             views.setTextViewText(R.id.widget_title, "Diamond Calendar");
             views.setViewVisibility(R.id.widget_today, android.view.View.GONE);
         } else {

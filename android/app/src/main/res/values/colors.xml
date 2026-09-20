@@ -5,10 +5,10 @@
     <color name="widget_nav_bg">#F1F5F9</color>
     <color name="widget_title">#0F766E</color>
     <color name="widget_nav_fg">#0F766E</color>
-    <color name="widget_weekday">#94A3B8</color>
+    <color name="widget_weekday">#7C8CA5</color>
     <color name="widget_divider">#E2E8F0</color>
     <color name="widget_day_text">#0F172A</color>
-    <color name="widget_day_dim">#CBD5E1</color>
+    <color name="widget_day_dim">#B0C2D8</color>
     <color name="widget_label">#334155</color>
     <color name="widget_error">#94A3B8</color>
     <color name="widget_today">#14B8A6</color>

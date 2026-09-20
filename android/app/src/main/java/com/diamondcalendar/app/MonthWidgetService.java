@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
@@ -80,6 +81,7 @@ public class MonthWidgetService extends RemoteViewsService {
         private final int widgetId;
         private List<List<CalendarWidgetProvider.WidgetDay>> weeks = new ArrayList<>();
         private boolean expanded;
+        private int rowHeightPx;
 
         WeekFactory(Context context, Intent intent) {
             this.context = context;
@@ -103,6 +105,48 @@ public class MonthWidgetService extends RemoteViewsService {
             SharedPreferences prefs = context.getSharedPreferences(
                     CalendarWidgetProvider.PREFS, Context.MODE_PRIVATE);
             expanded = prefs.getBoolean("expanded_" + widgetId, false);
+            rowHeightPx = computeRowHeightPx();
+        }
+
+        /**
+         * Makes the week rows fill the launcher-provided widget footprint evenly
+         * (portrait vs landscape, compact vs expanded), instead of stacking the
+         * fixed 40dp rows and leaving an empty band at the bottom or crushing
+         * the event tags on squat landscape footprints.
+         */
+        private int computeRowHeightPx() {
+            try {
+                AppWidgetManager manager = AppWidgetManager.getInstance(context);
+                Bundle opts = manager.getAppWidgetOptions(widgetId);
+                float heightDp = optSize(opts, AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
+                if (heightDp <= 0) {
+                    return (int) (dpToPx(expanded ? 52 : 40));
+                }
+                int headerDp = 82; // nav header + weekday labels + divider approx
+                int availableDp = Math.max(1, (int) heightDp - headerDp);
+                int count = Math.max(1, weeks.size());
+                int minDp = expanded ? 46 : 30;
+                int maxDp = expanded ? 76 : 46;
+                int rowDp = Math.max(minDp, Math.min(maxDp, availableDp / count));
+                return (int) dpToPx(rowDp);
+            } catch (Exception e) {
+                return (int) dpToPx(expanded ? 52 : 40);
+            }
+        }
+
+        private float optSize(Bundle options, String key) {
+            if (options == null || !options.containsKey(key)) return 0f;
+            Object value = options.get(key);
+            if (value instanceof Number) return ((Number) value).floatValue();
+            try {
+                return Float.parseFloat(String.valueOf(value));
+            } catch (Exception ignored) {
+                return 0f;
+            }
+        }
+
+        private float dpToPx(float dp) {
+            return dp * context.getResources().getDisplayMetrics().density;
         }
 
         @Override
@@ -116,6 +160,12 @@ public class MonthWidgetService extends RemoteViewsService {
             List<CalendarWidgetProvider.WidgetDay> week = weeks.get(position);
             RemoteViews row = new RemoteViews(context.getPackageName(),
                     R.layout.calendar_widget_week_row);
+            if (rowHeightPx > 0) {
+                try {
+                    row.setInt(R.id.widget_week_row, "setMinimumHeight", rowHeightPx);
+                } catch (Exception ignored) {
+                }
+            }
             for (int c = 0; c < 7 && c < week.size(); c++) {
                 fillCell(row, week.get(c), c);
             }
@@ -176,9 +226,13 @@ public class MonthWidgetService extends RemoteViewsService {
                 }
             }
 
-            row.setOnClickFillInIntent(CELL_IDS[c], new Intent()
-                    .putExtra(CalendarWidgetProvider.EXTRA_WIDGET_PATH,
-                            "/calendario?view=day&date=" + Uri.encode(day.date)));
+            // Tapping an empty/unknown date falls back to the list template (opens the
+            // app) instead of launching a broken day view.
+            if (day.date != null && !day.date.isEmpty()) {
+                row.setOnClickFillInIntent(CELL_IDS[c], new Intent()
+                        .putExtra(CalendarWidgetProvider.EXTRA_WIDGET_PATH,
+                                "/calendario?view=day&date=" + Uri.encode(day.date)));
+            }
         }
 
         @Override
