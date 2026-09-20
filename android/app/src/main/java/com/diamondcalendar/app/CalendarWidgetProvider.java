@@ -289,10 +289,20 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         // The 42 day cells are statically declared in the layout (aapt-inflated,
         // not addView-injected) so launchers restore them after page switches /
         // widget re-inflation; we only update their contents by view id.
-        for (int i = 0; i < 42; i++) {
-            List<WidgetDay> week = month.weeks.size() > (i / 7) ? month.weeks.get(i / 7) : null;
-            WidgetDay day = (week != null && week.size() > (i % 7)) ? week.get(i % 7) : null;
-            fillDayCell(context, views, i, day, expanded);
+        // Rows beyond the month's actual week span are hidden (GONE) so a
+        // 5-week month renders five rows that expand to fill the whole widget.
+        int weekCount = Math.min(month.weeks.size(), 6);
+        for (int w = 0; w < 6; w++) {
+            if (w >= weekCount) {
+                views.setViewVisibility(WEEK_ROW_IDS[w], android.view.View.GONE);
+                continue;
+            }
+            views.setViewVisibility(WEEK_ROW_IDS[w], android.view.View.VISIBLE);
+            List<WidgetDay> week = month.weeks.get(w);
+            for (int c = 0; c < 7; c++) {
+                WidgetDay day = c < week.size() ? week.get(c) : null;
+                fillDayCell(context, views, w * 7 + c, day, expanded);
+            }
         }
 
         return views;
