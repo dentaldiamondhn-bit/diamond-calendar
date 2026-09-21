@@ -171,6 +171,37 @@ export default function CalendarShell({ userId }: Props) {
     return events.find((e) => e.id === drawerEvent.id) ?? drawerEvent;
   }, [drawerEvent, events]);
 
+  // Chronological order (date, then start time) of every loaded event — the
+  // sequence the event-detail drawer's prev/next nav steps through.
+  const sortedEvents = useMemo(
+    () =>
+      [...events].sort(
+        (a, b) =>
+          (a.date || '').localeCompare(b.date || '') ||
+          (a.start_time || '00:00').localeCompare(b.start_time || '00:00')
+      ),
+    [events],
+  );
+
+  /** Move the detail drawer to the previous/next event (wraps at both ends). */
+  const moveDrawerEvent = useCallback(
+    (dir: 1 | -1) => {
+      if (!liveDrawerEvent || sortedEvents.length === 0) return;
+      const idx = sortedEvents.findIndex((e) => e.id === liveDrawerEvent.id);
+      const nextIdx = idx === -1 ? 0 : (idx + dir + sortedEvents.length) % sortedEvents.length;
+      const next = sortedEvents[nextIdx];
+      setDrawerEvent(next);
+      setSelectedDate(next.date);
+    },
+    [liveDrawerEvent, sortedEvents],
+  );
+
+  const drawerPosition = useMemo(() => {
+    if (!liveDrawerEvent || sortedEvents.length === 0) return { position: 0, total: 0 };
+    const idx = sortedEvents.findIndex((e) => e.id === liveDrawerEvent.id);
+    return { position: idx === -1 ? 0 : idx + 1, total: sortedEvents.length };
+  }, [liveDrawerEvent, sortedEvents]);
+
   const invalidateForModal = () => {
     eventsQuery.refetch();
     tasksQuery.refetch();
@@ -554,6 +585,10 @@ if (eventsQuery.isPending && !eventsQuery.data) {
         onClose={() => setDrawerEvent(null)}
         onEdit={openEditEvent}
         onDuplicate={openDuplicateEvent}
+        onPrev={() => moveDrawerEvent(-1)}
+        onNext={() => moveDrawerEvent(1)}
+        position={drawerPosition.position}
+        total={drawerPosition.total}
         onDeleted={() => {
           setDrawerEvent(null);
           invalidateForModal();

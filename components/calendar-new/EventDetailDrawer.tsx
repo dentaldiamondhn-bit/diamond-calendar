@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, Phone, LayoutGrid, FilePlus2, ExternalLink, type LucideIcon } from 'lucide-react';
+import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, Phone, LayoutGrid, FilePlus2, ExternalLink, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
 import { formatPhoneDisplay, createWhatsAppUrl } from '@/utils/phoneUtils';
 import AnimatedWhatsApp from '@/components/AnimatedWhatsApp';
 import type { ClinicEvent } from '@/lib/types-calendar';
@@ -30,6 +30,12 @@ interface Props {
   onEdit: (event: ClinicEvent) => void;
   /** Copy this event into a new (still-editable) one — works for shared citas too. */
   onDuplicate: (event: ClinicEvent) => void;
+  /** Step to the previous/next event in the loaded list (wraps). */
+  onPrev: () => void;
+  onNext: () => void;
+  /** 1-based index of the current event in the navigation sequence (0 = unknown). */
+  position: number;
+  total: number;
   /** Called after a successful delete (parent refetches + closes). */
   onDeleted: () => void;
 }
@@ -54,7 +60,7 @@ function timeSpan(e: ClinicEvent): string {
   return `${formatClock12(e.start_time)} – ${formatClock12(e.end_time || e.start_time)}`;
 }
 
-export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDuplicate, onDeleted }: Props) {
+export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDuplicate, onPrev, onNext, position, total, onDeleted }: Props) {
   const { push } = useToast();
   const removeEvent = useCalendarMutations().deleteEvent;
   const isOwner = !!event && event.user_id === userId;
@@ -102,15 +108,19 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
     };
   }, [event]);
 
-  // a11y — Escape closes the drawer (never while delete-confirm is up)
+  // a11y — Escape closes the drawer (never while delete-confirm is up);
+  // Arrow keys step to the previous/next event in the sequence.
   useEffect(() => {
     if (!event) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !confirmDelete) onClose();
+      if (confirmDelete) return;
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft' && total > 1) onPrev();
+      else if (e.key === 'ArrowRight' && total > 1) onNext();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [event, confirmDelete, onClose]);
+  }, [event, confirmDelete, onClose, onPrev, onNext, total]);
 
   const onDelete = async () => {
     if (!event) return;
@@ -174,9 +184,32 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                   </p>
                 </div>
               </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1" aria-label="Cerrar">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={onPrev}
+                  disabled={total <= 1}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent transition"
+                  aria-label="Evento anterior"
+                  title="Evento anterior"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums min-w-[2.5rem] text-center">
+                  {total > 0 ? `${position}/${total}` : ''}
+                </span>
+                <button
+                  onClick={onNext}
+                  disabled={total <= 1}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent transition"
+                  aria-label="Evento siguiente"
+                  title="Evento siguiente"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ml-1" aria-label="Cerrar">
+                  <X size={20} />
+                </button>
+              </div>
             </header>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">

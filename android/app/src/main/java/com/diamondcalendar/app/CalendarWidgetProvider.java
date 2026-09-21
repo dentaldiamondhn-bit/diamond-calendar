@@ -342,6 +342,10 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     views.setTextViewText(timeId, formatTime(day.times.size() > k ? day.times.get(k) : ""));
                     views.setViewVisibility(nameId, android.view.View.VISIBLE);
                     views.setViewVisibility(timeId, android.view.View.VISIBLE);
+                    // Color the event pill with the procedure color so expanded
+                    // events carry their color like the compact dots do.
+                    String color = k < day.dotColors.size() ? day.dotColors.get(k) : "";
+                    views.setTextColor(nameId, parseColor(color));
                 } else {
                     views.setTextViewText(nameId, "");
                     views.setTextViewText(timeId, "");

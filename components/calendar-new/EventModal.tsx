@@ -20,7 +20,7 @@ import {
 import { useForm, useController, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ClinicEvent } from '@/lib/types-calendar';
-import { EVENT_COLORS, PROCEDURES } from '@/lib/types-calendar';
+import { EVENT_COLORS, NO_PROCEDURE_COLOR, PROCEDURE_COLORS, PROCEDURES } from '@/lib/types-calendar';
 import {
   eventFormSchema,
   defaultEventForm,
@@ -178,6 +178,24 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
   });
 
   const values = watch();
+
+  // Auto-tint (request): each Procedimiento carries its own color, so the
+  // instant a procedure is chosen the event adopts that tint. No procedure →
+  // teal default. A swatch tapped by the user this session always wins and the
+  // auto-tint backs off so a deliberate manual color is never clobbered.
+  const colorTouchedRef = useRef(false);
+  useEffect(() => {
+    if (!open) return;
+    if (!values.procedure) {
+      if (!colorTouchedRef.current) setValue('color', NO_PROCEDURE_COLOR, { shouldDirty: true });
+      return;
+    }
+    const tint = PROCEDURE_COLORS[values.procedure];
+    if (tint && !colorTouchedRef.current) {
+      setValue('color', tint, { shouldDirty: true });
+    }
+  }, [values.procedure, open]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Auto-fill Título from a free-text patient name (a new patient not found in
   // the list), mirroring selectPatient. Auto-mode stays live while the title is

@@ -106,6 +106,7 @@ export function TimeInput({
         aria-label="Hora"
         value={hour12}
         onChange={(e) => commit(Number(e.target.value), minute, period)}
+        onBlur={() => commit(hour12, minute, period)}
         className="flex-1 min-w-0 bg-transparent border-none outline-none cursor-pointer px-2 py-2 text-gray-800 dark:text-gray-100"
       >
         {CLOCK_HOURS.map((x) => (
@@ -121,6 +122,7 @@ export function TimeInput({
         aria-label="Minuto"
         value={minute}
         onChange={(e) => commit(hour12, e.target.value, period)}
+        onBlur={() => commit(hour12, minute, period)}
         className="flex-1 min-w-0 bg-transparent border-none outline-none cursor-pointer px-2 py-2 text-gray-800 dark:text-gray-100"
       >
         {CLOCK_MINUTES.map((x) => (
