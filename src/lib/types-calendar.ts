@@ -90,12 +90,12 @@ export const PROCEDURE_COLORS: Record<string, string> = {
   Endodoncia: '#7c3aed',
   Corona: '#e11d48',
   Extracción: '#d97706',
-  Blanqueamiento: '#059669',
-  Radiografía: '#2563eb',
-  Ortodoncia: '#7c3aed',
-  Implante: '#0d9488',
-  'Promo 3 tapones': '#d97706',
-  'Limpieza + 3 tapones': '#059669',
+  Blanqueamiento: '#0ea5e9',
+  Radiografía: '#64748b',
+  Ortodoncia: '#ec4899',
+  Implante: '#f97316',
+  'Promo 3 tapones': '#ca8a04',
+  'Limpieza + 3 tapones': '#06b6d4',
 };
 
 export const EVENT_COLORS = [
