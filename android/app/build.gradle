@@ -1,8 +1,26 @@
 apply plugin: 'com.android.application'
 
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file("keystore/keystore.properties")
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+} else if (System.getenv("DIAMOND_KEYSTORE") != null) {
+    keystoreProps.load(new FileInputStream(System.getenv("DIAMOND_KEYSTORE")))
+}
+
 android {
     namespace = "com.diamondcalendar.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (keystoreProps.getProperty("storeFile") != null) {
+                storeFile rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword keystoreProps.getProperty("storePassword")
+                keyAlias keystoreProps.getProperty("keyAlias")
+                keyPassword keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.diamondcalendar.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +38,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }

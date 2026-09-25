@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -34,7 +34,8 @@ import {
   type EventStatus,
   type EventPriority,
 } from '@/calendario/event/eventSchema';
-import { Field, TextInput, TextArea, Select, TimeInput } from '@/calendario/event/fields';
+import { Field, TextInput, TextArea, Select } from '@/calendario/event/fields';
+import { TimeClockPicker } from '@/calendario/event/TimeClockPicker';
 import {
   saveEventDraft,
   loadEventDraft,
@@ -45,7 +46,7 @@ import { CalendarRepository, isDentistConflictError, type EventInput } from '@/c
 import { useCalendarMutations } from '@/calendario/hooks/useCalendarData';
 import { useToast } from '@/components/calendar-new/Toast';
 import ConflictOverrideDialog from '@/components/calendar-new/ConflictOverrideDialog';
-import { formatClock12, normalizeTime, addHourToTime, clinicWallClockTimestamp } from '@/calendario/timezone';
+import { formatClock12, normalizeTime, addHourToTime, addMinutesToTime, clinicClockTime, clinicWallClockTimestamp } from '@/calendario/timezone';
 import { countries } from '@/utils/phoneUtils';
 import { formatPhoneNumber, getPhonePlaceholder } from '@/utils/formatUtils';
 
@@ -58,6 +59,12 @@ import { formatPhoneNumber, getPhonePlaceholder } from '@/utils/formatUtils';
  * The 10-min level is always kept so the section never looks empty.
  */
 const DEFAULT_REMINDER_LEVELS = [10, 60, 1440];
+const QUICK_DURATIONS = [
+  { label: '+15 min', minutes: 15 },
+  { label: '+30 min', minutes: 30 },
+  { label: '+45 min', minutes: 45 },
+  { label: '+1 hr', minutes: 60 },
+] as const;
 function smartDefaultReminders(date: string, startTime: string): number[] {
   if (!date || !startTime) return [...DEFAULT_REMINDER_LEVELS];
   const startMs = clinicWallClockTimestamp(date, startTime).getTime();
@@ -214,9 +221,27 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
     if (currentTitle !== next) setValue('title', next);
   }, [open, values.patient_name, values.title, setValue]);
 
-  // 12h AM/PM pickers (TimeInput) — emitted value is 24h HH:MM (schema-compatible)
+  // Material radial clock pickers — emitted value is 24h HH:MM (schema-compatible)
   const startTimeField = useController({ control, name: 'start_time' });
   const endTimeField = useController({ control, name: 'end_time' });
+
+  // Duración rápida chips — read Inicio, apply the offset to Fin, and force a
+  // committed re-render. If Inicio is empty, seed it with the current clinic
+  // time before applying the offset (request: chips must visibly update Fin).
+  const applyQuickDuration = useCallback(
+    (minutes: number) => {
+      autoEndRef.current = false;
+      const start = values.start_time || clinicClockTime();
+      if (!values.start_time) {
+        setValue('start_time', start, { shouldDirty: true, shouldValidate: false });
+      }
+      setValue('end_time', addMinutesToTime(start, minutes), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [values.start_time, setValue]
+  );
 
   // a11y — Escape closes the dialog (C18: never while delete-confirm is up)
   useEffect(() => {
@@ -312,8 +337,8 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
       base.end_time = prefill.end || base.end_time;
       autoEndRef.current = false; // respect the exact slot the user drew
     } else {
-      // Default window: Fin = Inicio + 1 h (request #1).
-      base.end_time = addHourToTime(base.start_time, 1);
+      // Default window: Fin = Inicio + 30 min (request).
+      base.end_time = addMinutesToTime(base.start_time, 30);
       autoEndRef.current = true;
     }
     sessionStartRef.current = base.start_time;
@@ -337,16 +362,20 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingEvent, dateStr, prefill, duplicateOf]);
 
-  // Auto-end (request #1): end follows start +1h until the user edits end
-  // manually. Only genuine start changes trigger it — the reset on every open
-  // rebaselines `sessionStartRef` so a reopened modal never inherits stale times.
+  // Smart end-time sync (request): while auto-mode is armed, end follows start
+  // by +30m. Once the user takes over the end field, only an ordering violation
+  // (end unset or prior to start) pushes it forward. `sessionStartRef` re-baselines
+  // on every open so a reopened modal never inherits stale times.
   useEffect(() => {
-    if (!open || isCreate === false || !autoEndRef.current) return;
+    if (!open) return;
     if (sessionStartRef.current === values.start_time) return;
     sessionStartRef.current = values.start_time;
-    const next = addHourToTime(values.start_time, 1);
-    if (next !== values.end_time) {
-      setValue('end_time', next, { shouldValidate: false });
+    const endInvalid = !values.end_time || values.end_time <= values.start_time;
+    if (autoEndRef.current || endInvalid) {
+      const next = addMinutesToTime(values.start_time, 30);
+      if (next !== values.end_time) {
+        setValue('end_time', next, { shouldValidate: false });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.start_time, open]);
@@ -771,10 +800,15 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Field label="Fecha *" error={errors.date?.message}>
-                    <TextInput type="date" invalid={!!errors.date} {...register('date')} />
+                    <TextInput
+                      type="date"
+                      invalid={!!errors.date}
+                      className="dark:[color-scheme:dark]"
+                      {...register('date')}
+                    />
                   </Field>
                   <Field label="Inicio *" error={errors.start_time?.message}>
-                    <TimeInput
+                    <TimeClockPicker
                       aria-label="Hora de inicio"
                       invalid={!!errors.start_time}
                       value={startTimeField.field.value}
@@ -782,16 +816,31 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                     />
                   </Field>
                   <Field label="Fin *" error={errors.end_time?.message}>
-                    <TimeInput
+                    <TimeClockPicker
                       aria-label="Hora de fin"
                       invalid={!!errors.end_time}
                       value={endTimeField.field.value}
+                      minTime={startTimeField.field.value}
                       onChange={(v) => {
                         autoEndRef.current = false;
                         endTimeField.field.onChange(v);
                       }}
                     />
                   </Field>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Duración rápida:</span>
+                  {QUICK_DURATIONS.map(({ label, minutes }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => applyQuickDuration(minutes)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-teal-900/30 dark:hover:border-teal-700 dark:hover:text-teal-200 transition"
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

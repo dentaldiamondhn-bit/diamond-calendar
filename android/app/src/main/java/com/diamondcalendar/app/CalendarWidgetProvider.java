@@ -1,5 +1,6 @@
 package com.diamondcalendar.app;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -7,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -70,9 +72,50 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     }
 
     @Override
+    public void onEnabled(Context context) {
+        super.onEnabled(context);
+        scheduleSelfRefresh(context);
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        super.onDisabled(context);
+        cancelSelfRefresh(context);
+    }
+
+    @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        scheduleSelfRefresh(context);
         refreshAsync(context, appWidgetManager, appWidgetIds, getOffset(context));
     }
+
+    /** Self-scheduling so a transient network blip that blanks the grid
+     *  (error branch in {@link #buildViews}) self-heals within REFRESH_MS and
+     *  picks up DB changes without waiting on Android's rare onUpdate. */
+    private static void scheduleSelfRefresh(Context context) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        long interval = REFRESH_MS;
+        long trigger = System.currentTimeMillis() + interval;
+        am.setInexactRepeating(AlarmManager.RTC, trigger, interval,
+                alarmPendingIntent(context));
+    }
+
+    private static void cancelSelfRefresh(Context context) {
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        am.cancel(alarmPendingIntent(context));
+    }
+
+    private static PendingIntent alarmPendingIntent(Context context) {
+        return PendingIntent.getBroadcast(context, 0,
+                new Intent(context, CalendarWidgetProvider.class)
+                        .setAction(ACTION_REFRESH),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private static final long REFRESH_MS = 15L * 60L * 1000L;
+    private static final String KEY_LAST_GOOD_PREFIX = "last_good_month_";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -119,7 +162,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 error = "Abre la app para sincronizar";
             } else {
                 try {
-                    month = fetchMonth(cookies, monthOffset);
+                    month = fetchMonth(context, cookies, monthOffset);
                 } catch (Exception e) {
                     Log.w(TAG, "widget fetch failed: " + e.getMessage());
                     error = "Toca para abrir la app";
@@ -187,7 +230,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return null;
     }
 
-    private static WidgetMonth fetchMonth(String cookies, int offset) throws Exception {
+    private static WidgetMonth fetchMonth(Context context, String cookies, int offset) throws Exception {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(BASE_URL + "/api/widget/month?offset=" + offset);
@@ -205,44 +248,55 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                 throw new IllegalStateException("HTTP " + code);
             }
 
-            WidgetMonth month = new WidgetMonth();
-            JSONObject json = new JSONObject(body);
-            month.label = json.optString("monthLabel", "");
-            JSONArray weeks = json.optJSONArray("weeks");
-            if (weeks != null) {
-                for (int w = 0; w < weeks.length(); w++) {
-                    JSONArray weekArray = weeks.optJSONArray(w);
-                    if (weekArray == null) continue;
-                    List<WidgetDay> week = new ArrayList<>();
-                    for (int d = 0; d < weekArray.length(); d++) {
-                        JSONObject cell = weekArray.optJSONObject(d);
-                        if (cell == null) continue;
-                        WidgetDay day = new WidgetDay();
-                        day.date = cell.optString("date", "");
-                        day.day = cell.optInt("day", 0);
-                        day.inMonth = cell.optBoolean("inMonth", true);
-                        day.isToday = cell.optBoolean("isToday", false);
-                        JSONArray events = cell.optJSONArray("events");
-                        if (events != null) {
-                            for (int e = 0; e < events.length(); e++) {
-                                JSONObject item = events.optJSONObject(e);
-                                if (item == null) continue;
-                                day.dotColors.add(item.optString("color", ""));
-                                if (day.labels.size() < 2) {
-                                    day.labels.add(item.optString("label", ""));
-                                    day.times.add(item.optString("time", ""));
-                                }
-                            }
-                        }
-                        week.add(day);
-                    }
-                    month.weeks.add(week);
-                }
-            }
+            WidgetMonth month = parseMonthBody(body);
+
+            // keep-last-good: persist the RAW body so a transient fetch
+            // failure can re-render this exact month instead of blanking the grid
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit().putString(KEY_LAST_GOOD_PREFIX + offset, body).apply();
             return month;
+
         } finally {
             if (conn != null) conn.disconnect();
         }
+    }
+
+    private static WidgetMonth parseMonthBody(String body) throws Exception {
+        WidgetMonth month = new WidgetMonth();
+        JSONObject json = new JSONObject(body);
+        month.label = json.optString("monthLabel", "");
+        JSONArray weeks = json.optJSONArray("weeks");
+        if (weeks != null) {
+            for (int w = 0; w < weeks.length(); w++) {
+                JSONArray weekArray = weeks.optJSONArray(w);
+                if (weekArray == null) continue;
+                List<WidgetDay> week = new ArrayList<>();
+                for (int d = 0; d < weekArray.length(); d++) {
+                    JSONObject cell = weekArray.optJSONObject(d);
+                    if (cell == null) continue;
+                    WidgetDay day = new WidgetDay();
+                    day.date = cell.optString("date", "");
+                    day.day = cell.optInt("day", 0);
+                    day.inMonth = cell.optBoolean("inMonth", true);
+                    day.isToday = cell.optBoolean("isToday", false);
+                    JSONArray events = cell.optJSONArray("events");
+                    if (events != null) {
+                        for (int e = 0; e < events.length(); e++) {
+                            JSONObject item = events.optJSONObject(e);
+                            if (item == null) continue;
+                            day.dotColors.add(item.optString("color", ""));
+                            if (day.labels.size() < 2) {
+                                day.labels.add(item.optString("label", ""));
+                                day.times.add(item.optString("time", ""));
+                            }
+                        }
+                    }
+                    week.add(day);
+                }
+                month.weeks.add(week);
+            }
+        }
+        return month;
     }
 
     private static String readStream(InputStream stream) throws Exception {
@@ -270,6 +324,42 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_today, broadcastIntent(context, ACTION_TODAY, 4, 0));
 
         if (error != null || month == null || month.weeks.isEmpty()) {
+            // keep-last-good: before blanking the whole grid, restore the month we
+            // last rendered successfully for THIS widget offset (written by the
+            // fetch path on success). A transient fetch failure therefore shows
+            // the cached month instead of hiding every row until the next poll.
+            String cached = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .getString(KEY_LAST_GOOD_PREFIX + offset, null);
+            WidgetMonth restored = null;
+            if (cached != null) {
+                try { restored = parseMonthBody(cached); } catch (Exception ignored) { restored = null; }
+            }
+            if (restored != null && !restored.weeks.isEmpty()) {
+                month = restored;
+                error = "Recuperando datos guardados";
+                WidgetMonth finalMonth = month;
+                String finalError = error;
+                views.setViewVisibility(R.id.widget_error, android.view.View.GONE);
+                views.setTextViewText(R.id.widget_title, month.label);
+                views.setViewVisibility(R.id.widget_weekdays, android.view.View.VISIBLE);
+                views.setViewVisibility(R.id.widget_divider, android.view.View.VISIBLE);
+                views.setViewVisibility(R.id.widget_today,
+                        offset == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
+                int weekCount = Math.min(month.weeks.size(), 6);
+                for (int w = 0; w < 6; w++) {
+                    if (w >= weekCount) {
+                        views.setViewVisibility(WEEK_ROW_IDS[w], android.view.View.GONE);
+                        continue;
+                    }
+                    views.setViewVisibility(WEEK_ROW_IDS[w], android.view.View.VISIBLE);
+                    List<WidgetDay> week = month.weeks.get(w);
+                    for (int c = 0; c < 7; c++) {
+                        WidgetDay day = c < week.size() ? week.get(c) : null;
+                        fillDayCell(context, views, w * 7 + c, day, expanded);
+                    }
+                }
+                return views;
+            }
             for (int id : WEEK_ROW_IDS) views.setViewVisibility(id, android.view.View.GONE);
             views.setViewVisibility(R.id.widget_weekdays, android.view.View.GONE);
             views.setViewVisibility(R.id.widget_divider, android.view.View.GONE);
@@ -345,7 +435,13 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
                     // Color the event pill with the procedure color so expanded
                     // events carry their color like the compact dots do.
                     String color = k < day.dotColors.size() ? day.dotColors.get(k) : "";
-                    views.setTextColor(nameId, parseColor(color));
+                    int pillColor = parseColor(color);
+                    // Tint the pill's rounded background so the whole pill carries
+                    // the procedure color (dots already do). ColorStateList tint
+                    // keeps the pill's rounded corners via backgroundTintList.
+                    views.setColorStateList(nameId, "setBackgroundTintList",
+                            android.content.res.ColorStateList.valueOf(pillColor));
+                    views.setTextColor(nameId, readableTextOn(pillColor));
                 } else {
                     views.setTextViewText(nameId, "");
                     views.setTextViewText(timeId, "");
@@ -400,6 +496,16 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         } catch (Exception ignored) {
         }
         return 0xFF14B8A6;
+    }
+
+    /** White or near-black text chosen by luminance so the pill label stays
+     *  readable on any procedure color (light pills get dark text). */
+    private static int readableTextOn(int background) {
+        // Weighted Rec.601 luminance; > ~128 is a light pill.
+        double lumin = (0.299 * android.graphics.Color.red(background))
+                     + (0.587 * android.graphics.Color.green(background))
+                     + (0.114 * android.graphics.Color.blue(background));
+        return lumin > 140 ? 0xFF111827 : 0xFFFFFFFF;
     }
 
     /** Trims and truncates to MAX_LABEL_LENGTH letters so the event time fits. */
