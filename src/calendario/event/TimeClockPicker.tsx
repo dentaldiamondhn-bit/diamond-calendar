@@ -167,7 +167,10 @@ export function TimeClockPicker({
                 role="dialog"
                 aria-modal="true"
                 aria-label={ariaLabel || 'Selector de hora'}
-                className="w-[19rem] rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden"
+                className={cn(
+                  'rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden',
+                  typed ? 'w-[22rem]' : 'w-[19rem]'
+                )}
               >
                 {/* digital display + AM/PM segmented toggle — hidden in Teclado mode (typed inputs carry the state) */}
                 {!typed && (
@@ -225,7 +228,7 @@ export function TimeClockPicker({
                 )}
 
                 {/* body: typed entry XOR analog dial */}
-                <div className="px-5 pb-2">
+                <div className={cn('pb-2', typed ? 'px-6' : 'px-5')}>
                   {typed ? (
                     <TypedEntry
                       hour12={draft.hour12}
