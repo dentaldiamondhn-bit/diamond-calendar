@@ -9,10 +9,11 @@ import {
 } from 'react';
 
 const base =
-  'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors ' +
-  'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 ' +
-  'focus:border-teal-500 focus:ring-2 focus:ring-teal-100 ' +
-  'dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+  'w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all ' +
+  'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 ' +
+  'focus:border-teal-500/60 focus:ring-2 focus:ring-teal-500/20 ' +
+  'dark:bg-slate-900/60 dark:border-slate-700/60 dark:text-slate-100 ' +
+  'dark:placeholder:text-slate-500 dark:hover:brightness-125';
 
 const inputCls = (invalid?: boolean) => `${base} ${invalid ? 'border-rose-300 dark:border-rose-700' : ''}`;
 
@@ -29,12 +30,12 @@ export function Field({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</label>
       <div className="mt-1">{children}</div>
       {error ? (
-        <p className="text-xs text-rose-500 mt-1">{error}</p>
+        <p className="text-xs text-rose-400 mt-1">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-gray-400 mt-1">{hint}</p>
+        <p className="text-xs text-slate-400 mt-1">{hint}</p>
       ) : null}
     </div>
   );

@@ -138,13 +138,13 @@ export function TimeClockPicker({
         onClick={() => setOpen(true)}
         className={cn(
           'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer',
-          'bg-white border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100',
-          'hover:border-teal-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-900/40 outline-none transition-colors',
+          'bg-white border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:border-slate-700/60 dark:text-slate-100',
+          'hover:border-teal-500/60 focus:border-teal-500/60 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all',
           invalid && 'border-rose-300 dark:border-rose-700'
         )}
       >
         <span className="font-medium tabular-nums">{formatClock12(value)}</span>
-        <Clock size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+        <Clock size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
       </button>
 
       {typeof document !== 'undefined' &&
@@ -168,7 +168,7 @@ export function TimeClockPicker({
                 aria-modal="true"
                 aria-label={ariaLabel || 'Selector de hora'}
                 className={cn(
-                  'rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden',
+                  'w-[22rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-2xl dark:border-slate-700/60 dark:bg-slate-950/85',
                   typed ? 'w-[22rem]' : 'w-[19rem]'
                 )}
               >
@@ -180,23 +180,23 @@ export function TimeClockPicker({
                         type="button"
                         onClick={() => setMode('hours')}
                         className={cn(
-                          'px-2 py-1 rounded-lg text-3xl font-bold transition-colors',
+                          'px-2 py-1 rounded-lg text-3xl font-bold transition-all',
                           mode === 'hours'
                             ? 'text-teal-700 dark:text-teal-300'
-                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                            : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                         )}
                       >
                         {String(draft.hour12).padStart(2, '0')}
                       </button>
-                      <span className="text-3xl font-bold text-gray-300 dark:text-gray-600 select-none">:</span>
+                      <span className="text-3xl font-bold text-slate-300 dark:text-slate-600 select-none">:</span>
                       <button
                         type="button"
                         onClick={() => setMode('minutes')}
                         className={cn(
-                          'px-2 py-1 rounded-lg text-3xl font-bold transition-colors',
+                          'px-2 py-1 rounded-lg text-3xl font-bold transition-all',
                           mode === 'minutes'
                             ? 'text-teal-700 dark:text-teal-300'
-                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                            : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                         )}
                       >
                         {String(draft.minute).padStart(2, '0')}
@@ -206,7 +206,7 @@ export function TimeClockPicker({
                     <div
                       role="group"
                       aria-label="Período"
-                      className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 text-sm font-medium"
+                      className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/40 text-sm font-medium"
                     >
                       {(['am', 'pm'] as const).map((p) => (
                         <button
@@ -214,10 +214,10 @@ export function TimeClockPicker({
                           type="button"
                           onClick={() => setDraft((d) => ({ ...d, period: p }))}
                           className={cn(
-                            'px-3 py-2 transition-colors',
+                            'px-3 py-2 transition-all',
                             draft.period === p
-                              ? 'bg-teal-600 text-white'
-                              : 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                              ? 'bg-teal-500/25 text-teal-200'
+                              : 'bg-transparent text-slate-400 hover:bg-slate-700/50'
                           )}
                         >
                           {p === 'am' ? 'a. m.' : 'p. m.'}
@@ -254,15 +254,15 @@ export function TimeClockPicker({
                 </div>
 
                 {/* footer */}
-                <div className="px-3 py-3 flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between border-t border-slate-200/70 bg-slate-100/50 px-3 py-3 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-800/30">
                   <button
                     type="button"
                     onClick={() => setTyped((t) => !t)}
                     className={cn(
-                      'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors',
+                      'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
                       typed
-                        ? 'bg-teal-600 text-white'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        ? 'border-teal-500/60 bg-teal-500/20 text-teal-300'
+                        : 'border-slate-700/60 bg-slate-800/50 text-slate-300 hover:brightness-125'
                     )}
                     aria-label={typed ? 'Usar reloj' : 'Escribir la hora'}
                     title={typed ? 'Reloj' : 'Teclado'}
@@ -274,14 +274,14 @@ export function TimeClockPicker({
                     <button
                       type="button"
                       onClick={close}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      className="rounded-full border border-slate-300/80 bg-slate-100/60 px-4 py-1.5 text-sm font-medium text-slate-600 transition-all hover:brightness-110 dark:border-slate-700/60 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:brightness-125"
                     >
                       Cancelar
                     </button>
                     <button
                       type="button"
                       onClick={accept}
-                      className="px-5 py-1.5 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                      className="rounded-full border border-teal-500/60 bg-teal-500/20 px-5 py-1.5 text-sm font-medium text-teal-700 transition-all hover:brightness-110 dark:text-teal-200 dark:hover:brightness-125"
                     >
                       Aceptar
                     </button>
@@ -374,28 +374,28 @@ function TypedEntry({
         onChange={(e) => onHChange(e.target.value)}
         onBlur={() => setHText(String(Math.max(1, Math.min(12, parseInt(hText, 10) || 1))))}
         aria-label="Hora"
-        className="w-24 h-20 px-3 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-5xl font-bold tabular-nums text-gray-800 dark:text-gray-100 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-900/40"
+        className="w-24 h-20 px-3 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 text-center text-5xl font-bold tabular-nums text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-teal-500/60 focus:ring-2 focus:ring-teal-500/20"
       />
-      <span className="text-4xl font-bold text-gray-300 dark:text-gray-600 select-none">:</span>
+      <span className="text-4xl font-bold text-slate-300 dark:text-slate-600 select-none">:</span>
       <input
         inputMode="numeric"
         value={mText}
         onChange={(e) => onMChange(e.target.value)}
         onBlur={() => setMText(String(Math.max(0, Math.min(59, parseInt(mText, 10) || 0))).padStart(2, '0'))}
         aria-label="Minuto"
-        className="w-24 h-20 px-3 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-center text-5xl font-bold tabular-nums text-gray-800 dark:text-gray-100 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-900/40"
+        className="w-24 h-20 px-3 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 text-center text-5xl font-bold tabular-nums text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-teal-500/60 focus:ring-2 focus:ring-teal-500/20"
       />
-      <div className="flex h-20 min-w-[64px] flex-col justify-between rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 text-sm font-medium ml-2">
+      <div className="flex h-20 min-w-[64px] flex-col justify-between rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/40 text-sm font-medium ml-2">
         {(['am', 'pm'] as const).map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => onPeriod(p)}
             className={cn(
-              'flex-1 whitespace-nowrap px-3 text-center transition-colors',
+              'flex-1 whitespace-nowrap px-3 text-center transition-all',
               period === p
-                ? 'bg-teal-600 text-white'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'bg-teal-500/25 text-teal-200'
+                : 'text-slate-400 hover:bg-slate-700/50'
             )}
           >
             {p === 'am' ? 'a. m.' : 'p. m.'}

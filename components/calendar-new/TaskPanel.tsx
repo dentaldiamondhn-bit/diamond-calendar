@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Plus, Trash2, Flag, Loader2, Clock } from 'lucide-react';
-import { PRIORITY_LABELS } from '@/calendario/event/eventSchema';
+import { PRIORITY_CHIP, btnGhost, btnIcon, btnPrimary, glassBar, glassCard, glassDivider, glassRow } from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 
 interface Task {
   id: number;
@@ -30,9 +31,9 @@ interface Props {
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
-  high: 'text-rose-500',
-  medium: 'text-amber-500',
-  low: 'text-gray-400',
+  high: 'text-rose-400',
+  medium: 'text-amber-400',
+  low: 'text-slate-400',
 };
 
 function formatTaskTime(iso: string): string {
@@ -85,16 +86,13 @@ export default function TaskPanel({ tasks, selectedDate, onAdd, onToggle, onDele
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+    <div className={cn(glassCard, 'overflow-hidden')}>
+      <div className={cn(glassBar, 'flex items-center justify-between p-4')}>
+        <h3 className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
           <Check size={18} className="text-teal-500" /> Tareas
         </h3>
         {selectedDate && (
-          <button
-            onClick={openForm}
-            className="text-teal-600 hover:bg-teal-50 p-1.5 rounded-lg transition"
-          >
+          <button onClick={openForm} className={cn(btnIcon, 'hover:text-teal-500')} aria-label="Nueva tarea">
             <Plus size={18} />
           </button>
         )}
@@ -107,48 +105,55 @@ export default function TaskPanel({ tasks, selectedDate, onAdd, onToggle, onDele
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             onSubmit={handleAdd}
-             className="px-4 py-3 border-b border-gray-50 bg-gray-50 overflow-hidden"
+            className={cn(
+              'overflow-hidden border-b px-4 py-3',
+              glassDivider,
+              'border-slate-200/70 bg-slate-100/50 dark:border-slate-800/70 dark:bg-slate-800/30'
+            )}
           >
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Título de la tarea..."
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-500 outline-none text-sm"
+              className="w-full rounded-lg border border-slate-300/80 bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-100"
             />
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
               {(['low', 'medium', 'high'] as const).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setPriority(p)}
-                  className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition ${
-                    priority === p ? 'bg-teal-100 text-teal-700' : 'bg-white text-gray-500 border border-gray-200'
-                  }`}
+                  className={cn(
+                    'flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors',
+                    priority === p
+                      ? 'border-teal-400/40 bg-teal-400/15 text-teal-700 dark:text-teal-200'
+                      : 'border-slate-200/80 bg-white/60 text-slate-500 hover:bg-slate-100/70 dark:border-slate-700/60 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:bg-slate-800/50'
+                  )}
                 >
-                  {PRIORITY_LABELS[p]}
+                  {PRIORITY_CHIP[p].label}
                 </button>
               ))}
-              <button type="submit" disabled={busy} className="bg-teal-600 text-white px-3 rounded-lg text-sm disabled:opacity-50">
+              <button type="submit" disabled={busy} className={cn(btnPrimary, 'px-3 py-1.5')}>
                 {busy ? <Loader2 size={14} className="animate-spin" /> : 'Añadir'}
               </button>
             </div>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="mt-2 flex items-center gap-2">
               <input
                 type="datetime-local"
                 value={remindAt}
                 onChange={(e) => setRemindAt(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-500 outline-none text-sm"
+                className="flex-1 rounded-lg border border-slate-300/80 bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-100"
                 title="Recordar a esta hora (opcional)"
               />
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex shrink-0 items-center gap-1">
                 <input
                   type="number"
                   min={1}
                   value={repeatDays}
                   onChange={(e) => setRepeatDays(e.target.value)}
                   placeholder="Cada N días"
-                  className="w-24 px-2 py-2 rounded-lg border border-gray-200 focus:border-teal-500 outline-none text-sm"
+                  className="w-24 rounded-lg border border-slate-300/80 bg-white/80 px-2 py-2 text-sm text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-100"
                   title="Repetir cada N días hasta completar (vacío = una sola vez)"
                 />
               </div>
@@ -159,27 +164,45 @@ export default function TaskPanel({ tasks, selectedDate, onAdd, onToggle, onDele
 
       <div className="max-h-[300px] overflow-y-auto">
         {sorted.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">
+          <div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">
             {selectedDate ? 'No hay tareas para este día.' : 'Selecciona un día para ver tareas.'}
           </div>
         ) : (
           sorted.map((task) => (
-            <div key={task.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50 group hover:bg-gray-50 transition">
+            <div
+              key={task.id}
+              className={cn(
+                'group flex items-center gap-2 border-b px-4 py-2.5 last:border-b-0',
+                glassDivider,
+                glassRow
+              )}
+            >
               <button
                 onClick={() => onToggle(task)}
-                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${
-                  task.completed ? 'bg-teal-500 border-teal-500' : 'border-gray-300 hover:border-teal-400'
-                }`}
+                aria-label={task.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-md border-2 transition-colors',
+                  task.completed
+                    ? 'border-teal-400/60 bg-teal-400/25'
+                    : 'border-slate-400/40 hover:border-teal-400/70'
+                )}
               >
-                {task.completed && <Check size={12} className="text-white" />}
+                {task.completed && <Check size={12} className="text-teal-200" />}
               </button>
               <Flag size={14} className={PRIORITY_COLORS[task.priority]} />
-              <div className="flex-1 min-w-0">
-                <span className={`block text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+              <div className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    'block text-sm',
+                    task.completed
+                      ? 'text-slate-400 dark:text-slate-500 line-through'
+                      : 'text-slate-700 dark:text-slate-200'
+                  )}
+                >
                   {task.title}
                 </span>
                 {task.completed || !task.remind_at ? null : (
-                  <span className="flex items-center gap-1 text-xs text-amber-500 mt-0.5">
+                  <span className="mt-0.5 flex items-center gap-1 text-xs text-amber-500 dark:text-amber-300">
                     <Clock size={11} /> {formatTaskTime(task.remind_at)}
                     {task.repeat_every_days ? ` · cada ${task.repeat_every_days} día${task.repeat_every_days === 1 ? '' : 's'}` : null}
                   </span>
@@ -187,7 +210,8 @@ export default function TaskPanel({ tasks, selectedDate, onAdd, onToggle, onDele
               </div>
               <button
                 onClick={() => onDelete(task.id)}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-rose-500 transition"
+                aria-label="Eliminar tarea"
+                className={cn(btnGhost, 'opacity-0 group-hover:opacity-100 hover:text-rose-500')}
               >
                 <Trash2 size={14} />
               </button>

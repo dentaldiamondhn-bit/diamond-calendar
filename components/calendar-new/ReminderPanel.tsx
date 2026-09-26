@@ -3,6 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Plus, X, Loader2, Clock, Check } from 'lucide-react';
 import type { Reminder, EventReminder } from '@/lib/types-calendar';
 import { reminderLabel } from '@/calendario/reminderLabel';
+import {
+  btnGhost,
+  btnIcon,
+  chipCls,
+  glassBar,
+  glassCard,
+  glassDivider,
+  glassRow,
+} from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 
 interface Props {
   reminders: Reminder[];
@@ -122,35 +132,45 @@ export default function ReminderPanel({
   const renderEventReminder = (row: EventRow, isOverdue: boolean) => (
     <div
       key={`ev-${row.reminder.id}`}
-      className={`flex items-start gap-2 px-4 py-2.5 border-b border-gray-50 group hover:bg-gray-50 transition ${
-        isOverdue ? 'bg-rose-50' : ''
-      }`}
+      className={cn(
+        'group flex items-start gap-2 border-b px-4 py-2.5 last:border-b-0',
+        glassDivider,
+        glassRow,
+        isOverdue && 'bg-rose-500/5'
+      )}
     >
-      <Bell size={14} className={`mt-0.5 ${isOverdue ? 'text-rose-500' : 'text-amber-500'}`} />
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm ${isOverdue ? 'text-rose-700' : 'text-gray-700'}`}>{row.title}</p>
-        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-          <Clock size={11} /> {reminderLabel(row.reminder.minutes_before)}
-          {row.patient ? ` · ${row.patient}` : ''} · {formatDateTime(row.at)}
-          {row.reminder.sent && (
-            <span className="inline-flex items-center gap-0.5 text-teal-600">
+      <Bell size={14} className={cn('mt-0.5', isOverdue ? 'text-rose-400' : 'text-amber-400')} />
+      <div className="min-w-0 flex-1">
+        <p className={cn('text-sm', isOverdue ? 'text-rose-300' : 'text-slate-700 dark:text-slate-200')}>
+          {row.title}
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+          <span className={cn(chipCls(isOverdue ? 'rose' : 'amber'), 'font-normal')}>
+            <Clock size={11} /> {reminderLabel(row.reminder.minutes_before)}
+          </span>
+          {row.patient ? <span className="truncate">{row.patient}</span> : null}
+          <span>· {formatDateTime(row.at)}</span>
+          {row.reminder.sent ? (
+            <span className="inline-flex items-center gap-0.5 text-teal-500 dark:text-teal-300">
               <Check size={11} /> enviado
             </span>
-          )}
+          ) : null}
         </p>
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+      <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={() => dismissEventReminderLocally(row.reminder)}
-          className="text-gray-400 hover:text-teal-500 p-1"
+          className={cn(btnGhost, 'p-1 hover:text-teal-400')}
           title="Descartar recordatorio de la cita"
+          aria-label="Descartar recordatorio de la cita"
         >
           <Check size={14} />
         </button>
         <button
           onClick={() => onDeleteEventReminder(row.reminder.event_id, row.reminder.id)}
-          className="text-gray-400 hover:text-rose-500 p-1"
+          className={cn(btnGhost, 'p-1 hover:text-rose-400')}
           title="Quitar recordatorio de la cita"
+          aria-label="Quitar recordatorio de la cita"
         >
           <X size={14} />
         </button>
@@ -161,22 +181,27 @@ export default function ReminderPanel({
   const renderReminder = (r: Reminder, isOverdue: boolean) => (
     <div
       key={r.id}
-      className={`flex items-start gap-2 px-4 py-2.5 border-b border-gray-50 group hover:bg-gray-50 transition ${
-        isOverdue ? 'bg-rose-50' : ''
-      }`}
+      className={cn(
+        'group flex items-start gap-2 border-b px-4 py-2.5 last:border-b-0',
+        glassDivider,
+        glassRow,
+        isOverdue && 'bg-rose-500/5'
+      )}
     >
-      <Bell size={14} className={`mt-0.5 ${isOverdue ? 'text-rose-500' : 'text-amber-500'}`} />
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm ${isOverdue ? 'text-rose-700' : 'text-gray-700'}`}>{r.message}</p>
-        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+      <Bell size={14} className={cn('mt-0.5', isOverdue ? 'text-rose-400' : 'text-amber-400')} />
+      <div className="min-w-0 flex-1">
+        <p className={cn('text-sm', isOverdue ? 'text-rose-300' : 'text-slate-700 dark:text-slate-200')}>
+          {r.message}
+        </p>
+        <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
           <Clock size={11} /> {formatDateTime(new Date(r.remind_at))}
         </p>
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-        <button onClick={() => onDismiss(r.id)} className="text-gray-400 hover:text-teal-500 p-1" title="Descartar">
+      <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button onClick={() => onDismiss(r.id)} className={cn(btnGhost, 'p-1 hover:text-teal-400')} title="Descartar" aria-label="Descartar">
           <Check size={14} />
         </button>
-        <button onClick={() => onDelete(r.id)} className="text-gray-400 hover:text-rose-500 p-1" title="Eliminar">
+        <button onClick={() => onDelete(r.id)} className={cn(btnGhost, 'p-1 hover:text-rose-400')} title="Eliminar" aria-label="Eliminar">
           <X size={14} />
         </button>
       </div>
@@ -186,15 +211,17 @@ export default function ReminderPanel({
   const isEmpty = active.length === 0 && eventRows.length === 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <Bell size={18} className="text-amber-500" /> Recordatorios
+    <div className={cn(glassCard, 'overflow-hidden')}>
+      <div className={cn(glassBar, 'flex items-center justify-between p-4')}>
+        <h3 className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
+          <Bell size={18} className="text-amber-400" /> Recordatorios
           {overdueCount > 0 && (
-            <span className="bg-rose-500 text-white text-xs rounded-full px-2 py-0.5">{overdueCount}</span>
+            <span className="rounded-lg border border-rose-400/40 bg-rose-400/15 px-2 py-0.5 text-xs font-semibold text-rose-300">
+              {overdueCount}
+            </span>
           )}
         </h3>
-        <button onClick={() => setShowInput(!showInput)} className="text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition">
+        <button onClick={() => setShowInput(!showInput)} className={cn(btnIcon, 'hover:text-amber-400')} aria-label="Nuevo recordatorio">
           <Plus size={18} />
         </button>
       </div>
@@ -206,23 +233,33 @@ export default function ReminderPanel({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             onSubmit={handleAdd}
-            className="px-4 py-3 border-b border-gray-50 bg-amber-50 overflow-hidden"
+            className={cn(
+              'overflow-hidden border-b px-4 py-3',
+              glassDivider,
+              'border-slate-200/70 bg-amber-500/5 dark:border-slate-800/70'
+            )}
           >
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Mensaje del recordatorio..."
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-amber-500 outline-none text-sm"
+              className="w-full rounded-lg border border-slate-300/80 bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none focus:border-amber-500 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-100"
             />
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
               <input
                 type="datetime-local"
                 value={remindAt}
                 onChange={(e) => setRemindAt(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:border-amber-500 outline-none text-sm"
+                className="flex-1 rounded-lg border border-slate-300/80 bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none focus:border-amber-500 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-100"
               />
-              <button type="submit" disabled={busy} className="bg-amber-500 text-white px-3 rounded-lg text-sm disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={busy}
+                className={cn(
+                  'rounded-lg border border-amber-400/40 bg-amber-500/90 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500 disabled:opacity-50'
+                )}
+              >
                 {busy ? <Loader2 size={14} className="animate-spin" /> : 'Fijar'}
               </button>
             </div>
@@ -232,9 +269,9 @@ export default function ReminderPanel({
 
       <div className="max-h-[250px] overflow-y-auto">
         {isEmpty ? (
-          <div className="p-6 text-center text-sm text-gray-400">
+          <div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">
             No hay recordatorios activos.
-            <span className="block text-xs text-gray-300 mt-1">
+            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-600">
               Crea uno aquí o agrega un recordatorio a una cita para verlo en esta tarjeta.
             </span>
           </div>

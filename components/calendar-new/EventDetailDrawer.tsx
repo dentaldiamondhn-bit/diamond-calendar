@@ -19,6 +19,20 @@ import { CalendarRepository } from '@/calendario/calendarRepository';
 import { reminderLabel } from '@/calendario/reminderLabel';
 import { useCalendarMutations } from '@/calendario/hooks/useCalendarData';
 import { useToast } from '@/components/calendar-new/Toast';
+import {
+  PRIORITY_CHIP,
+  STATUS_CHIP,
+  btnDanger,
+  btnGhost,
+  btnIcon,
+  btnPrimary,
+  btnSecondary,
+  chipCls,
+  glassBar,
+  glassOverlay,
+} from '@/calendario/glass';
+import { withAlpha } from '@/calendario/eventTint';
+import { cn } from '@/lib/utils';
 
 interface Props {
   /** Non-null while the drawer is open (C18 — slot/event select => detail drawer). */
@@ -164,22 +178,25 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed inset-y-0 right-0 w-full max-w-md z-40 bg-white dark:bg-gray-950 shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col"
+            className={cn(
+              glassOverlay,
+              'fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col rounded-none border-y-0 border-r-0'
+            )}
             role="dialog"
             aria-label="Detalles de la cita"
             aria-modal="true"
           >
-            <header className="flex items-start justify-between gap-3 p-5 border-b border-gray-100 dark:border-gray-800">
+            <header className={cn(glassBar, 'flex items-start justify-between gap-3 p-5')}>
               <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className="mt-1 h-10 w-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: event.color || '#0d9488' }}
+                <span
+                  className="mt-1 h-10 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: withAlpha(event.color || '#0d9488', 0.85) }}
                 />
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight break-words">
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight break-words">
                     {event.title || event.patient_name}
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                     {event.date} · {timeSpan(event)}
                   </p>
                 </div>
@@ -188,25 +205,25 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                 <button
                   onClick={onPrev}
                   disabled={total <= 1}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent transition"
+                  className={btnIcon}
                   aria-label="Evento anterior"
                   title="Evento anterior"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums min-w-[2.5rem] text-center">
+                <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums min-w-[2.5rem] text-center">
                   {total > 0 ? `${position}/${total}` : ''}
                 </span>
                 <button
                   onClick={onNext}
                   disabled={total <= 1}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent transition"
+                  className={btnIcon}
                   aria-label="Evento siguiente"
                   title="Evento siguiente"
                 >
                   <ChevronRight size={18} />
                 </button>
-                <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ml-1" aria-label="Cerrar">
+                <button onClick={onClose} className={cn(btnIcon, 'ml-1')} aria-label="Cerrar">
                   <X size={20} />
                 </button>
               </div>
@@ -215,23 +232,23 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               <div className="flex flex-wrap gap-1.5">
                 {event.event_type && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+                  <span className={chipCls('teal')}>
                     {EVENT_TYPE_LABELS[event.event_type as EventType] ?? event.event_type}
                   </span>
                 )}
                 {event.status && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                  <span className={chipCls(STATUS_CHIP[event.status as EventStatus]?.tone ?? 'slate')}>
                     {STATUS_LABELS[event.status as EventStatus] ?? event.status}
                   </span>
                 )}
                 {event.priority && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                  <span className={chipCls(PRIORITY_CHIP[event.priority as EventPriority]?.tone ?? 'slate')}>
                     {PRIORITY_LABELS[event.priority as EventPriority] ?? event.priority}
                   </span>
                 )}
                 {event.reminder_minutes != null && event.reminder_minutes > 0 && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                    {reminderLabel(event.reminder_minutes)}
+                  <span className={chipCls('amber')}>
+                    <Bell size={11} /> {reminderLabel(event.reminder_minutes)}
                   </span>
                 )}
               </div>
@@ -239,14 +256,14 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               <Row icon={UserRound} label="Paciente">
                 {event.patient_id ? (
                   <a
-                    href={`${MONOLITH_BASE}/patient-preview/${event.patient_id}`}
+                    href={`/patient-preview/${event.patient_id}`}
                     className="flex items-center gap-1 text-teal-700 dark:text-teal-300 font-medium hover:underline"
                   >
                     {event.patient_name}
                     <ExternalLink size={14} />
                   </a>
                 ) : (
-                  <span className="text-gray-800 dark:text-gray-100">{event.patient_name || '—'}</span>
+                  <span className="text-slate-800 dark:text-slate-100">{event.patient_name || '—'}</span>
                 )}
               </Row>
 
@@ -257,7 +274,7 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               {event.patient_id ? (
                 <a
                   href={`${MONOLITH_BASE}/menu-navegacion?id=${encodeURIComponent(event.patient_id)}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950 px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-500/30 bg-teal-400/10 px-4 py-2 text-sm font-medium text-teal-700 transition-colors hover:bg-teal-400/20 dark:border-teal-400/30 dark:text-teal-200"
                 >
                   <LayoutGrid size={16} />
                   Menú
@@ -265,7 +282,7 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               ) : (
                 <a
                   href={`${MONOLITH_BASE}/patient-form`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950 px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-teal-500/30 bg-teal-400/10 px-4 py-2 text-sm font-medium text-teal-700 transition-colors hover:bg-teal-400/20 dark:border-teal-400/30 dark:text-teal-200"
                 >
                   <FilePlus2 size={16} />
                   Nueva Historia Clínica
@@ -276,12 +293,12 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {event.procedure && (
                     <Row icon={Stethoscope} label="Procedimiento">
-                      <span className="text-gray-800 dark:text-gray-100">{event.procedure}</span>
+                      <span className="text-slate-800 dark:text-slate-100">{event.procedure}</span>
                     </Row>
                   )}
                   {event.dentist && (
                     <Row icon={UserRound} label="Odontólogo">
-                      <span className="text-gray-800 dark:text-gray-100">{event.dentist}</span>
+                      <span className="text-slate-800 dark:text-slate-100">{event.dentist}</span>
                     </Row>
                   )}
                   {event.phone && (
@@ -302,7 +319,7 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               )}
 
               <Row icon={Clock} label="Horario">
-                <span className="text-gray-800 dark:text-gray-100">
+                <span className="text-slate-800 dark:text-slate-100">
                   {timeSpan(event)}
                   {event.date ? ` · ${event.date}` : ''}
                 </span>
@@ -310,32 +327,32 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
 
               {event.location && (
                 <Row icon={MapPin} label="Ubicación">
-                  <span className="text-gray-800 dark:text-gray-100">{event.location}</span>
+                  <span className="text-slate-800 dark:text-slate-100">{event.location}</span>
                 </Row>
               )}
 
               {event.description && (
                 <Row icon={FileText} label="Descripción">
-                  <span className="text-gray-800 dark:text-gray-100 whitespace-pre-wrap">{event.description}</span>
+                  <span className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap">{event.description}</span>
                 </Row>
               )}
 
               {event.notes && (
                 <Row icon={FileText} label="Notas">
-                  <span className="text-gray-800 dark:text-gray-100 whitespace-pre-wrap">{event.notes}</span>
+                  <span className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap">{event.notes}</span>
                 </Row>
               )}
 
               <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <Bell size={13} /> Recordatorios
                 </p>
                 {reminders.length === 0 ? (
-                  <p className="text-sm text-gray-400">Sin recordatorios</p>
+                  <p className="text-sm text-slate-400">Sin recordatorios</p>
                 ) : (
                   <ul className="space-y-1">
                     {reminders.map((min) => (
-                      <li key={min} className="text-sm text-gray-700 dark:text-gray-200">
+                      <li key={min} className="text-sm text-slate-700 dark:text-slate-200">
                         {reminderLabel(min)}
                       </li>
                     ))}
@@ -344,11 +361,11 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               </div>
 
               <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <Mail size={13} /> Invitados ({invitees.length})
                 </p>
                 {invitees.length === 0 ? (
-                  <p className="text-sm text-gray-400">Sin invitados</p>
+                  <p className="text-sm text-slate-400">Sin invitados</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {invitees.map((u) => (
@@ -362,12 +379,12 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                           }}
                         />
                         <span className="flex-1 min-w-0">
-                          <span className="block text-gray-800 dark:text-gray-100 truncate">
+                          <span className="block text-slate-800 dark:text-slate-100 truncate">
                             {u.first_name || ''} {u.last_name || ''}
                           </span>
-                          {u.email ? <span className="block text-xs text-gray-400 truncate">{u.email}</span> : null}
+                          {u.email ? <span className="block text-xs text-slate-400 truncate">{u.email}</span> : null}
                         </span>
-                        <span className="text-xs capitalize text-gray-400">{u.status.replace('_', ' ')}</span>
+                        <span className="text-xs capitalize text-slate-400">{u.status.replace('_', ' ')}</span>
                       </li>
                     ))}
                   </ul>
@@ -375,39 +392,30 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               </div>
             </div>
 
-            <footer className="flex items-center justify-between gap-2 p-5 border-t border-gray-100 dark:border-gray-800">
+            <footer className={cn(glassBar, 'flex items-center justify-between gap-2 border-t border-b-0 p-5')}>
               <div className="flex-1">
                 {isOwner ? (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 px-3 py-2 rounded-lg text-sm font-medium transition"
-                  >
+                  <button onClick={() => setConfirmDelete(true)} className={btnDanger}>
                     <Trash2 size={16} /> Eliminar
                   </button>
                 ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     Compartida contigo — solo el propietario puede editarla o eliminarla.
                   </p>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 text-sm font-medium"
-                >
+                <button onClick={onClose} className={btnSecondary}>
                   Cerrar
                 </button>
                 <button
                   onClick={() => onDuplicate(event)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-teal-600 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-900/30 transition"
+                  className={cn(btnGhost, 'text-teal-600 hover:bg-teal-400/15 dark:text-teal-300')}
                 >
                   <CopyPlus size={15} /> Duplicar
                 </button>
                 {isOwner && (
-                  <button
-                    onClick={() => onEdit(event)}
-                    className="flex items-center gap-1.5 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition"
-                  >
+                  <button onClick={() => onEdit(event)} className={btnPrimary}>
                     <Pencil size={15} /> Editar
                   </button>
                 )}
@@ -420,30 +428,27 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
                 >
                   <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white dark:bg-gray-950 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700"
+                    className={cn(glassOverlay, 'w-full max-w-md p-6')}
                   >
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Eliminar cita</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Eliminar cita</h3>
                     {error && <p className="text-sm text-rose-600 mb-2">{error}</p>}
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                       ¿Seguro? Se eliminará de forma permanente junto con sus recordatorios e invitados.
                     </p>
                     <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setConfirmDelete(false)}
-                        className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 font-medium"
-                      >
+                      <button onClick={() => setConfirmDelete(false)} className={btnSecondary}>
                         Cancelar
                       </button>
                       <button
                         onClick={onDelete}
                         disabled={deleting}
-                        className="bg-rose-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+                        className="flex items-center gap-2 rounded-lg border border-rose-400/40 bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-500 disabled:opacity-50 dark:bg-rose-500/85 dark:hover:bg-rose-400/85"
                       >
                         {deleting && <Loader2 className="animate-spin" size={16} />}
                         {deleting ? 'Eliminando…' : 'Eliminar'}
@@ -471,11 +476,11 @@ function Row({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-500/20 bg-slate-500/10 text-slate-500 dark:text-slate-400">
         <Icon size={14} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</p>
         <div className="text-sm mt-0.5">{children}</div>
       </div>
     </div>

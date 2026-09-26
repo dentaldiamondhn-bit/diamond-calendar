@@ -1,0 +1,436 @@
+/* ------------------------------------------------------------------ *
+ * React Big Calendar — "tinted glassmorphism" theme layer.
+ *
+ * Owned by the /calendario route: imported from `RbcCalendar.tsx` right
+ * after RBC's vendor stylesheet and scoped to the `.rbc-themed` wrapper,
+ * so none of it leaks into the rest of the app. It covers what Tailwind
+ * can't reach (vendor DOM: overlays, show-more, time gutter, slot
+ * selection) plus the hairlines and tints behind the React components in
+ * `calendarComponents.tsx`.
+ *
+ * Dark mode is the primary target; light mode keeps the same geometry
+ * with neutral tints.
+ * ------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------- tokens --- */
+.rbc-themed {
+  --rbc-ink: #0f172a;
+  --rbc-ink-soft: #475569;
+  --rbc-ink-faint: #94a3b8;
+  --rbc-hairline: rgba(15, 23, 42, 0.09);
+  --rbc-hairline-soft: rgba(15, 23, 42, 0.05);
+  --rbc-header-line: #e2e8f0; /* column-header rule */
+  --rbc-tint: rgba(13, 148, 136, 0.1);
+  --rbc-tint-line: rgba(13, 148, 136, 0.35);
+  --rbc-overlay: rgba(255, 255, 255, 0.94);
+  --rbc-overlay-line: rgba(15, 23, 42, 0.12);
+  --rbc-overlay-line-soft: rgba(15, 23, 42, 0.08);
+  --rbc-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.18);
+  color: var(--rbc-ink);
+}
+
+.dark .rbc-themed {
+  --rbc-ink: #e2e8f0; /* slate-200 */
+  --rbc-ink-soft: #94a3b8; /* slate-400 */
+  --rbc-ink-faint: #64748b; /* slate-500 */
+  --rbc-hairline: rgba(51, 65, 85, 0.75); /* slate-700 */
+  --rbc-hairline-soft: rgba(255, 255, 255, 0.05);
+  --rbc-header-line: #1e293b; /* slate-800 */
+  --rbc-tint: rgba(45, 212, 191, 0.1); /* teal-400 */
+  --rbc-tint-line: rgba(45, 212, 191, 0.4);
+  --rbc-overlay: rgba(15, 23, 42, 0.96); /* slate-900 */
+  --rbc-overlay-line: rgba(51, 65, 85, 0.9); /* slate-700 */
+  --rbc-overlay-line-soft: rgba(30, 41, 59, 0.9); /* slate-800 */
+  --rbc-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------------------------------------------------- toolbar --- */
+.rbc-themed .rbc-toolbar {
+  margin-bottom: 0;
+  gap: 0;
+}
+
+/* Uniform tinted squircle for RBC's *own* toolbar buttons. The live toolbar is
+   the `CalendarToolbar` component (same palette, expressed with Tailwind), so
+   this only covers a vendor-toolbar fallback — scoping it to `button.rbc-btn`
+   keeps it from fighting the component's buttons, which carry no `rbc-btn`. */
+.rbc-themed .rbc-toolbar button.rbc-btn {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem !important;
+  color: #cbd5e1 !important;
+  font-size: 0.85rem !important;
+  padding: 6px 14px !important;
+  transition: all 0.15s ease !important;
+}
+
+.rbc-themed .rbc-toolbar button.rbc-btn:hover {
+  background-color: rgba(51, 65, 85, 0.7) !important;
+  color: #ffffff !important;
+}
+
+.rbc-themed .rbc-toolbar button.rbc-btn.rbc-active,
+.rbc-themed .rbc-toolbar button.rbc-btn[aria-pressed='true'] {
+  background-color: rgba(13, 148, 136, 0.25) !important; /* teal tint */
+  border-color: rgba(13, 148, 136, 0.6) !important;
+  box-shadow: 0 0 10px rgba(13, 148, 136, 0.2);
+  color: #2dd4bf !important; /* teal text */
+}
+
+/* ---------------------------------------------------------- overlays --- */
+/* "+N more" popover and the event popup both render as `.rbc-overlay`, and the
+   popover is portalled into `document.body` — outside `.rbc-themed`. So the
+   override is intentionally unscoped (`div.rbc-overlay`) and unconditional
+   dark: the vendor rule is a bare `.rbc-overlay { background: #fff }`, and we
+   must win on specificity *and* stay dark when rendered in light mode. */
+div.rbc-overlay {
+  background-color: #0f172a !important; /* dark slate-900 */
+  border: 1px solid #334155 !important; /* slate-700 */
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7) !important;
+  color: #f8fafc !important; /* slate-50 */
+  padding: 12px !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+div.rbc-overlay .rbc-overlay-header {
+  color: #94a3b8 !important; /* slate-400 */
+  border-bottom: 1px solid #1e293b !important; /* slate-800 */
+  font-size: 0.75rem !important;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: -12px -12px 8px -12px;
+  padding: 10px 12px 8px;
+  text-transform: uppercase;
+}
+
+div.rbc-overlay .rbc-overlay-header a {
+  color: inherit;
+  text-decoration: none;
+}
+
+div.rbc-overlay .rbc-day-bg + .rbc-day-bg,
+div.rbc-overlay .rbc-month-row {
+  border-color: #1e293b !important;
+}
+
+/* The popover is portalled to <body>, so its pills sit outside `.rbc-themed`
+   and would otherwise fall back to the vendor's bare `.rbc-event` (5px radius,
+   2px 5px padding, no blur). Re-state the pill geometry here. */
+div.rbc-overlay .rbc-event {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 0.75rem; /* squircle, same as the grid */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px -12px rgba(0, 0, 0, 0.9);
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  margin: 3px 0 0 !important; /* vendor spaces overlays with `> * + *` */
+  padding: 3px 8px !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.15s ease-in-out;
+}
+
+div.rbc-overlay .rbc-event:hover {
+  filter: brightness(1.25);
+}
+
+div.rbc-overlay .rbc-event.rbc-selected {
+  background-color: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 2px rgba(45, 212, 191, 0.4);
+}
+
+/* Month-cell "+N más" trigger — a tinted squircle instead of RBC's blue text. */
+.rbc-themed .rbc-show-more {
+  background-color: var(--rbc-tint) !important;
+  border: 1px solid var(--rbc-tint-line) !important;
+  border-radius: 0.5rem; /* squircle */
+  color: var(--rbc-ink-soft) !important;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 1px 8px;
+  width: fit-content;
+  margin-left: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.rbc-themed .rbc-show-more:hover,
+.rbc-themed .rbc-show-more:focus {
+  background-color: rgba(45, 212, 191, 0.2) !important;
+  color: var(--rbc-ink) !important;
+}
+
+/* ------------------------------------------------------------ events --- */
+/* Tint + border come from `eventPropGetter` (see `eventTint.ts`); these
+   rules add the glass geometry that inline styles cannot set. Geometry is a
+   squircle (rounded-xl), not a stadium pill: 12px reads as a card on both the
+   month grid and the time grid. Vertical padding + gap are tight enough that
+   three events fit a month cell before the "+N más" row appears. */
+.rbc-themed .rbc-event {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 0.75rem; /* rounded-xl squircle */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px -12px rgba(0, 0, 0, 0.9);
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 2px !important;
+  padding: 2px 8px !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.15s ease-in-out;
+}
+
+/* Time-grid blocks keep a slightly softer squircle — a 30/60-minute block is
+   tall enough that a full 12px radius starts to look like a lozenge. */
+.rbc-themed .rbc-time-view .rbc-event {
+  border-radius: 0.5rem; /* rounded-lg */
+}
+
+/* ---------------------------------------------------------------------------
+   FIX 2 — dynamic height. No hardcoded `height` / `min-height` / `max-height`
+   on the calendar or the month grid: the card is a `flex-1 min-h-0` child of
+   the viewport-locked shell, and everything below distributes the space it is
+   given. 4-, 5- and 6-week months all fill the card exactly, so there is no
+   dead space and no row is cut off.
+   --------------------------------------------------------------------------- */
+
+/* Force RBC to take 100% height of its flex parent */
+.rbc-calendar {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Force month grid to take all remaining height below toolbar/header */
+.rbc-month-view {
+  flex: 1 1 0px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
+/* Distribute all week rows EQUALLY across the month view */
+.rbc-month-row {
+  flex: 1 1 0px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+/* Ensure row content stretches to fill row height */
+.rbc-row-content {
+  height: 100% !important;
+}
+
+.rbc-themed .rbc-event:hover {
+  filter: brightness(1.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+.rbc-themed .rbc-event.rbc-selected {
+  background-color: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 2px var(--rbc-tint-line);
+}
+
+.rbc-themed .rbc-event:focus {
+  outline: 2px solid var(--rbc-tint-line);
+  outline-offset: 1px;
+}
+
+.rbc-themed .rbc-event-label {
+  color: var(--rbc-ink-soft);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------- grid --- */
+.rbc-themed .rbc-time-gutter,
+.rbc-themed .rbc-header-gutter {
+  color: var(--rbc-ink-faint);
+}
+
+/* Column header bar (month weekday row + time-grid gutter head).
+   FIX 1: this cell renders the WEEKDAY LABEL ONLY — never a date. RBC's
+   default `Header` feeds it `formats.weekdayFormat` (dom…sáb), so no custom
+   header component is passed in month view. Keep it a quiet, centered,
+   uppercase label row: no per-cell borders, no background fill, so the day
+   numbers inside the cells below stay the only numbers on screen. */
+.rbc-themed .rbc-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  color: var(--rbc-ink-soft) !important; /* slate-400 in dark */
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--rbc-header-line) !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* No vertical rules between header cells (RBC adds one per `.rbc-header +
+   .rbc-header`) — that duplication is what made the bar read as a second
+   grid. The single hairline above the day cells is enough. */
+.rbc-themed .rbc-header + .rbc-header {
+  border-left: none !important;
+}
+
+.rbc-themed .rbc-time-content > * + * > *,
+.rbc-themed .rbc-time-gutter,
+.rbc-themed .rbc-timeslot-group,
+.rbc-themed .rbc-time-header,
+.rbc-themed .rbc-time-content,
+.rbc-themed .rbc-time-header-content > .rbc-row.rbc-time-header-field,
+.rbc-themed .rbc-time-view .rbc-row,
+.rbc-themed .rbc-row-bg .rbc-day-bg,
+.rbc-themed .rbc-header,
+.rbc-themed .rbc-header + .rbc-header,
+.rbc-themed .rbc-month-view,
+.rbc-themed .rbc-time-view,
+.rbc-themed .rbc-month-row + .rbc-month-row,
+.rbc-themed .rbc-day-slot .rbc-time-slot {
+  border-color: var(--rbc-hairline);
+}
+
+.rbc-themed .rbc-day-slot .rbc-time-slot {
+  border-top-color: var(--rbc-hairline-soft);
+}
+
+.rbc-themed .rbc-off-range {
+  color: var(--rbc-ink-faint);
+}
+
+.rbc-themed .rbc-off-range-bg {
+  background-color: rgba(148, 163, 184, 0.06);
+}
+
+.rbc-themed .rbc-allday-cell {
+  background-color: rgba(148, 163, 184, 0.04);
+}
+
+.rbc-themed .rbc-today {
+  background-color: var(--rbc-tint);
+}
+
+.rbc-themed .rbc-date-cell.rbc-now {
+  color: #0d9488;
+}
+
+.dark .rbc-themed .rbc-date-cell.rbc-now {
+  color: #2dd4bf;
+}
+
+.rbc-themed .rbc-current-time-indicator {
+  background-color: #14b8a6;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.55);
+  height: 2px;
+}
+
+/* Sticky time header must stay readable while the grid scrolls under it. */
+.rbc-themed .rbc-time-header-content {
+  border-bottom: 1px solid var(--rbc-hairline);
+  background-color: var(--rbc-overlay);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ------------------------------------------------- selection + slot --- */
+.rbc-themed .rbc-slot-selection {
+  background-color: var(--rbc-tint);
+  border: 1px solid var(--rbc-tint-line);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rbc-themed .rbc-slot-selection-continues {
+  border-radius: 0;
+}
+
+.rbc-themed .rbc-selected-cell {
+  background-color: rgba(20, 184, 166, 0.12);
+}
+
+/* ------------------------------------------------------- scrollbars --- */
+.rbc-themed .rbc-time-content,
+.rbc-themed .rbc-time-header-content {
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  scrollbar-width: thin;
+}
+
+.rbc-themed .rbc-time-content::-webkit-scrollbar,
+.rbc-themed .rbc-time-header-content::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.rbc-themed .rbc-time-content::-webkit-scrollbar-track,
+.rbc-themed .rbc-time-header-content::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.rbc-themed .rbc-time-content::-webkit-scrollbar-thumb,
+.rbc-themed .rbc-time-header-content::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+
+.rbc-themed .rbc-time-content::-webkit-scrollbar-thumb:hover,
+.rbc-themed .rbc-time-header-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.5);
+}
+
+/* ------------------------------------------- agenda feed (card view) --- */
+/* Strip RBC's table fills so the `eventPropGetter` row color never bleeds
+   across all three columns (RBC applies that backgroundColor to the whole
+   `<tr>`). The date/time badges and event cards own the surface instead. */
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table,
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody,
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr,
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr > td,
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-date-cell,
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-time-cell {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table {
+  border-collapse: separate;
+  border-spacing: 0 6px; /* vertical rhythm between cards */
+}
+
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+.rbc-themed .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  background-color: transparent;
+  border-bottom: 1px solid var(--rbc-hairline);
+  color: var(--rbc-ink-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.rbc-themed .rbc-agenda-empty {
+  background-color: transparent;
+  color: var(--rbc-ink-faint);
+  padding: 12px 8px;
+}

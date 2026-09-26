@@ -1,6 +1,8 @@
 'use client';
 
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { btnPrimary, btnSecondary, glassOverlay } from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 
 /**
  * Shared override for server-refused saves (409 DENTIST_CONFLICT): explains that
@@ -22,32 +24,31 @@ export default function ConflictOverrideDialog({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md">
+      <div className={cn(glassOverlay, 'w-full max-w-md p-6')}>
+        <div className="mb-3 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-400/15 text-amber-500 dark:text-amber-300">
             <AlertTriangle size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Conflicto de horario</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{message}</p>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Conflicto de horario</h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{message}</p>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mb-5">
+        <p className="mb-5 text-xs text-slate-400 dark:text-slate-500">
           El dentista ya tiene una cita en ese horario. Puedes guardar de todos modos o cancelar y elegir otro horario.
         </p>
         <div className="flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 font-medium disabled:opacity-50"
-          >
+          <button onClick={onCancel} disabled={busy} className={btnSecondary}>
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={busy}
-            className="bg-amber-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+            className={cn(
+              btnPrimary,
+              'border-amber-400/40 bg-amber-500/90 hover:bg-amber-500 dark:bg-amber-500/85 dark:hover:bg-amber-400/85'
+            )}
           >
             {busy && <Loader2 className="animate-spin" size={16} />}
             {busy ? 'Guardando…' : 'Guardar de todos modos'}

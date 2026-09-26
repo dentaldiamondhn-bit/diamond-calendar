@@ -2,17 +2,20 @@
 
 import { memo, useCallback, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
-import type { View, ViewProps } from 'react-big-calendar';
+import type { View, ViewProps, Components, DateLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { RbcEvent } from '@/calendario/rbcAdapter';
 import { calendarComponents } from '@/calendario/calendarComponents';
+import { tintedEventStyle } from '@/calendario/eventTint';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import './rbc-theme.css';
 
 const localizer = dateFnsLocalizer({
   format,
@@ -49,6 +52,16 @@ const formats = {
     `${format(start, 'h:mm a', { locale: es })} – ${format(end, 'h:mm a', { locale: es })}`,
   selectRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
     `${format(start, 'h:mm a', { locale: es })} – ${format(end, 'h:mm a', { locale: es })}`,
+  // FIX 1 (double header): RBC feeds the month header row the *first week's
+  // dates*, so any component that prints `getDate()` there yields
+  // "31  1  2  3 …". Month view therefore uses RBC's default `Header`, which
+  // renders this format — never a date. date-fns `'eee'` → dom…sáb.
+  weekdayFormat: (date: Date, culture?: string, localizer?: DateLocalizer) =>
+    localizer ? localizer.format(date, 'eee', culture) : format(date, 'eee', { locale: es }),
+  monthHeaderFormat: (date: Date, culture?: string, localizer?: DateLocalizer) =>
+    localizer
+      ? localizer.format(date, 'MMMM yyyy', culture)
+      : format(date, 'MMMM yyyy', { locale: es }),
 };
 
 /** Desktop DnD addon — wrapped calendar (Add drag/resize handlers in the shell). */
@@ -78,7 +91,9 @@ export interface RbcCalendarProps {
 
 const eventPropGetter = (event: object) => {
   const rbcEvent = event as RbcEvent;
-  return { style: { backgroundColor: rbcEvent.color, borderColor: rbcEvent.color } };
+  // Tinted glass: a low-alpha fill over the grid plus a stronger same-hue
+  // border. Vendor `.rbc-event` supplies the geometry (see rbc-theme.css).
+  return { style: tintedEventStyle(rbcEvent.color) };
 };
 
 const InnerRbcCalendar = memo(function InnerRbcCalendar({
@@ -131,8 +146,28 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
     return new Date(2000, 0, 1, hour, 0, 0);
   }, [date]);
 
+  // FIX 1 (double header): the month view must NOT receive a custom
+  // `components.header`. `WeekdayHeader` prints `getDate()`, and RBC hands the
+  // month header row the first week's dates, so it rendered a second row of
+  // numbers ("31 1 2 3 4 5 6") on top of the per-cell day numbers. Dropping the
+  // key lets `Month.js` fall back to RBC's own `Header`, which renders
+  // `formats.weekdayFormat` → dom, lun, mar, mié, jue, vie, sáb.
+  const components = useMemo(() => {
+    if (view !== Views.MONTH) return calendarComponents;
+    const { header: _weekdayHeader, ...monthSafe } = calendarComponents;
+    return monthSafe as Components<RbcEvent, object>;
+  }, [view]);
+
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden" style={{ height: '600px' }}>
+    <div
+      className={cn(
+        'rbc-themed',
+        // FIX 2: the card is the flex child that grows into the viewport space
+        // the shell reserved. `min-h-0` lets it actually shrink inside
+        // `flex-1`; `p-2` is the card gutter the grid floats on.
+        'flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-[#111827] p-2'
+      )}
+    >
       <DragCalendar
         localizer={localizer}
         culture="es"
@@ -151,7 +186,7 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
         onSelectEvent={handleSelectEvent}
         eventPropGetter={eventPropGetter}
         style={{ height: '100%' }}
-        components={calendarComponents}
+        components={components}
         resizable
         onEventDrop={handleDrop}
         onEventResize={handleResize}

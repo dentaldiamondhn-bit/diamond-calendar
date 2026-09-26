@@ -2,6 +2,18 @@ import { motion } from 'framer-motion';
 import { X, Clock, User, Stethoscope, Calendar as CalIcon, Plus, CopyPlus } from 'lucide-react';
 import type { ClinicEvent } from '@/lib/types-calendar';
 import { clinicDateKey, formatClock12 } from '@/calendario/timezone';
+import { withAlpha } from '@/calendario/eventTint';
+import {
+  STATUS_CHIP,
+  btnGhost,
+  btnIcon,
+  chipCls,
+  glassBar,
+  glassCard,
+  glassDivider,
+  glassRow,
+} from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 
 interface Props {
   dateStr: string | null;
@@ -53,26 +65,26 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+      className={cn(glassCard, 'w-full overflow-hidden')}
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+      <div className={cn(glassBar, 'flex items-center justify-between p-4')}>
         <div>
-          <h3 className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+          <h3 className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100">
             <CalIcon size={18} className="text-teal-500" /> Próximos esta semana
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
             {todayKey}
             {total === 0 ? ' · sin citas' : ` · ${total} cita${total !== 1 ? 's' : ''}`}
           </p>
         </div>
         {dateStr && (
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+          <button onClick={onClose} className={btnIcon} aria-label="Cerrar">
             <X size={18} />
           </button>
         )}
       </div>
 
-      <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700">
+      <div className="max-h-[400px] overflow-y-auto">
         {days.map((key) => {
           const dayEvents = (byDay.get(key) ?? []).sort((a, b) =>
             (a.start_time || '00:00').localeCompare(b.start_time || '00:00')
@@ -84,16 +96,25 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
           const cancelled = dayEvents.filter((e) => e.status === 'cancelled').length;
 
           return (
-            <div key={key} className={`px-4 py-3 ${isSelected ? 'bg-teal-50/60 dark:bg-teal-500/10' : ''}`}>
-              <div className="flex items-center justify-between mb-2">
+            <div
+              key={key}
+              className={cn(
+                'px-4 py-3',
+                glassDivider,
+                'border-b last:border-b-0',
+                isSelected && 'bg-teal-400/10'
+              )}
+            >
+              <div className="mb-2 flex items-center justify-between">
                 <p
-                  className={`text-xs font-semibold uppercase tracking-wide ${
-                    isToday ? 'text-teal-600 dark:text-teal-400' : 'text-gray-400 dark:text-gray-500'
-                  }`}
+                  className={cn(
+                    'text-xs font-semibold uppercase tracking-wide',
+                    isToday ? 'text-teal-600 dark:text-teal-300' : 'text-slate-400 dark:text-slate-500'
+                  )}
                 >
                   {isToday ? `Hoy · ${label}` : label}
                 </p>
-                <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
                   {dayEvents.length === 0
                     ? 'Sin citas'
                     : `${dayEvents.length - cancelled} cita${dayEvents.length - cancelled !== 1 ? 's' : ''}${cancelled ? ` + ${cancelled} cancelada${cancelled > 1 ? 's' : ''}` : ''}`}
@@ -102,63 +123,74 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
 
               {dayEvents.length === 0 ? (
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-300 dark:text-gray-600">Libre</p>
-                  <button
-                    onClick={onAddEvent}
-                    className="text-xs text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-500/10 font-medium px-2 py-1 rounded-lg transition flex items-center gap-1"
-                  >
+                  <p className="text-xs text-slate-300 dark:text-slate-600">Libre</p>
+                  <button onClick={onAddEvent} className={cn(btnGhost, 'text-[11px] text-teal-600 dark:text-teal-300')}>
                     <Plus size={12} /> Agendar
                   </button>
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {dayEvents.map((e) => (
-                    <div key={e.id} className="relative">
-                      <button
-                        onClick={() => onEditEvent(e)}
-                        className={`w-full text-left flex gap-3 px-3 py-2 pr-12 rounded-lg border transition ${
-                          e.status === 'cancelled'
-                            ? 'opacity-60 border-red-100 dark:border-red-900/40 hover:bg-red-50/40 dark:hover:bg-red-500/10'
-                            : 'border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        <div className="w-1 rounded-full shrink-0" style={{ backgroundColor: e.color }} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Clock size={13} className="text-gray-400" />
-                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                              {formatClock12(e.start_time)} – {formatClock12(e.end_time || e.start_time)}
-                            </span>
-                            {e.status === 'cancelled' && (
-                              <span className="text-[10px] font-semibold uppercase text-red-500 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">
-                                Cancelada
+                  {dayEvents.map((e) => {
+                    const chip =
+                      STATUS_CHIP[(e.status ?? 'scheduled') as keyof typeof STATUS_CHIP] ?? STATUS_CHIP.scheduled;
+                    return (
+                      <div key={e.id} className="relative">
+                        <button
+                          onClick={() => onEditEvent(e)}
+                          className={cn(
+                            'flex w-full gap-3 rounded-lg border px-3 py-2 pr-12 text-left',
+                            glassRow,
+                            e.status === 'cancelled'
+                              ? 'border-rose-500/30 bg-rose-500/5 opacity-60 hover:bg-rose-500/10'
+                              : 'border-slate-200/70 dark:border-slate-700/50'
+                          )}
+                        >
+                          <span
+                            className="w-1 shrink-0 rounded-full"
+                            style={{ backgroundColor: withAlpha(e.color, 0.85) }}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <Clock size={13} className="text-slate-400" />
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                {formatClock12(e.start_time)} – {formatClock12(e.end_time || e.start_time)}
                               </span>
-                            )}
-                          </div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100 mt-0.5 truncate">
-                            {e.patient_name}
-                          </p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <Stethoscope size={11} /> {e.procedure}
+                              {e.status === 'cancelled' ? (
+                                <span className={cn(chipCls(chip.tone), 'font-semibold uppercase')}>
+                                  {chip.label}
+                                </span>
+                              ) : null}
                             </span>
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <User size={11} /> {e.dentist}
+                            <span className="mt-0.5 block truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {e.patient_name}
                             </span>
-                          </div>
-                          {e.notes && <p className="text-xs text-gray-400 mt-1 italic truncate">{e.notes}</p>}
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => onDuplicate(e)}
-                        title="Duplicar cita"
-                        aria-label="Duplicar cita"
-                        className="absolute right-2 top-2 h-7 w-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-500/10 transition"
-                      >
-                        <CopyPlus size={14} />
-                      </button>
-                    </div>
-                  ))}
+                            <span className="mt-1 flex items-center gap-3">
+                              <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                <Stethoscope size={11} /> {e.procedure}
+                              </span>
+                              <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                <User size={11} /> {e.dentist}
+                              </span>
+                            </span>
+                            {e.notes ? (
+                              <span className="mt-1 block truncate text-xs italic text-slate-400">{e.notes}</span>
+                            ) : null}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => onDuplicate(e)}
+                          title="Duplicar cita"
+                          aria-label="Duplicar cita"
+                          className={cn(
+                            'absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg',
+                            'text-slate-400 transition-colors hover:bg-teal-400/15 hover:text-teal-500'
+                          )}
+                        >
+                          <CopyPlus size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

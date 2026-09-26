@@ -417,11 +417,17 @@ body {
   @apply ring-teal-900/50;
 }
 
-/* Override hardcoded light-mode border reset for dark mode */
-.dark *,
-.dark *::before,
-.dark *::after {
-  border-color: hsl(var(--border));
+/* Override hardcoded light-mode border reset for dark mode.
+   MUST stay inside `@layer base`: unlayered author rules outrank every layered
+   rule, so this selector used to sit above Tailwind's `@layer utilities` and
+   flatten all `border-{color}` utilities in dark mode (e.g. `border-teal-500/60`
+   rendered as the zinc default). In `base`, the utility still wins. */
+@layer base {
+  .dark *,
+  .dark *::before,
+  .dark *::after {
+    border-color: hsl(var(--border));
+  }
 }
 
 /* Explicit dark mode for native form controls */
@@ -566,75 +572,6 @@ pre code {
 .dark pre { background: rgba(255, 255, 255, 0.08); }
 
 /* ------------------------------------------------------------------ *
- * React Big Calendar — dark-mode theming (Phase 3 tail visual pass).
- * Calendario rides the app's `dark` class; RBC's default stylesheet is
- * light-only (#eaf6ff today cell, #ddd borders), so override under
- * `.dark`. Full --fd-* token migration lands in Phase 7.
- * ------------------------------------------------------------------ */
-.dark .rbc-header {
-  color: rgb(209 213 219); /* gray-300 */
-  border-bottom-color: rgb(55 65 81); /* gray-700 */
-}
-.dark .rbc-header + .rbc-header {
-  border-left-color: rgb(55 65 81);
-}
-.dark .rbc-month-view,
-.dark .rbc-time-view,
-.dark .rbc-agenda-view {
-  border-color: rgb(55 65 81);
-}
-.dark .rbc-month-row + .rbc-month-row {
-  border-top-color: rgb(55 65 81);
-}
-.dark .rbc-off-range {
-  color: rgb(107 114 128); /* gray-500 */
-}
-.dark .rbc-off-range-bg {
-  background-color: rgba(255, 255, 255, 0.03);
-}
-.dark .rbc-today {
-  background-color: rgba(45, 212, 191, 0.08); /* teal-400 / 8% */
-}
-.dark .rbc-date-cell.rbc-now {
-  color: rgb(45 212 191); /* teal-400 */
-}
-.dark .rbc-row-bg .rbc-day-bg {
-  border-right-color: rgb(55 65 81);
-}
-.dark .rbc-time-header,
-.dark .rbc-time-content {
-  border-color: rgb(55 65 81);
-}
-.dark .rbc-time-header-content > .rbc-row.rbc-time-header-field {
-  border-bottom-color: rgb(55 65 81);
-}
-.dark .rbc-time-view .rbc-row {
-  border-bottom-color: rgb(55 65 81);
-}
-.dark .rbc-time-gutter,
-.dark .rbc-header-gutter,
-.dark .rbc-timeslot-group,
-.dark .rbc-day-slot .rbc-time-slot,
-.dark .rbc-time-content > * + * > * {
-  border-color: rgb(55 65 81);
-}
-.dark .rbc-day-slot .rbc-time-slot {
-  border-top-color: rgba(255, 255, 255, 0.04);
-}
-.dark .rbc-current-time-indicator {
-  background-color: rgb(248 113 113); /* red-400 (RBC's default is a flat red) */
-}
-.dark .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
-  border-bottom-color: rgb(55 65 81);
-}
-.dark .rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
-  border-top-color: rgb(55 65 81);
-}
-.dark .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
-  border-color: rgb(55 65 81);
-}
-
-/* ------------------------------------------------------------------ *
  * Agenda feed (card view) — strip RBC's table fills so the
  * `eventPropGetter` row color never bleeds across all three columns
  * (RBC applies that backgroundColor to the whole `<tr>`). The date/time
@@ -702,3 +639,7 @@ pre code {
 .rbc-month-row .rbc-event-content {
   overflow: hidden;
 }
+
+/* React Big Calendar theming (overlays, event tints, agenda feed) lives in
+   src/calendario/rbc-theme.css — imported by the /calendario route and scoped
+   to its `.rbc-themed` wrapper. */

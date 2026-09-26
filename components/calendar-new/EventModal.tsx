@@ -47,6 +47,8 @@ import { useCalendarMutations } from '@/calendario/hooks/useCalendarData';
 import { useToast } from '@/components/calendar-new/Toast';
 import ConflictOverrideDialog from '@/components/calendar-new/ConflictOverrideDialog';
 import { formatClock12, normalizeTime, addHourToTime, addMinutesToTime, clinicClockTime, clinicWallClockTimestamp } from '@/calendario/timezone';
+import { btnDanger, btnGhost, btnIcon, btnPrimary, btnSecondary, glassBar, glassOverlay } from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 import { countries } from '@/utils/phoneUtils';
 import { formatPhoneNumber, getPhonePlaceholder } from '@/utils/formatUtils';
 
@@ -619,7 +621,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
         onClick={onClose}
       >
         <motion.div
@@ -627,36 +629,36 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.96, opacity: 0, y: 8 }}
           transition={{ type: 'spring', damping: 26, stiffness: 260 }}
-          className="bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
+          className={cn(glassOverlay, 'max-h-[90vh] w-full max-w-2xl overflow-y-auto')}
           role="dialog"
           aria-modal="true"
           aria-label={isCreate ? 'Nueva cita' : 'Editar cita'}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900/95 z-10">
+          <div className={cn(glassBar, 'sticky top-0 z-10 flex items-center justify-between px-5 py-4')}>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-400/35 bg-teal-400/15 text-teal-600 dark:text-teal-200">
                 <Pencil size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">
                   {isCreate ? 'Nueva cita' : 'Editar cita'}
                 </h2>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   {step === 'details' && '1 de 3 · Detalles'}
                   {step === 'timing' && '2 de 3 · Horario'}
                   {step === 'invite' && '3 de 3 · Invitados y recordatorios'}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1" aria-label="Cerrar">
+            <button onClick={onClose} className={btnIcon} aria-label="Cerrar">
               <X size={20} />
             </button>
           </div>
 
           {draftAvailable && (
-            <div className="mx-5 mt-4 flex items-center justify-between gap-3 text-sm rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 px-3 py-2.5">
-              <span className="text-amber-800 dark:text-amber-200">Tienes un borrador sin guardar para este día.</span>
+            <div className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2.5 text-sm">
+              <span className="text-amber-700 dark:text-amber-200">Tienes un borrador sin guardar para este día.</span>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={restoreDraft}
@@ -697,7 +699,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                       <button
                         type="button"
                         onClick={() => setShowPatientSearch((v) => !v)}
-                        className="shrink-0 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        className="shrink-0 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                         aria-label="Buscar paciente"
                       >
                         <Search size={18} />
@@ -706,17 +708,17 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                   </Field>
 
                   {showPatientSearch && (
-                    <div className="mt-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                    <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
                       <input
                         autoFocus
                         value={patientQuery}
                         onChange={(e) => setPatientQuery(e.target.value)}
                         placeholder="Buscar por nombre o identidad…"
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm dark:bg-gray-800 dark:border-gray-700 focus:border-teal-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm dark:bg-slate-800 dark:border-slate-700 focus:border-teal-500 outline-none"
                       />
                       <div className="mt-2 max-h-48 overflow-y-auto">
                         {patientSearching ? (
-                          <p className="text-center py-3 text-sm text-gray-400">Buscando…</p>
+                          <p className="text-center py-3 text-sm text-slate-400">Buscando…</p>
                         ) : patientResults.length > 0 ? (
                           patientResults.map((p) => (
                             <button
@@ -725,12 +727,12 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                               onClick={() => selectPatient(p)}
                               className="w-full text-left p-2.5 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 text-sm"
                             >
-                              <span className="font-medium text-gray-800 dark:text-gray-100">{p.nombre_completo}</span>
-                              {p.telefono ? <span className="text-xs text-gray-400 ml-2">{p.telefono}</span> : null}
+                              <span className="font-medium text-slate-800 dark:text-slate-100">{p.nombre_completo}</span>
+                              {p.telefono ? <span className="text-xs text-slate-400 ml-2">{p.telefono}</span> : null}
                             </button>
                           ))
                         ) : patientQuery.trim() !== '' ? (
-                          <p className="text-center py-3 text-sm text-gray-400">Sin resultados</p>
+                          <p className="text-center py-3 text-sm text-slate-400">Sin resultados</p>
                         ) : null}
                       </div>
                     </div>
@@ -760,7 +762,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                             </option>
                           ))}
                         </Select>
-                        <div className="shrink-0 px-3 py-2 border border-gray-300 dark:border-gray-700 bg-transparent text-gray-700 dark:text-gray-200 font-medium text-sm flex items-center rounded-lg">
+                        <div className="shrink-0 px-3 py-2 border border-slate-300 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-200 font-medium text-sm flex items-center rounded-lg">
                           +{values.phone_country || '504'}
                         </div>
                       </div>
@@ -830,13 +832,13 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Duración rápida:</span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Duración rápida:</span>
                   {QUICK_DURATIONS.map(({ label, minutes }) => (
                     <button
                       key={label}
                       type="button"
                       onClick={() => applyQuickDuration(minutes)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-teal-900/30 dark:hover:border-teal-700 dark:hover:text-teal-200 transition"
+                      className="rounded-lg border border-slate-300/80 bg-slate-100/60 px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-teal-400/50 hover:bg-teal-400/10 hover:text-teal-700 dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-teal-400/15 dark:hover:text-teal-200"
                     >
                       {label}
                     </button>
@@ -880,9 +882,9 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                         key={c.value}
                         type="button"
                         onClick={() => reset((prev) => ({ ...prev, color: c.value }))}
-                        className={`w-8 h-8 rounded-full transition ${
+                        className={`h-8 w-8 rounded-full transition ${
                           values.color === c.value
-                            ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-900 scale-110'
+                            ? 'scale-110 ring-2 ring-teal-300/70 ring-offset-2 ring-offset-white dark:ring-offset-slate-950'
                             : 'hover:scale-105'
                         }`}
                         style={{ backgroundColor: c.value }}
@@ -902,23 +904,23 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                     <button
                       type="button"
                       onClick={() => setShowInviteePicker((v) => !v)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-left text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-left text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       {selectedCount === 0 ? 'Buscar usuarios para invitar…' : `${selectedCount} usuario(s)`}
                     </button>
                   </Field>
 
                   {showInviteePicker && (
-                    <div className="mt-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                    <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
                       <input
                         value={inviteeQuery}
                         onChange={(e) => setInviteeQuery(e.target.value)}
                         placeholder="Filtrar usuarios…"
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm dark:bg-gray-800 dark:border-gray-700 focus:border-teal-500 outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm dark:bg-slate-800 dark:border-slate-700 focus:border-teal-500 outline-none"
                       />
                       <div className="mt-2 max-h-56 overflow-y-auto space-y-1">
                         {filteredPool.length === 0 ? (
-                          <p className="text-center py-3 text-sm text-gray-400">Sin usuarios</p>
+                          <p className="text-center py-3 text-sm text-slate-400">Sin usuarios</p>
                         ) : (
                           filteredPool.map((u) => {
                             const selected = invitees.some((i) => i.id === u.id);
@@ -932,7 +934,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                                 className={`w-full text-left p-2.5 rounded-lg border text-sm flex items-center gap-3 ${
                                   selected
                                     ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/30'
-                                    : 'border-gray-200 dark:border-gray-700'
+                                    : 'border-slate-200 dark:border-slate-700'
                                 }`}
                               >
                                 <img
@@ -944,11 +946,11 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                                   }}
                                 />
                                 <span className="flex-1 min-w-0">
-                                  <span className="block font-medium text-gray-800 dark:text-gray-100 truncate">
+                                  <span className="block font-medium text-slate-800 dark:text-slate-100 truncate">
                                     {u.first_name || ''} {u.last_name || ''}
                                   </span>
                                   {u.email ? (
-                                    <span className="block text-xs text-gray-400 truncate">{u.email}</span>
+                                    <span className="block text-xs text-slate-400 truncate">{u.email}</span>
                                   ) : null}
                                 </span>
                                 {selected && <Check size={16} className="text-teal-600" />}
@@ -965,7 +967,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                       {invitees.map((u) => (
                         <span
                           key={u.id}
-                          className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs text-gray-700 dark:text-gray-200"
+                          className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-700 dark:text-slate-200"
                         >
                           <img
                             src={avatarFor(u)}
@@ -981,7 +983,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                           <button
                             type="button"
                             onClick={() => setInvitees((prev) => prev.filter((i) => i.id !== u.id))}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                             aria-label="Quitar"
                           >
                             <X size={12} />
@@ -1049,52 +1051,44 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
 
             {error && <p className="text-sm text-rose-600">{error}</p>}
             {loadingChildren && (
-              <p className="text-xs text-gray-400 flex items-center gap-1.5">
+              <p className="text-xs text-slate-400 flex items-center gap-1.5">
                 <Loader2 size={12} className="animate-spin" /> Cargando invitados y recordatorios…
               </p>
             )}
 
             {/* --------------------------------------------------- footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className={cn(glassBar, 'flex items-center justify-between border-t border-b-0 pt-4')}>
               {editingEvent ? (
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => { if (editingEvent && onDuplicate) onDuplicate(editingEvent); }}
-                    className="flex items-center gap-1.5 text-teal-600 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-900/30 px-3 py-2 rounded-lg text-sm font-medium transition"
+                    className={cn(btnGhost, 'text-teal-600 hover:bg-teal-400/15 dark:text-teal-300')}
                   >
                     <CopyPlus size={16} /> Duplicar
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 px-3 py-2 rounded-lg text-sm font-medium transition"
+                    className={btnDanger}
                   >
                     <Trash2 size={16} /> Eliminar
                   </button>
                 </div>
               ) : (
-                <span className="flex items-center gap-1.5 text-xs text-gray-400 pl-1">
+                <span className="flex items-center gap-1.5 pl-1 text-xs text-slate-400 dark:text-slate-500">
                   <Clock size={13} /> {formatClock12(values.start_time)} – {formatClock12(values.end_time)}
                 </span>
               )}
 
               <div className="flex items-center gap-2">
                 {step !== 'details' && (
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 text-sm font-medium"
-                  >
+                  <button type="button" onClick={goBack} className={btnSecondary}>
                     <ChevronLeft size={16} /> Atrás
                   </button>
                 )}
                 {step !== 'invite' ? (
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    className="flex items-center gap-1 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition"
-                  >
+                  <button type="button" onClick={goNext} className={btnPrimary}>
                     Continuar <ChevronRight size={16} />
                   </button>
                 ) : (
@@ -1104,7 +1098,7 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                       submitTriggeredRef.current = true;
                     }}
                     disabled={busy || deleting}
-                    className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
+                    className={cn(btnPrimary, 'px-5')}
                   >
                     {busy && <Loader2 className="animate-spin" size={16} />}
                     {busy ? 'Guardando…' : editingEvent ? 'Actualizar' : 'Crear cita'}
@@ -1139,26 +1133,37 @@ function StepBar({ step }: { step: Step }) {
   ];
   const idx = items.findIndex((i) => i.step === step);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center">
       {items.map((item, i) => {
         const Icon = item.icon;
         const active = i === idx;
         const done = i < idx;
         return (
-          <div key={item.step} className="flex items-center gap-2 flex-1">
+          <div key={item.step} className="flex flex-1 items-center last:flex-none">
             <div
-              className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full flex-1 justify-center ${
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-medium',
+                'border backdrop-blur-sm',
                 active
-                  ? 'bg-teal-600 text-white'
+                  ? 'border-teal-400/45 bg-teal-400/20 text-teal-100'
                   : done
-                    ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
-                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800'
-              }`}
+                    ? 'border-teal-400/25 bg-teal-400/10 text-teal-300'
+                    : 'border-slate-500/20 bg-slate-500/10 text-slate-400 dark:text-slate-500'
+              )}
             >
               <Icon size={13} />
               <span className="hidden sm:inline">{item.label}</span>
             </div>
-            {i < items.length - 1 && <div className="h-px w-3 bg-gray-200 dark:bg-gray-700" />}
+            {/* Connector stretches to fill the row, so the rule runs unbroken
+                from pill to pill with equal breathing room on both sides. */}
+            {i < items.length - 1 && (
+              <div
+                className={cn(
+                  'mx-2 h-px flex-1',
+                  done ? 'bg-teal-400/40' : 'bg-slate-300/60 dark:bg-slate-700/60'
+                )}
+              />
+            )}
           </div>
         );
       })}
@@ -1201,7 +1206,7 @@ function CustomOptionField({
           <button
             type="button"
             onClick={() => setCustomOpen(false)}
-            className="shrink-0 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 text-xs"
+            className="shrink-0 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 text-xs"
           >
             Usar lista
           </button>
@@ -1248,30 +1253,27 @@ function DeleteConfirm({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md"
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-gray-950 rounded-xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700"
+        className={cn(glassOverlay, 'w-full max-w-md p-6')}
       >
-        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">Eliminar cita</h3>
-        {error && <p className="text-sm text-rose-600 mb-2">{error}</p>}
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Eliminar cita</h3>
+        {error && <p className="text-sm text-rose-500 mb-2">{error}</p>}
+        <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
           ¿Seguro? Se eliminará de forma permanente junto con sus recordatorios e invitados.
         </p>
         <div className="flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 font-medium"
-          >
+          <button onClick={onCancel} className={btnSecondary}>
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={busy}
-            className="bg-rose-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2 rounded-lg border border-rose-400/40 bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-500 disabled:opacity-50 dark:bg-rose-500/85 dark:hover:bg-rose-400/85"
           >
             {busy && <Loader2 className="animate-spin" size={16} />}
             {busy ? 'Eliminando…' : 'Eliminar'}
