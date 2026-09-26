@@ -15,6 +15,8 @@ import type { ClinicEvent } from '@/lib/types-calendar';
 import { EVENT_COLORS } from '@/lib/types-calendar';
 import type { EventStatus } from '@/calendario/event/eventSchema';
 import { STATUS_LABELS } from '@/calendario/event/eventSchema';
+import { cn } from '@/lib/utils';
+import { formatClock12 } from '@/calendario/timezone';
 
 const VIEW_LABELS: Record<View, string> = {
   month: 'Mes',
@@ -95,39 +97,77 @@ export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEv
   );
 }
 
-/** WhatsApp-style agenda row with the status chip on the right (C21 styling). */
-export function AgendaEventRow({ event }: EventProps<RbcEvent>) {
+/** Agenda date header — feed-style es-HN day badge (WhatsApp look). Rendered
+ *  once per day group (rowSpan), so it reads as a clean section divider. */
+export function AgendaDateHeader({ day }: { day: Date; label?: string }) {
+  const today = isSameDay(day, new Date());
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const weekday = cap(format(day, 'EEEE', { locale: es })); // "Sábado"
+  const dayMonth = cap(format(day, "d 'de' MMM", { locale: es })); // "26 de sep"
+
+  return (
+    <div className="flex flex-col items-start gap-1 whitespace-nowrap pr-2">
+      <span
+        className={cn(
+          'text-xs font-semibold uppercase tracking-wider',
+          today ? 'text-teal-600 dark:text-teal-400' : 'text-slate-500 dark:text-slate-400'
+        )}
+      >
+        {today ? 'Hoy' : weekday}
+      </span>
+      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">{dayMonth}</span>
+    </div>
+  );
+}
+
+/** Agenda time cell — muted es-HN clock range in a mono feed slot. */
+export function AgendaTimeCell({ label }: { label?: string }) {
+  if (!label) return null;
+  return (
+    <span className="whitespace-nowrap text-[11px] font-mono text-teal-600 dark:text-teal-400">
+      {label}
+    </span>
+  );
+}
+
+/** Agenda event card — 3px color bar, muted hierarchy, status chip right. */
+export function AgendaEventCard({ event, title }: EventProps<RbcEvent>) {
   const clinic = event.resource;
   const status = (clinic.status ?? 'scheduled') as EventStatus;
   const chip = STATUS_CHIP[status] ?? STATUS_CHIP.scheduled;
-  const name = clinic.patient_name || event.title || 'Evento';
-  const initial = name.trim().charAt(0)?.toUpperCase() || '?';
+  const name = clinic.patient_name || title || 'Evento';
+  const procedure = clinic.procedure?.trim();
+  const dentist = clinic.dentist?.trim();
+  const range =
+    clinic.start_time || clinic.end_time
+      ? `${formatClock12(clinic.start_time)} – ${formatClock12(clinic.end_time)}`
+      : '';
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60 rounded-xl">
-      <div
-        className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold"
-        style={{ backgroundColor: event.color || '#0d9488' }}
+    <div
+      className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-2 shadow-sm transition-colors hover:bg-gray-50 dark:border-slate-700/50 dark:bg-[#181e2a] dark:hover:bg-slate-800/60"
+      style={{ borderLeftWidth: 3, borderLeftColor: event.color || '#0d9488' }}
+      title={`${name}${procedure ? ` · ${procedure}` : ''}${dentist ? ` · ${dentist}` : ''}`}
+    >
+      <span
+        className="h-2 w-2 shrink-0 rounded-full"
+        style={{ backgroundColor: dentistColor(clinic.dentist) }}
         aria-hidden="true"
-      >
-        {initial}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className="h-2 w-2 shrink-0 rounded-full"
-            style={{ backgroundColor: dentistColor(clinic.dentist) }}
-            aria-hidden="true"
-          />
-          <span className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">{name}</span>
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{name}</span>
+          <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', chip.cls)}>
+            {chip.label}
+          </span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-          {[clinic.procedure, timeRange(clinic), clinic.dentist].filter(Boolean).join(' · ')}
+        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-slate-400">
+          {[procedure, dentist].filter(Boolean).join(' · ') || 'Cita'}
         </p>
+        {range ? (
+          <p className="mt-1 text-xs font-mono tabular-nums text-teal-600 dark:text-teal-400">{range}</p>
+        ) : null}
       </div>
-      <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${chip.cls}`}>
-        {chip.label}
-      </span>
     </div>
   );
 }
@@ -193,29 +233,14 @@ export function WeekdayHeader({ date }: HeaderProps) {
   );
 }
 
-/** Month weekday column header — shows ONLY the weekday name (no date), so the
- * date number never renders twice (the per-cell date heading owns the number). */
-export function MonthWeekdayHeader({ date }: HeaderProps) {
-  return (
-    <div className="py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-      {format(date, 'EEEEEE', { locale: es })}
-    </div>
-  );
-}
-
-/** Month cell date heading — the single date number, right-aligned, with a today
- * highlight and a muted style for off-range (previous/next month) days. */
-export function MonthDateHeader({ date, isOffRange }: { date: Date; isOffRange?: boolean }) {
+/** Month cell date header — day number with a today highlight. */
+export function MonthDateHeader({ date }: HeaderProps) {
   const today = isSameDay(date, new Date());
   return (
     <div className="flex items-center justify-end px-1.5 py-1">
       <span
-        className={`h-6 min-w-6 flex items-center justify-center rounded-full text-xs font-medium ${
-          today
-            ? 'bg-teal-600 text-white font-bold'
-            : isOffRange
-              ? 'text-gray-400 dark:text-gray-600'
-              : 'text-gray-600 dark:text-gray-300'
+        className={`h-6 w-6 flex items-center justify-center rounded-full text-xs font-medium ${
+          today ? 'bg-teal-600 text-white font-bold' : 'text-gray-600 dark:text-gray-300'
         }`}
       >
         {format(date, 'd', { locale: es })}
@@ -228,6 +253,10 @@ export const calendarComponents: Components<RbcEvent, object> = {
   event: EventPill,
   toolbar: CalendarToolbar,
   header: WeekdayHeader,
-  month: { header: MonthWeekdayHeader, dateHeader: MonthDateHeader },
-  agenda: { event: AgendaEventRow },
+  month: { header: MonthDateHeader },
+  agenda: {
+    event: AgendaEventCard,
+    time: AgendaTimeCell,
+    date: AgendaDateHeader,
+  },
 };

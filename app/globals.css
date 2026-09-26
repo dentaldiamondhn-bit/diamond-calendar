@@ -635,6 +635,38 @@ pre code {
 }
 
 /* ------------------------------------------------------------------ *
+ * Agenda feed (card view) — strip RBC's table fills so the
+ * `eventPropGetter` row color never bleeds across all three columns
+ * (RBC applies that backgroundColor to the whole `<tr>`). The date/time
+ * badges and event cards below own the surface instead.
+ * ------------------------------------------------------------------ */
+.rbc-agenda-view table.rbc-agenda-table,
+.rbc-agenda-view table.rbc-agenda-table tbody,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td,
+.rbc-agenda-view table.rbc-agenda-table .rbc-agenda-date-cell,
+.rbc-agenda-view table.rbc-agenda-table .rbc-agenda-time-cell {
+  background-color: transparent !important;
+  border: none !important;
+}
+.rbc-agenda-view table.rbc-agenda-table {
+  border-collapse: separate;
+  border-spacing: 0 6px; /* vertical rhythm between cards */
+}
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background-color: transparent;
+}
+
+/* ------------------------------------------------------------------ *
  * React Big Calendar — month grid columns must SHRINK below content
  * (repeat(7, minmax(0, 1fr)) equivalent) so Saturday/Sunday never get
  * clipped at the viewport edge. RBC ships `flex: 1 0 0%` (no shrink) on
