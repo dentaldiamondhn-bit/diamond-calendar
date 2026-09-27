@@ -542,3 +542,47 @@ div.rbc-overlay .rbc-event.rbc-selected {
 .rbc-day-slot .rbc-event-content {
   max-width: 100% !important;
 }
+
+/* ------------------------------------------- month-view structure guard ---
+   Measured against the real DOM (react-big-calendar 1.20.0, Month.js), the
+   month view is exactly:
+
+     .rbc-month-view
+       .rbc-row.rbc-month-header      <- weekday bar; labels ONLY
+       .rbc-month-row  x N
+         .rbc-row-content
+           .rbc-row
+             .rbc-date-cell x 7        <- the date numbers live in HERE
+     (.rbc-date-cell contains <button class="rbc-button-link">)
+
+   There is NO `.rbc-allday-cell` and no second header row anywhere in that tree
+   — both are time-view structures. A server render of MONTH yields 0
+   `.rbc-allday-cell` nodes, so a rule hiding them is a no-op, not a fix.
+
+   So the invariant worth enforcing is structural rather than cosmetic: a bare
+   `.rbc-row` may only appear as the weekday bar. Anything else sitting directly
+   under `.rbc-month-view` is a regression that would render as an extra strip
+   above the first week, and it gets dropped instead of displacing row 1. */
+.rbc-month-view > .rbc-row:not(.rbc-month-header) {
+  display: none !important;
+}
+
+/* Day numbers stay in their own cell, right-aligned, at every week. Week 1 is
+   mostly `rbc-off-range` (leading days of the previous month) and must stay
+   legible rather than read as an empty strip. `color: inherit` keeps the
+   off-range/now tints from the two rules above applied to the inner button. */
+.rbc-month-view .rbc-date-cell {
+  padding: 4px 6px !important;
+  text-align: right !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+}
+
+.rbc-month-view .rbc-date-cell .rbc-button-link,
+.rbc-month-view .rbc-date-cell button {
+  color: inherit !important;
+  font: inherit !important;
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+}
