@@ -62,7 +62,7 @@ export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEv
 
   return (
     <div
-      className="flex items-center gap-1.5 min-w-0 px-1.5 py-0.5 text-slate-100"
+      className="flex w-full min-w-0 items-center gap-1.5 px-1.5 py-0.5 text-slate-100"
       title={`${name} · ${timeRange(clinic)}${clinic.dentist ? ` · ${clinic.dentist}` : ''}`}
     >
       <span
@@ -70,11 +70,11 @@ export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEv
         style={{ backgroundColor: dentistColor(clinic.dentist) }}
         aria-hidden="true"
       />
-      <span className="truncate text-[10px] leading-tight sm:text-xs font-medium md:max-w-[100px]">
+      <span className="min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs font-medium">
         {name}
       </span>
       {fullDay && clinic.procedure ? (
-        <span className="hidden truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-inset ring-white/20 backdrop-blur-[2px] sm:inline md:max-w-[100px]">
+        <span className="hidden min-w-0 max-w-[45%] shrink truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-inset ring-white/20 backdrop-blur-[2px] sm:inline">
           {clinic.procedure}
         </span>
       ) : null}
@@ -218,7 +218,13 @@ export function CalendarToolbar({ label, view, views, onNavigate, onView }: Tool
         {navBtn('PREV', 'Anterior')}
         {navBtn('NEXT', 'Siguiente')}
       </div>
-      <span className="px-1 text-sm font-semibold text-gray-700 dark:text-gray-200 sm:flex-1">
+      {/* Month/year title ("septiembre 2026"). Never hidden: this surface is
+          always dark, so it uses an unconditional light colour — the old
+          `text-gray-700 dark:text-gray-200` fell back to dark grey on the dark
+          shell whenever the `dark` class was not on an ancestor, which is what
+          made the title look absent on narrow viewports. `flex-1` + centered
+          below `sm`, left-aligned from `sm` up. */}
+      <span className="px-1 text-center text-base font-semibold text-slate-100 flex-1 sm:text-left">
         {label}
       </span>
       <div className="flex flex-wrap items-center gap-1 sm:ml-auto">
@@ -279,15 +285,28 @@ export function MonthDateHeader({ date }: DateHeaderProps) {
   );
 }
 
+/** Month view column header — WEEKDAY NAME ONLY, never a date.
+ *  RBC's Month.js feeds this cell BOTH `label` (the weekday) and `date` (the
+ *  first week's actual dates), so any component that prints `getDate()` here
+ *  produces the phantom "31 1 2 3 4 5 6" row. This component can only ever
+ *  render the weekday. */
+export function MonthWeekdayHeader({ label }: HeaderProps) {
+  return <span role="columnheader" aria-sort="none">{label}</span>;
+}
+
 export const calendarComponents: Components<RbcEvent, object> = {
   event: EventPill,
   toolbar: CalendarToolbar,
   header: WeekdayHeader,
-  // `dateHeader` is the per-cell date number in month view (Month.js:112). It
-  // must NOT be `header`: Calendar.js merges `components[view]` *under* the
-  // top-level `header`, so `month.header` would be silently overridden by it
-  // and the whole month row would print the first week's dates.
-  month: { dateHeader: MonthDateHeader },
+  // `dateHeader` is the per-cell date number in month view (Month.js:112);
+  // `header` is the weekday column bar (Month.js:255).
+  // Calendar.js:310 does `defaults(components[view] || {}, omit(components, names),
+  // {...})` — the FIRST object wins, so `components.month.*` takes PRIORITY over
+  // the top-level `header`. (An earlier comment here claimed the reverse, which is
+  // why the phantom date row was only guarded by a view comparison in RbcCalendar.)
+  // Pinning `month.header` here makes "weekday name only" structural, so the month
+  // bar can never print the first week's dates again.
+  month: { dateHeader: MonthDateHeader, header: MonthWeekdayHeader },
   agenda: {
     event: AgendaEventCard,
     time: AgendaTimeCell,

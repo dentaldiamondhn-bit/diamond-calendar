@@ -499,9 +499,15 @@ div.rbc-overlay .rbc-event.rbc-selected {
 }
 
 /* --------------------------------------------------------- event pills --- */
-/* A pill is a fixed-height box inside a fluid column, so a long procedure
-   label used to spill past the cell edge and force horizontal overflow. Clip
-   the content and ellipsize instead: the label stays one line at every width
+/* DOM, per EventCell.js: `.rbc-event` > `.rbc-event-content` > EventPill root
+   (`display:flex`) > [dentist dot, name, procedure badge].
+
+   `.rbc-event-content` carries the ellipsis, but its child is a flex ROW, so
+   `text-overflow` never reaches the text: each span has to shrink on its own.
+   Hence `min-w-0` + `flex-1` on the name and `min-w-0` + `max-w` on the badge in
+   EventPill. A pill is a fixed-height box inside a fluid column, so a long
+   procedure label used to spill past the cell edge and force horizontal
+   overflow; clipping plus ellipsis keeps the label on one line at every width
    and the grid never grows a scrollbar. */
 .rbc-event-content {
   overflow: hidden !important;
@@ -509,6 +515,24 @@ div.rbc-overlay .rbc-event.rbc-selected {
   white-space: nowrap !important;
   font-size: 0.75rem !important;
   line-height: 1.25 !important;
+}
+
+/* Month-view pills only — NOT `.rbc-event` unscoped.
+   RBC's vendor sheet already sets `.rbc-day-slot .rbc-event` to
+   `display: flex; flex-flow: column wrap; -webkit-box-orient: vertical`, and the
+   time-grid relies on that to stack the time label ABOVE the content. An
+   unscoped `display: flex` / `gap` would put a 4px gutter between the label and
+   the content, and `align-items: center` — which the brief asked for — would
+   shrink `.rbc-event-content` to its content width, making the truncation
+   strictly worse. So the month pills are pinned explicitly and keep
+   `align-items: stretch` so the content still spans the full cell. */
+.rbc-month-row .rbc-event {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  font-size: 0.7rem !important;
+  line-height: 1 !important;
+  padding: 3px 6px !important;
 }
 
 /* Below `md` the month cells are narrow enough that the label needs the full
