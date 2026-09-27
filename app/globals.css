@@ -2,13 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom loading state to prevent white screen during refresh */
-html {
-  background-color: #1f2937; /* charcoal gray */
-}
-
-body {
-  background-color: #1f2937; /* charcoal gray */
+/* Viewport lock. The page background has to own the *whole* canvas on every
+   runtime — Crostini Linux container, Android WebAPK/standalone PWA, windowed
+   or full-screen desktop. Any strip the document doesn't paint shows up as a
+   grey/dark margin down the left, right and bottom edges, and `min-height`
+   alone still lets a short shell expose it. Pin height, width, box edges and
+   the background colour on the root nodes and the gap has nowhere to appear. */
+html,
+body,
+#__next,
+#next {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #0a0f1d;
 }
 
 /* Mobile-specific optimizations */
@@ -444,9 +452,12 @@ body {
   color: hsl(var(--muted-foreground));
 }
 
-/* Ensure smooth scrolling on mobile devices */
+/* Ensure smooth scrolling on mobile devices. Height stays locked to the
+   viewport (see the root lock at the top of this file) — reverting to
+   `height: auto` here is what let the container shrink and re-expose the
+   body background as a bottom margin. */
 html, body {
-  height: auto;
+  height: 100%;
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
@@ -456,7 +467,7 @@ html, body {
 /* Fix iOS Safari scrolling issues */
 @supports (-webkit-touch-callout: none) {
   html, body {
-    height: auto;
+    height: 100%;
     min-height: 100vh;
     overflow: auto;
     -webkit-overflow-scrolling: touch;

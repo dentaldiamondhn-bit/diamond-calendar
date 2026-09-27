@@ -200,9 +200,11 @@ div.rbc-overlay .rbc-event.rbc-selected {
 
 /* Force RBC to take 100% height of its flex parent */
 .rbc-calendar {
+  width: 100% !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
+  background-color: transparent !important;
 }
 
 /* Force month grid to take all remaining height below toolbar/header */
@@ -214,6 +216,22 @@ div.rbc-overlay .rbc-event.rbc-selected {
   min-height: 0 !important;
   overflow: hidden !important;
   border: none !important;
+}
+
+/* Every inner view flexes fluidly inside the locked `.rbc-calendar` column.
+   Without `flex: 1 1 0px` + `min-height: 0` a view keeps its content height
+   and the card either collapses (dead space below the grid) or overflows
+   (clipped last row). `width: 100%` stops the vendor's fixed-width month grid
+   from pushing a horizontal scrollbar on narrow phones, and the radius/hidden
+   keep each view's corners inside the rounded card. */
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  flex: 1 1 0px !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  border-radius: 1rem !important;
+  overflow: hidden !important;
 }
 
 /* Distribute all week rows EQUALLY across the month view */
@@ -433,4 +451,25 @@ div.rbc-overlay .rbc-event.rbc-selected {
   background-color: transparent;
   color: var(--rbc-ink-faint);
   padding: 12px 8px;
+}
+
+/* --------------------------------------------------------- event pills --- */
+/* A pill is a fixed-height box inside a fluid column, so a long procedure
+   label used to spill past the cell edge and force horizontal overflow. Clip
+   the content and ellipsize instead: the label stays one line at every width
+   and the grid never grows a scrollbar. */
+.rbc-event-content {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.75rem !important;
+  line-height: 1.25 !important;
+}
+
+/* Below `md` the month cells are narrow enough that the label needs the full
+   cell width; the component already truncates, this keeps the flex child from
+   being the thing that overflows. */
+.rbc-month-row .rbc-event-content,
+.rbc-day-slot .rbc-event-content {
+  max-width: 100% !important;
 }

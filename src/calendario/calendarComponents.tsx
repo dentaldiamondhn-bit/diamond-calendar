@@ -70,9 +70,11 @@ export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEv
         style={{ backgroundColor: dentistColor(clinic.dentist) }}
         aria-hidden="true"
       />
-      <span className="truncate text-[10px] leading-tight sm:text-xs font-medium">{name}</span>
+      <span className="truncate text-[10px] leading-tight sm:text-xs font-medium md:max-w-[100px]">
+        {name}
+      </span>
       {fullDay && clinic.procedure ? (
-        <span className="hidden sm:inline truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-inset ring-white/20 backdrop-blur-[2px]">
+        <span className="hidden truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-inset ring-white/20 backdrop-blur-[2px] sm:inline md:max-w-[100px]">
           {clinic.procedure}
         </span>
       ) : null}
@@ -167,14 +169,23 @@ export function AgendaEventCard({ event, title }: EventProps<RbcEvent>) {
   );
 }
 
-/** es toolbar — Today / back / next plus the view switcher (C32 groundwork). */
+/** es toolbar — Today / back / next plus the view switcher (C32 groundwork).
+ *
+ *  RESPONSIVE: the bar stacks into a column on phones and only becomes a
+ *  single row from `sm` up. Inline it was a single `flex-wrap` line, so on a
+ *  320–400px screen the switcher wrapped *under* the label and the row grew to
+ *  two uneven lines that pushed the grid down. Every control also carries a
+ *  40px touch target on coarse pointers (h-10 below `sm`, back to h-8 above)
+ *  so `Mes/Semana/Día/Agenda` stay comfortably tappable. */
 export function CalendarToolbar({ label, view, views, onNavigate, onView }: ToolbarProps<RbcEvent, object>) {
   const viewList = (Array.isArray(views) ? views : Object.keys(views)) as View[];
+  // 40px (2.5rem) touch height on phones, 32px pill density from `sm` up.
+  const touchCls = 'h-10 sm:h-8';
   const activeCls =
-    'h-8 px-2.5 rounded-full border text-sm font-semibold shadow-sm transition-all ' +
+    `px-2.5 rounded-full border text-sm font-semibold shadow-sm transition-all ${touchCls} ` +
     'border-teal-500/60 bg-teal-500/20 text-teal-700 dark:text-teal-300';
   const idleCls =
-    'h-8 px-2.5 rounded-full border text-sm font-medium transition-all ' +
+    `px-2.5 rounded-full border text-sm font-medium transition-all ${touchCls} ` +
     'border-slate-300/80 bg-slate-100/60 text-slate-600 hover:bg-slate-200/70 ' +
     'dark:border-slate-700/60 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-700/50';
 
@@ -183,27 +194,34 @@ export function CalendarToolbar({ label, view, views, onNavigate, onView }: Tool
       type="button"
       onClick={() => onNavigate(which)}
       aria-label={aria}
-      className={cn(btnSecondary, 'h-8 rounded-full px-4')}
+      className={cn(btnSecondary, 'rounded-full px-4', touchCls)}
     >
       {NAV_ICONS[which]}
     </button>
   );
 
   return (
-    <div className={cn(glassBar, 'flex flex-wrap items-center gap-2 p-3')}>
+    <div
+      className={cn(
+        glassBar,
+        'flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center'
+      )}
+    >
       <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => onNavigate('TODAY')}
-          className={cn(btnSecondary, 'h-8 rounded-full px-4')}
+          className={cn(btnSecondary, 'rounded-full px-4', touchCls)}
         >
           Hoy
         </button>
         {navBtn('PREV', 'Anterior')}
         {navBtn('NEXT', 'Siguiente')}
       </div>
-      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 px-1">{label}</span>
-      <div className="ml-auto flex flex-wrap items-center gap-1">
+      <span className="px-1 text-sm font-semibold text-gray-700 dark:text-gray-200 sm:flex-1">
+        {label}
+      </span>
+      <div className="flex flex-wrap items-center gap-1 sm:ml-auto">
         {viewList.map((v) => (
           <button
             key={v}

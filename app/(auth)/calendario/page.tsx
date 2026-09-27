@@ -30,7 +30,7 @@ export default function CalendarPage() {
 
   if (!ready) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0f1d]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -41,7 +41,7 @@ export default function CalendarPage() {
     // loader instead of an error screen so signed-out PWA users never see a
     // stale "/calendario no autorizado" page.
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0f1d]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         <a href="/sign-in" className="sr-only">Iniciar sesión</a>
       </div>

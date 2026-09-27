@@ -47,10 +47,18 @@ function parseDateStr(s: string | null): Date {
   return new Date();
 }
 
+/** Below the `sm` breakpoint a 7-column month grid compresses to unreadable
+ *  ~40px cells with clipped text, so phones open on Agenda instead. An explicit
+ *  `?view=` deep link (widget, push notification, shared URL) always wins, and
+ *  anything wider than 768px keeps the month grid. */
+const MOBILE_DEFAULT_VIEW: View = 'agenda';
+const MOBILE_MAX_WIDTH = 768;
+
 function initialView(): View {
   if (typeof window === 'undefined') return 'month';
   const v = new URLSearchParams(window.location.search).get('view');
-  return (VIEWS as string[]).includes(v || '') ? (v as View) : 'month';
+  if ((VIEWS as string[]).includes(v || '')) return v as View;
+  return window.innerWidth < MOBILE_MAX_WIDTH ? MOBILE_DEFAULT_VIEW : 'month';
 }
 
 function initialDateStr(): string {
@@ -450,7 +458,7 @@ export default function CalendarShell({ userId }: Props) {
 // keepPreviousData so the previous range stays visible while the new one loads.
 if (eventsQuery.isPending && !eventsQuery.data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0f1d]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="animate-spin text-teal-500" size={32} />
           <p className="text-gray-400 dark:text-slate-500 text-sm">Cargando tu agenda...</p>
@@ -463,7 +471,22 @@ if (eventsQuery.isPending && !eventsQuery.data) {
     // FIX 2: the shell owns the viewport height. `h-[calc(100vh-80px)]` is the
     // space left under the app's ~80px top bar; `overflow-hidden` guarantees
     // nothing (grid, sidebar, panels) can push the page into a second scroll.
-    <div className="mx-auto flex h-[calc(100vh-80px)] w-full max-w-[1400px] flex-col overflow-hidden p-4 dark:bg-slate-950 dark:text-slate-200">
+    //
+    // RESPONSIVE: the wrapper used to be `mx-auto max-w-[1400px]`, which is what
+    // painted grey/dark margins down the left, right and bottom edges inside a
+    // desktop or Crostini container window — the cap plus the auto margins left
+    // the canvas unpainted whenever the window was wider than 1400px or shorter
+    // than `100vh - 80px`. It now fills the viewport edge-to-edge, keeps the
+    // mobile gutters fluid (2/4/6 at the sm/md steps), and only from `md` up
+    // subtracts the top bar, so the PWA/WebAPK standalone surface (no chrome
+    // to offset) is not left short by a phantom 5rem.
+    <div
+      className={cn(
+        'flex w-full flex-col overflow-x-hidden overflow-y-hidden bg-[#0a0f1d] text-slate-200',
+        'h-full min-h-screen p-2 sm:p-4 md:p-6',
+        'md:h-[calc(100vh-5rem)] md:min-h-0'
+      )}
+    >
       {queryError ? (
         <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-200">
           No se pudieron cargar algunos datos del calendario. Reintentando…
@@ -483,18 +506,21 @@ if (eventsQuery.isPending && !eventsQuery.data) {
         }`}
       >
         <div className="flex min-h-0 min-w-0 flex-col">
-          {/* Controls bar — `flex-none` so it never absorbs grid height. */}
-          <div className="mb-3 flex flex-none items-center justify-between">
+          {/* Controls bar — `flex-none` so it never absorbs grid height. It
+              stacks into a column on phones (row from `sm` up) so the
+              "N citas" counter, the primary CTA and the panel toggle wrap
+              cleanly instead of colliding with the page title. */}
+          <div className="mb-3 flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-500 hidden sm:block">
               {events.length} {events.length === 1 ? 'cita' : 'citas'}
             </p>
             <div className="flex items-center gap-2">
-              <button onClick={openNewEvent} className={btnPrimary}>
+              <button onClick={openNewEvent} className={cn(btnPrimary, 'min-h-10')}>
                 <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
               </button>
               <button
                 onClick={() => setSidebarOpen((open) => !open)}
-                className={cn(btnSecondary, 'hidden lg:inline-flex')}
+                className={cn(btnSecondary, 'hidden min-h-10 lg:inline-flex')}
                 title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
                 aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
               >
