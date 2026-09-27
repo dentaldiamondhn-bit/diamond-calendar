@@ -191,60 +191,105 @@ div.rbc-overlay .rbc-event.rbc-selected {
 }
 
 /* ---------------------------------------------------------------------------
-   FIX 2 — dynamic height. No hardcoded `height` / `min-height` / `max-height`
-   on the calendar or the month grid: the card is a `flex-1 min-h-0` child of
-   the viewport-locked shell, and everything below distributes the space it is
-   given. 4-, 5- and 6-week months all fill the card exactly, so there is no
-   dead space and no row is cut off.
+   NON-COLLAPSIBLE VIEW FLOORS.
+   The previous revision of this file deliberately carried NO hardcoded
+   height/min-height on the calendar or its views, so that 4-, 5- and 6-week
+   months distributed the space they were given exactly. That design is what
+   produced the zero-height bug: `.rbc-calendar` was `height: 100%` inside a
+   parent chain seeded with `min-h-0`, and every view was `flex: 1 1 0px` +
+   `min-height: 0` — i.e. flex-basis 0 with no floor. Any short parent (a
+   phone keyboard, a scrolled container, a 5-week month on a short window)
+   resolved the whole grid to 0px and the week rows, time slots and agenda
+   feed simply vanished.
+
+   The fix is a floor per view, not a fluid distribution: `flex-grow: 1` with
+   `flex-shrink: 0` and an explicit `min-height` means a view can only ever be
+   TALLER than its floor, never shorter, so nothing collapses and nothing is
+   cut off. Scroll depth lives on the inner scrollers (`.rbc-time-content`,
+   `.rbc-agenda-view`) rather than on the view box, so the floors never push
+   the page into a clipped, unreachable layout.
    --------------------------------------------------------------------------- */
 
-/* Force RBC to take 100% height of its flex parent */
+/* Core Calendar Outer Frame - Never collapse */
 .rbc-calendar {
   width: 100% !important;
+  min-height: 550px !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   background-color: transparent !important;
 }
 
-/* Force month grid to take all remaining height below toolbar/header */
+/* -------------------------------------------------------------
+   1. MES VIEW (Month Grid)
+   ------------------------------------------------------------- */
 .rbc-month-view {
-  flex: 1 1 0px !important;
   display: flex !important;
   flex-direction: column !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
+  flex: 1 0 500px !important;
+  min-height: 500px !important;
+  width: 100% !important;
   border: none !important;
 }
 
-/* Every inner view flexes fluidly inside the locked `.rbc-calendar` column.
-   Without `flex: 1 1 0px` + `min-height: 0` a view keeps its content height
-   and the card either collapses (dead space below the grid) or overflows
-   (clipped last row). `width: 100%` stops the vendor's fixed-width month grid
-   from pushing a horizontal scrollbar on narrow phones, and the radius/hidden
-   keep each view's corners inside the rounded card. */
-.rbc-month-view,
-.rbc-time-view,
-.rbc-agenda-view {
-  flex: 1 1 0px !important;
-  width: 100% !important;
-  min-height: 0 !important;
-  border-radius: 1rem !important;
-  overflow: hidden !important;
-}
-
-/* Distribute all week rows EQUALLY across the month view */
 .rbc-month-row {
-  flex: 1 1 0px !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 0 75px !important;
+  min-height: 75px !important;
 }
 
-/* Ensure row content stretches to fill row height */
 .rbc-row-content {
   height: 100% !important;
+  min-height: 75px !important;
+}
+
+/* -------------------------------------------------------------
+   2. SEMANA, SEMANA LABORAL & DÍA VIEWS (Time-Grid Views)
+   ------------------------------------------------------------- */
+.rbc-time-view {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 0 550px !important;
+  min-height: 550px !important;
+  width: 100% !important;
+  border: none !important;
+}
+
+/* Time Grid Content Scroll Area */
+.rbc-time-content {
+  display: flex !important;
+  flex: 1 0 450px !important;
+  min-height: 450px !important;
+  overflow-y: auto !important;
+  border-top: none !important;
+}
+
+/* Ensure individual hour slot cells retain height */
+.rbc-timeslot-group {
+  min-height: 48px !important; /* Ensures 15/30 min slots are readable */
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  font-size: 0.75rem !important;
+  color: #94a3b8 !important;
+}
+
+/* -------------------------------------------------------------
+   3. AGENDA VIEW (Feed / List)
+   ------------------------------------------------------------- */
+.rbc-agenda-view {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 0 400px !important;
+  min-height: 400px !important;
+  width: 100% !important;
+  overflow-y: auto !important;
+}
+
+.rbc-agenda-view table.rbc-agenda-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
 }
 
 .rbc-themed .rbc-event:hover {
