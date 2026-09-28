@@ -234,14 +234,69 @@ div.rbc-overlay .rbc-event.rbc-selected {
 
 .rbc-month-row {
   display: flex !important;
-  flex-direction: row !important;
+  /* COLUMN, as the vendor ships it. This was wrongly forced to `row`, which
+     broke the week row: the single `.rbc-row-content` child then sized against
+     the cross axis and the date-number strip lost its top padding, pulling the
+     week-1 numbers up against the weekday header rule so they read as a
+     detached label bar. */
+  flex-direction: column !important;
   flex: 1 0 75px !important;
   min-height: 75px !important;
 }
 
-.rbc-row-content {
+/* MONTH row geometry — the two `.rbc-row` children per week (measured: exactly
+   2 per `.rbc-row-content` — the date-number strip, then the events strip).
+
+   The vendor does NOT make `.rbc-row-content` a flex container, so a `flex`
+   rule on the events strip would be silently ignored and the strip would keep
+   its content height instead of absorbing the rest of the cell. Making it a
+   column flex container is what turns those children into real flex items. */
+.rbc-month-view .rbc-row-content {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
   height: 100% !important;
-  min-height: 75px !important;
+  min-height: 0 !important;
+  /* z-index is deliberately left at the vendor's 4. Dropping it to 2 lets a
+     sibling row background paint over the date numbers. */
+}
+
+/* Date-number strip: fixed height at the TOP of the cell with a real top gap, so
+   week 1 sits `6px` clear of the weekday rule instead of butting against it. */
+.rbc-month-view .rbc-row-content .rbc-row:first-child {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  padding: 6px 10px 2px !important;
+  height: auto !important;
+  min-height: 28px !important;
+}
+
+/* Events strip takes everything left under the date numbers. */
+.rbc-month-view .rbc-row-content .rbc-row:not(:first-child) {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+/* Day numbers: right-aligned in their own cell, one line, no inner padding —
+   the strip above already supplies the offset. */
+.rbc-month-view .rbc-date-cell {
+  padding: 0 !important;
+  text-align: right !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+/* The app overrides `components.month.dateHeader`, so the stock
+   `button.rbc-button-link` never renders — `MonthDateHeader` emits a div/span.
+   Stock selector kept as a safety net if that override is ever removed. */
+.rbc-month-view .rbc-date-cell button.rbc-button-link {
+  color: inherit !important;
+  padding: 2px 4px !important;
+  font-size: 0.8rem !important;
+  cursor: pointer;
 }
 
 /* -------------------------------------------------------------
@@ -567,16 +622,12 @@ div.rbc-overlay .rbc-event.rbc-selected {
   display: none !important;
 }
 
-/* Day numbers stay in their own cell, right-aligned, at every week. Week 1 is
-   mostly `rbc-off-range` (leading days of the previous month) and must stay
-   legible rather than read as an empty strip. `color: inherit` keeps the
-   off-range/now tints from the two rules above applied to the inner button. */
-.rbc-month-view .rbc-date-cell {
-  padding: 4px 6px !important;
-  text-align: right !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-}
+/* Safety net only. The cell geometry (padding/text-align/font) is owned by the
+   month row geometry block above, which sits closer to the vendor sheet; this
+   block just stops UA button styles from swallowing the day number if the
+   `components.month.dateHeader` override is ever removed and stock RBC renders
+   its `button.rbc-button-link` again. `color: inherit` keeps the off-range and
+   `.rbc-now` tints applied to the button. */
 
 .rbc-month-view .rbc-date-cell .rbc-button-link,
 .rbc-month-view .rbc-date-cell button {

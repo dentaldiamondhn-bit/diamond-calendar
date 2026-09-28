@@ -267,16 +267,21 @@ export function WeekdayHeader({ date }: HeaderProps) {
 }
 
 /** Month cell date header — day number with a today highlight. */
-export function MonthDateHeader({ date }: DateHeaderProps) {
+export function MonthDateHeader({ date, isOffRange }: DateHeaderProps) {
   const today = isSameDay(date, new Date());
   return (
-    <div className="flex items-center justify-end px-1.5 py-1">
+    <div className="flex items-center justify-end">
       <span
         className={cn(
           'flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
-          today
-            ? 'border border-teal-400/40 bg-teal-400/15 font-bold text-teal-200'
-            : 'text-slate-600 dark:text-slate-300'
+          // Week 1 is mostly leading days of the previous month. `isOffRange`
+          // comes straight from RBC (Month.js:117) and is the only reliable hook:
+          // the stock `.rbc-off-range` tint targets the cell text, but this
+          // component sets its own colour on the span, so it would otherwise
+          // never be applied and the off-range days would read as in-range.
+          isOffRange && 'text-slate-400/60 dark:text-slate-500',
+          today &&
+            'border border-teal-400/40 bg-teal-400/15 font-bold text-teal-200'
         )}
       >
         {format(date, 'd', { locale: es })}
