@@ -136,27 +136,40 @@ div.rbc-overlay .rbc-event.rbc-selected {
      sibling row background paint over the date numbers. */
 }
 
-/* Date-number strip: fixed height at the TOP of the cell with a real top gap. */
-.rbc-month-view .rbc-row-content .rbc-row:first-child {
+/* Date-number strip: fixed height at the TOP of the cell with a real top gap.
+
+   NOTE the `>` combinator — it is load-bearing. The event strip is
+   `.rbc-row-content > .rbc-addons-dnd-row-body > .rbc-row`, and that inner
+   `.rbc-row` is ALSO a `:first-child` (of the DnD wrapper). A descendant
+   selector therefore matched it and applied `justify-content: flex-end` to
+   the events row, right-aligning each week's segment group and pushing every
+   event right by the week's unused columns (a lone 2026-09-28 event rendered
+   under the "4" of Oct 4). Only the DIRECT date-strip child may be styled. */
+.rbc-month-view .rbc-row-content > .rbc-row:first-child {
   display: flex !important;
   flex: 0 0 auto !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  padding: 6px 10px 2px !important;
+  /* Vertical only. A horizontal inset here would shrink the date grid to
+     1344px while the event strip (no inset) stays at the row's full 1364px,
+     so the two 7-column grids drift apart by up to ~10px across the row.
+     The inset belongs on the cells — see `.rbc-date-cell` below. */
+  padding: 6px 0 2px !important;
   height: auto !important;
   min-height: 28px !important;
 }
 
 /* Events strip takes everything left under the date numbers. */
-.rbc-month-view .rbc-row-content .rbc-row:not(:first-child) {
+.rbc-month-view .rbc-row-content > .rbc-row:not(:first-child) {
   flex: 1 1 auto !important;
   min-height: 0 !important;
 }
 
-/* Day numbers: right-aligned in their own cell with no inner padding — the
-   strip above already supplies the offset. */
+/* Day numbers: right-aligned, inset from the column's right edge. The inset
+   lives on the cell (not on the strip) so this 7-column grid is the SAME width
+   as the event strip's grid, and every number sits directly above its column. */
 .rbc-month-view .rbc-date-cell {
-  padding: 0 !important;
+  padding: 0 10px 0 0 !important;
   text-align: right !important;
 }
 
