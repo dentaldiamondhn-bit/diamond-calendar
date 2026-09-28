@@ -654,3 +654,26 @@ pre code {
 /* React Big Calendar theming (overlays, event tints, agenda feed) lives in
    src/calendario/rbc-theme.css — imported by the /calendario route and scoped
    to its `.rbc-themed` wrapper. */
+
+/* ------------------------------------------------------------------ *
+ * Custom sidebar scrollbar (right panel on /calendario — the
+ * `.custom-scrollbar` utility class). Thin, dark thumb that stays out of
+ * the way while the calendar stays pinned and only the panel scrolls.
+ * ------------------------------------------------------------------ */
+.custom-scrollbar {
+  scrollbar-width: thin;               /* Firefox */
+  scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.5);   /* slate-700 */
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.5); /* teal-500 tint */
+}

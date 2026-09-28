@@ -458,45 +458,48 @@ if (eventsQuery.isPending && !eventsQuery.data) {
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    // Pinned split layout: the shell owns the whole viewport on desktop, so the
+    // calendar grid stays put while the sidebar scrolls on its own. Below lg the
+    // shell keeps the normal stacked/page-scrolled layout (columns flow under
+    // the calendar), so mobile behaviour is unchanged.
+    <div className="flex min-h-screen w-full flex-col gap-3 bg-[#0a0f1d] px-3 pb-3 pt-3 sm:px-5 sm:pb-5 sm:pt-5 lg:h-screen lg:overflow-hidden">
       {queryError ? (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           No se pudieron cargar algunos datos del calendario. Reintentando…
         </div>
       ) : null}
 
-      <div
-        className={`grid w-full gap-6 ${
-          sidebarOpen
-            ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]'
-            : 'grid-cols-1'
-        }`}
-      >
-        <div className="min-w-0">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500 hidden sm:block">
-              {events.length} {events.length === 1 ? 'cita' : 'citas'}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={openNewEvent}
-                className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
-              >
-                <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
-              </button>
-              <button
-                onClick={() => setSidebarOpen((open) => !open)}
-                className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
-                aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
-              >
-                {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-              </button>
-            </div>
+      {/* Top bar (fixed height): count + Nueva cita + panel toggle. */}
+      <header className="w-full flex-none">
+        <div className="flex items-center justify-between gap-2">
+          <p className="hidden text-sm text-gray-500 sm:block">
+            {events.length} {events.length === 1 ? 'cita' : 'citas'}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openNewEvent}
+              className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
+            >
+              <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
+            </button>
+            <button
+              onClick={() => setSidebarOpen((open) => !open)}
+              className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
+              aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
+            >
+              {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+            </button>
           </div>
+        </div>
+      </header>
 
+      {/* Main workspace: pinned calendar + independently scrolling sidebar. */}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 lg:flex-row lg:overflow-hidden">
+        {/* 1. Pinned calendar container — RbcCalendar's own card fills this. */}
+        <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           <div
-            className="min-w-0"
+            className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
             onTouchStartCapture={onTouchStartCapture}
             onTouchMoveCapture={onTouchMoveCapture}
             onTouchEndCapture={onTouchEndCapture}
@@ -514,20 +517,15 @@ if (eventsQuery.isPending && !eventsQuery.data) {
               onEventResize={handleEventResize}
             />
           </div>
+        </main>
 
-          <div className="mt-6 lg:hidden">
-            <DayDetail
-              dateStr={selectedDate}
-              events={events}
-              onClose={() => setSelectedDate(null)}
-              onEditEvent={handleDayDetailClick}
-              onDuplicate={openDuplicateEvent}
-              onAddEvent={openNewEvent}
-            />
-          </div>
-        </div>
-
-        <div className={`space-y-4 min-w-0 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+        {/* 2. Independent scrolling sidebar. Mobile: stacked, page scrolls. lg+:
+             fixed-width column that scrolls inside while the calendar stays put. */}
+        <aside
+          className={`custom-scrollbar w-full min-w-0 space-y-4 pr-1 lg:h-full lg:w-80 lg:flex-none lg:overflow-y-auto xl:w-96 ${
+            sidebarOpen ? '' : 'lg:hidden'
+          }`}
+        >
           <div className="hidden lg:flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Panel</p>
             <button
@@ -539,16 +537,16 @@ if (eventsQuery.isPending && !eventsQuery.data) {
               <X size={18} />
             </button>
           </div>
-          <div className="hidden lg:block">
-            <DayDetail
-              dateStr={selectedDate}
-              events={events}
-              onClose={() => setSelectedDate(null)}
-              onEditEvent={handleDayDetailClick}
-              onDuplicate={openDuplicateEvent}
-              onAddEvent={openNewEvent}
-            />
-          </div>
+
+          <DayDetail
+            dateStr={selectedDate}
+            events={events}
+            onClose={() => setSelectedDate(null)}
+            onEditEvent={handleDayDetailClick}
+            onDuplicate={openDuplicateEvent}
+            onAddEvent={openNewEvent}
+          />
+
           <ReminderPanel
             reminders={reminders}
             eventReminders={eventReminders}
@@ -557,6 +555,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             onDelete={deleteReminder}
             onDeleteEventReminder={deleteEventReminder}
           />
+
           <TaskPanel
             tasks={tasks}
             selectedDate={selectedDate}
@@ -564,7 +563,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             onToggle={toggleTask}
             onDelete={deleteTask}
           />
-        </div>
+        </aside>
       </div>
 
       <EventModal
