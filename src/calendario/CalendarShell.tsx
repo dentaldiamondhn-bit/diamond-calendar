@@ -29,6 +29,8 @@ import type { RbcEvent } from '@/calendario/rbcAdapter';
 import type { DragDropResult } from '@/calendario/RbcCalendar';
 import { findDentistOverlap, conflictMessage, dragTargetUpdates, resizeTargetUpdates } from '@/calendario/calendarDnD';
 import { isDentistConflictError } from '@/calendario/calendarRepository';
+import { btnPrimary, btnSecondary } from '@/calendario/glass';
+import { cn } from '@/lib/utils';
 
 const RbcCalendar = dynamic(() => import('@/calendario/RbcCalendar'), {
   ssr: false,
@@ -478,13 +480,16 @@ if (eventsQuery.isPending && !eventsQuery.data) {
           <div className="flex items-center gap-2">
             <button
               onClick={openNewEvent}
-              className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
+              className={cn(
+                btnPrimary,
+                'min-h-10 rounded-full'
+              )}
             >
               <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
             </button>
             <button
               onClick={() => setSidebarOpen((open) => !open)}
-              className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              className={cn(btnSecondary, 'hidden min-h-10 lg:inline-flex')}
               title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
               aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
             >

@@ -350,3 +350,98 @@ div.rbc-overlay .rbc-event.rbc-selected {
    and already carries an unconditional dark surface in the overlays block at
    the top of this file, which covers this case and also keeps it dark when
    rendered in light mode. */
+
+/* ===========================================================================
+   TINTED GLASS — appearance layer.
+
+   Colour + glass tokens only. None of these rules touches a height, a flex or
+   a row constraint; the geometry in the blocks above is load-bearing and left
+   alone.
+
+   - Toolbar & view switch: the live toolbar here descends a
+     `CalendarToolbar` with an `rbc-toolbar` class on its root, so these
+     rules render as glass pills with a teal active state.
+   - Event pills: fill and border derive from the SAME procedure hex, at 18%
+     and 45% respectively. `eventPropGetter` supplies that as translucent
+     rgba inline (see `eventTint.ts`); this block only adds the glass
+     geometry (squircle, blur, hover) on top.
+   - "+N más": a translucent teal squircle instead of RBC's plain link.
+   =========================================================================== */
+
+/* --- 1. toolbar & view switcher ------------------------------------------ */
+.rbc-toolbar {
+  margin-bottom: 0 !important;
+}
+
+.rbc-toolbar button {
+  background-color: rgba(30, 41, 59, 0.4) !important; /* slate-800/40 */
+  border: 1px solid rgba(51, 65, 85, 0.5) !important; /* slate-700/50 */
+  border-radius: 9999px !important;
+  padding: 0 12px !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  color: #cbd5e1 !important; /* slate-300 */
+}
+
+.rbc-toolbar button:hover {
+  background-color: rgba(51, 65, 85, 0.5) !important; /* slate-700/50 */
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: rgba(13, 148, 136, 0.35) !important; /* teal-600/35 */
+  border-color: rgba(45, 212, 191, 0.6) !important;      /* teal-400/60 */
+  color: #ccfbf1 !important; /* teal-100 */
+}
+
+/* --- 2. event pills ------------------------------------------------------ */
+/* Inline style carries the 18% fill + 45% border (per procedure colour);
+   this block adds the squircle, blur and hover so a pill reads as frosted
+   glass over the grid instead of a solid chip. */
+.rbc-event {
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-radius: 0.5rem !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.rbc-event:hover {
+  filter: brightness(1.25);
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+/* --- 3. "+N más" trigger ------------------------------------------------- */
+.rbc-show-more {
+  background-color: rgba(45, 212, 191, 0.1) !important;
+  border: 1px solid rgba(45, 212, 191, 0.35) !important;
+  border-radius: 0.5rem;
+  color: #94a3b8 !important;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 1px 8px;
+  width: fit-content;
+  margin-left: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.15s ease-in-out;
+}
+
+.rbc-show-more:hover,
+.rbc-show-more:focus {
+  background-color: rgba(45, 212, 191, 0.2) !important;
+  color: #2dd4bf !important;
+}
+
+/* --- 4. agenda table rows ------------------------------------------------ */
+/* RBC applies the eventPropGetter style to the whole `<tr>`. The pill fill is
+   now translucent, but the row must stay transparent so the tint never bleeds
+   across the three columns — the AgendaEventCard owns the surface instead. */
+.rbc-agenda-view table.rbc-agenda-table,
+.rbc-agenda-view table.rbc-agenda-table tbody,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  background-color: transparent !important;
+}

@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { RbcEvent } from '@/calendario/rbcAdapter';
 import { calendarComponents } from '@/calendario/calendarComponents';
+import { tintedEventStyle } from '@/calendario/eventTint';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './rbc-theme.css';
@@ -90,9 +91,9 @@ export interface RbcCalendarProps {
 
 const eventPropGetter = (event: object) => {
   const rbcEvent = event as RbcEvent;
-  // Solid procedure colour. The tinted-glass variant is gone; the vendor
-  // `.rbc-event` fill/geometry is left alone.
-  return { style: { backgroundColor: rbcEvent.color, borderColor: rbcEvent.color } };
+  // Tinted glass: 18% fill / 45% border over the dark grid. Vendor
+  // `.rbc-event` supplies the geometry (see rbc-theme.css).
+  return { style: tintedEventStyle(rbcEvent.color) };
 };
 
 const InnerRbcCalendar = memo(function InnerRbcCalendar({
@@ -163,8 +164,8 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
         // Structural only: this card is the flex child that grows into the
         // space the shell reserved, and `min-h-0` lets it shrink inside
         // `flex-1` so the per-view floors in rbc-theme.css can actually apply.
-        // Surface colours are the plain light/dark pair, not the glass theme.
-        'flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-900'
+        // Surface: tinted glass matching the rest of the route.
+        'flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white/85 shadow-sm dark:border-slate-700/50 dark:bg-slate-900/60 dark:backdrop-blur-xl'
       )}
     >
       <DragCalendar

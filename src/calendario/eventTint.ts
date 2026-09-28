@@ -2,9 +2,9 @@
  * Procedural-color tinting for calendar events.
  *
  * `ClinicEvent.color` / `RbcEvent.color` holds a hex swatch (procedure or the
- * user-picked palette). The tinted-glass look needs that hex as an rgba fill and
- * a stronger border, so every event surface derives both from the same value
- * instead of hard-coding a second palette.
+ * user-picked palette). The tinted-glass look needs that hex as an rgba fill
+ * and a stronger border, so every event surface derives both from the same
+ * value instead of hard-coding a second palette.
  */
 
 const FALLBACK_HEX = '#0d9488';
@@ -37,12 +37,10 @@ export function withAlpha(hex: string | null | undefined, alpha: number): string
 }
 
 /**
- * Inline style handed to RBC's `eventPropGetter`: a tinted fill over the dark
- * calendar grid, a stronger same-hue border and a high-contrast label.
- *
- * The fill is deliberately not near-transparent — at ~12% the procedure hue was
- * unreadable against the dark grid — so the pill keeps most of its color and
- * only the grid lines show through.
+ * Inline style handed to RBC's `eventPropGetter`: a translucent fill at 18%
+ * (event colour over the dark grid), a same-hue border at 45%, and a
+ * high-contrast label. `rbc-theme.css` supplies the glass geometry (squircle,
+ * blur, hover) on top.
  */
 export function tintedEventStyle(hex: string | null | undefined): {
   backgroundColor: string;
@@ -50,8 +48,8 @@ export function tintedEventStyle(hex: string | null | undefined): {
   color: string;
 } {
   return {
-    backgroundColor: withAlpha(hex, 0.25),
-    borderColor: withAlpha(hex, 0.5),
+    backgroundColor: withAlpha(hex, 0.18),
+    borderColor: withAlpha(hex, 0.45),
     color: '#ffffff',
   };
 }
