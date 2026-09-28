@@ -26,8 +26,6 @@ import EventDetailDrawer from '@/components/calendar-new/EventDetailDrawer';
 import ConflictOverrideDialog from '@/components/calendar-new/ConflictOverrideDialog';
 import { useToast } from '@/components/calendar-new/Toast';
 import type { RbcEvent } from '@/calendario/rbcAdapter';
-import { btnIcon, btnPrimary, btnSecondary } from '@/calendario/glass';
-import { cn } from '@/lib/utils';
 import type { DragDropResult } from '@/calendario/RbcCalendar';
 import { findDentistOverlap, conflictMessage, dragTargetUpdates, resizeTargetUpdates } from '@/calendario/calendarDnD';
 import { isDentistConflictError } from '@/calendario/calendarRepository';
@@ -47,18 +45,10 @@ function parseDateStr(s: string | null): Date {
   return new Date();
 }
 
-/** Below the `sm` breakpoint a 7-column month grid compresses to unreadable
- *  ~40px cells with clipped text, so phones open on Agenda instead. An explicit
- *  `?view=` deep link (widget, push notification, shared URL) always wins, and
- *  anything wider than 768px keeps the month grid. */
-const MOBILE_DEFAULT_VIEW: View = 'agenda';
-const MOBILE_MAX_WIDTH = 768;
-
 function initialView(): View {
   if (typeof window === 'undefined') return 'month';
   const v = new URLSearchParams(window.location.search).get('view');
-  if ((VIEWS as string[]).includes(v || '')) return v as View;
-  return window.innerWidth < MOBILE_MAX_WIDTH ? MOBILE_DEFAULT_VIEW : 'month';
+  return (VIEWS as string[]).includes(v || '') ? (v as View) : 'month';
 }
 
 function initialDateStr(): string {
@@ -458,69 +448,45 @@ export default function CalendarShell({ userId }: Props) {
 // keepPreviousData so the previous range stays visible while the new one loads.
 if (eventsQuery.isPending && !eventsQuery.data) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0f1d]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="animate-spin text-teal-500" size={32} />
-          <p className="text-gray-400 dark:text-slate-500 text-sm">Cargando tu agenda...</p>
+          <p className="text-gray-400 text-sm">Cargando tu agenda...</p>
         </div>
       </div>
     );
   }
 
   return (
-    // FIX 2: the shell owns the viewport height. `h-[calc(100vh-80px)]` is the
-    // space left under the app's ~80px top bar; `overflow-hidden` guarantees
-    // nothing (grid, sidebar, panels) can push the page into a second scroll.
-    //
-    // RESPONSIVE: the wrapper used to be `mx-auto max-w-[1400px]`, which is what
-    // painted grey/dark margins down the left, right and bottom edges inside a
-    // desktop or Crostini container window — the cap plus the auto margins left
-    // the canvas unpainted whenever the window was wider than 1400px or shorter
-    // than `100vh - 80px`. It now fills the viewport edge-to-edge, keeps the
-    // mobile gutters fluid (2/4/6 at the sm/md steps), and only from `md` up
-    // subtracts the top bar, so the PWA/WebAPK standalone surface (no chrome
-    // to offset) is not left short by a phantom 5rem.
-    <div
-      className={cn(
-        'flex w-full flex-col overflow-x-hidden overflow-y-auto bg-[#0a0f1d] text-slate-200',
-        'h-full min-h-screen p-2 sm:p-4 md:p-6',
-        'md:h-[calc(100vh-5rem)]'
-      )}
-    >
+    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {queryError ? (
-        <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-200">
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
           No se pudieron cargar algunos datos del calendario. Reintentando…
         </div>
       ) : null}
 
-      {/* `minmax(0,1fr)` on the first row is what keeps the calendar filling the
-          shell on narrow screens: below `lg` the panels stack *underneath*, and
-          without an explicit row track they were sized by content and squeezed
-          the month grid to ~40px rows. At `lg` the grid becomes 2 columns and
-          the row track is irrelevant (`lg:grid-rows-1`). */}
       <div
-        className={`grid min-h-[600px] w-full flex-1 grid-rows-[minmax(600px,1fr)_auto] gap-6 lg:grid-rows-1 ${
+        className={`grid w-full gap-6 ${
           sidebarOpen
-            ? 'grid-cols-1 lg:grid-cols-[minmax(600px,1fr)_340px]'
+            ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]'
             : 'grid-cols-1'
         }`}
       >
-        <div className="flex min-h-[600px] min-w-0 flex-col">
-          {/* Controls bar — `flex-none` so it never absorbs grid height. It
-              stacks into a column on phones (row from `sm` up) so the
-              "N citas" counter, the primary CTA and the panel toggle wrap
-              cleanly instead of colliding with the page title. */}
-          <div className="mb-3 flex flex-none flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500 hidden sm:block">
+        <div className="min-w-0">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-gray-500 hidden sm:block">
               {events.length} {events.length === 1 ? 'cita' : 'citas'}
             </p>
             <div className="flex items-center gap-2">
-              <button onClick={openNewEvent} className={cn(btnPrimary, 'min-h-10')}>
+              <button
+                onClick={openNewEvent}
+                className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition shadow-sm"
+              >
                 <Plus size={16} /> <span className="hidden sm:inline">Nueva cita</span>
               </button>
               <button
                 onClick={() => setSidebarOpen((open) => !open)}
-                className={cn(btnSecondary, 'hidden min-h-10 lg:inline-flex')}
+                className="hidden lg:inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                 title={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
                 aria-label={sidebarOpen ? 'Ocultar panel lateral' : 'Mostrar panel lateral'}
               >
@@ -529,13 +495,8 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             </div>
           </div>
 
-          {/* This repo nests the calendar one level deeper than the monolith:
-              the grid's flex column hands its remaining height to this div, so
-              it must grow AND be a column itself, otherwise `RbcCalendar`'s
-              `flex-1` resolves against an auto-height parent and the card
-              collapses (the "dead space at the bottom" symptom). */}
           <div
-            className="flex min-h-[500px] min-w-0 flex-1 flex-col"
+            className="min-w-0"
             onTouchStartCapture={onTouchStartCapture}
             onTouchMoveCapture={onTouchMoveCapture}
             onTouchEndCapture={onTouchEndCapture}
@@ -566,14 +527,12 @@ if (eventsQuery.isPending && !eventsQuery.data) {
           </div>
         </div>
 
-        {/* Capped below `lg` so the stacked panels can never take the calendar's
-            height (they scroll instead). At `lg` the cap is released. */}
-        <div className={`min-h-0 min-w-0 max-h-[45vh] space-y-4 overflow-y-auto lg:max-h-none lg:pr-1 ${sidebarOpen ? '' : 'lg:hidden'}`}>
+        <div className={`space-y-4 min-w-0 ${sidebarOpen ? '' : 'lg:hidden'}`}>
           <div className="hidden lg:flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Panel</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Panel</p>
             <button
               onClick={() => setSidebarOpen(false)}
-              className={btnIcon}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
               title="Cerrar panel"
               aria-label="Cerrar panel"
             >

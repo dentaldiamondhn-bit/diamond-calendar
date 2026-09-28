@@ -1,82 +1,27 @@
-/* ------------------------------------------------------------------ *
- * React Big Calendar — "tinted glassmorphism" theme layer.
- *
- * Owned by the /calendario route: imported from `RbcCalendar.tsx` right
- * after RBC's vendor stylesheet and scoped to the `.rbc-themed` wrapper,
- * so none of it leaks into the rest of the app. It covers what Tailwind
- * can't reach (vendor DOM: overlays, show-more, time gutter, slot
- * selection) plus the hairlines and tints behind the React components in
- * `calendarComponents.tsx`.
- *
- * Dark mode is the primary target; light mode keeps the same geometry
- * with neutral tints.
- * ------------------------------------------------------------------ */
+/* ===========================================================================
+   RBC LAYOUT SHEET — geometry only.
 
-/* ---------------------------------------------------------- tokens --- */
-.rbc-themed {
-  --rbc-ink: #0f172a;
-  --rbc-ink-soft: #475569;
-  --rbc-ink-faint: #94a3b8;
-  --rbc-hairline: rgba(15, 23, 42, 0.09);
-  --rbc-hairline-soft: rgba(15, 23, 42, 0.05);
-  --rbc-header-line: #e2e8f0; /* column-header rule */
-  --rbc-tint: rgba(13, 148, 136, 0.1);
-  --rbc-tint-line: rgba(13, 148, 136, 0.35);
-  --rbc-overlay: rgba(255, 255, 255, 0.94);
-  --rbc-overlay-line: rgba(15, 23, 42, 0.12);
-  --rbc-overlay-line-soft: rgba(15, 23, 42, 0.08);
-  --rbc-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.18);
-  color: var(--rbc-ink);
-}
+   The appearance layer (glass surfaces, squircle chips, tinted/translucent
+   event fills, custom toolbar buttons, themed headers and scrollbars) has been
+   removed. The grid, pills and toolbar now use react-big-calendar's own
+   styling and solid procedure colours.
 
-.dark .rbc-themed {
-  --rbc-ink: #e2e8f0; /* slate-200 */
-  --rbc-ink-soft: #94a3b8; /* slate-400 */
-  --rbc-ink-faint: #64748b; /* slate-500 */
-  --rbc-hairline: rgba(51, 65, 85, 0.75); /* slate-700 */
-  --rbc-hairline-soft: rgba(255, 255, 255, 0.05);
-  --rbc-header-line: #1e293b; /* slate-800 */
-  --rbc-tint: rgba(45, 212, 191, 0.1); /* teal-400 */
-  --rbc-tint-line: rgba(45, 212, 191, 0.4);
-  --rbc-overlay: rgba(15, 23, 42, 0.96); /* slate-900 */
-  --rbc-overlay-line: rgba(51, 65, 85, 0.9); /* slate-700 */
-  --rbc-overlay-line-soft: rgba(30, 41, 59, 0.9); /* slate-800 */
-  --rbc-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-}
+   What is left is the part that is NOT cosmetic, because dropping it is what
+   actually broke the grid:
 
-/* ---------------------------------------------------------- toolbar --- */
-.rbc-themed .rbc-toolbar {
-  margin-bottom: 0;
-  gap: 0;
-}
+     - a per-view height floor, so no view can ever resolve to 0px
+     - the month week row back to `flex-direction: column`, as the vendor
+       ships it, so the date-number strip keeps its top padding
+     - `.rbc-row-content` as a column flex container, which is what makes the
+       date and events strips real flex items instead of inert blocks
+     - the month structure guard
 
-/* Uniform tinted squircle for RBC's *own* toolbar buttons. The live toolbar is
-   the `CalendarToolbar` component (same palette, expressed with Tailwind), so
-   this only covers a vendor-toolbar fallback — scoping it to `button.rbc-btn`
-   keeps it from fighting the component's buttons, which carry no `rbc-btn`. */
-.rbc-themed .rbc-toolbar button.rbc-btn {
-  background-color: rgba(30, 41, 59, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 0.5rem !important;
-  color: #cbd5e1 !important;
-  font-size: 0.85rem !important;
-  padding: 6px 14px !important;
-  transition: all 0.15s ease !important;
-}
+   Plus one preserved feature block: the `.rbc-overlay` popover (the date
+   picker and "+N more" panel), which is portalled to <body> outside any theme
+   scope and must keep its dark treatment.
+   =========================================================================== */
 
-.rbc-themed .rbc-toolbar button.rbc-btn:hover {
-  background-color: rgba(51, 65, 85, 0.7) !important;
-  color: #ffffff !important;
-}
-
-.rbc-themed .rbc-toolbar button.rbc-btn.rbc-active,
-.rbc-themed .rbc-toolbar button.rbc-btn[aria-pressed='true'] {
-  background-color: rgba(13, 148, 136, 0.25) !important; /* teal tint */
-  border-color: rgba(13, 148, 136, 0.6) !important;
-  box-shadow: 0 0 10px rgba(13, 148, 136, 0.2);
-  color: #2dd4bf !important; /* teal text */
-}
-
+/* ---------------------------------------------------------- overlays --- */
 /* ---------------------------------------------------------- overlays --- */
 /* "+N more" popover and the event popup both render as `.rbc-overlay`, and the
    popover is portalled into `document.body` — outside `.rbc-themed`. So the
@@ -140,88 +85,24 @@ div.rbc-overlay .rbc-event.rbc-selected {
   background-color: inherit;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 2px rgba(45, 212, 191, 0.4);
 }
-
-/* Month-cell "+N más" trigger — a tinted squircle instead of RBC's blue text. */
-.rbc-themed .rbc-show-more {
-  background-color: var(--rbc-tint) !important;
-  border: 1px solid var(--rbc-tint-line) !important;
-  border-radius: 0.5rem; /* squircle */
-  color: var(--rbc-ink-soft) !important;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.5;
-  padding: 1px 8px;
-  width: fit-content;
-  margin-left: 4px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.rbc-themed .rbc-show-more:hover,
-.rbc-themed .rbc-show-more:focus {
-  background-color: rgba(45, 212, 191, 0.2) !important;
-  color: var(--rbc-ink) !important;
-}
-
-/* ------------------------------------------------------------ events --- */
-/* Tint + border come from `eventPropGetter` (see `eventTint.ts`); these
-   rules add the glass geometry that inline styles cannot set. Geometry is a
-   squircle (rounded-xl), not a stadium pill: 12px reads as a card on both the
-   month grid and the time grid. Vertical padding + gap are tight enough that
-   three events fit a month cell before the "+N más" row appears. */
-.rbc-themed .rbc-event {
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 0.75rem; /* rounded-xl squircle */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px -12px rgba(0, 0, 0, 0.9);
-  font-size: 0.75rem !important;
-  font-weight: 500 !important;
-  margin-bottom: 2px !important;
-  padding: 2px 8px !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: all 0.15s ease-in-out;
-}
-
-/* Time-grid blocks keep a slightly softer squircle — a 30/60-minute block is
-   tall enough that a full 12px radius starts to look like a lozenge. */
-.rbc-themed .rbc-time-view .rbc-event {
-  border-radius: 0.5rem; /* rounded-lg */
-}
-
-/* ---------------------------------------------------------------------------
-   NON-COLLAPSIBLE VIEW FLOORS.
-   The previous revision of this file deliberately carried NO hardcoded
-   height/min-height on the calendar or its views, so that 4-, 5- and 6-week
-   months distributed the space they were given exactly. That design is what
-   produced the zero-height bug: `.rbc-calendar` was `height: 100%` inside a
-   parent chain seeded with `min-h-0`, and every view was `flex: 1 1 0px` +
-   `min-height: 0` — i.e. flex-basis 0 with no floor. Any short parent (a
-   phone keyboard, a scrolled container, a 5-week month on a short window)
-   resolved the whole grid to 0px and the week rows, time slots and agenda
-   feed simply vanished.
-
-   The fix is a floor per view, not a fluid distribution: `flex-grow: 1` with
-   `flex-shrink: 0` and an explicit `min-height` means a view can only ever be
-   TALLER than its floor, never shorter, so nothing collapses and nothing is
-   cut off. Scroll depth lives on the inner scrollers (`.rbc-time-content`,
-   `.rbc-agenda-view`) rather than on the view box, so the floors never push
-   the page into a clipped, unreachable layout.
-   --------------------------------------------------------------------------- */
-
-/* Core Calendar Outer Frame - Never collapse */
+/* -------------------------------------------------------------
+   1. LAYOUT FLOORS
+   ------------------------------------------------------------- */
+/* Every view gets `flex-grow: 1` + `flex-shrink: 0` + an explicit
+   `min-height`. A view can therefore only ever be TALLER than its floor, never
+   shorter, so nothing collapses. Scroll depth lives on the inner scrollers
+   (`.rbc-time-content`, `.rbc-agenda-view`) rather than on the view box, so
+   the floors never push the page into a clipped, unreachable layout. */
 .rbc-calendar {
+  display: flex !important;
+  flex-direction: column !important;
   width: 100% !important;
   min-height: 550px !important;
   height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  background-color: transparent !important;
 }
 
 /* -------------------------------------------------------------
-   1. MES VIEW (Month Grid)
+   2. MES VIEW (Month Grid)
    ------------------------------------------------------------- */
 .rbc-month-view {
   display: flex !important;
@@ -229,28 +110,22 @@ div.rbc-overlay .rbc-event.rbc-selected {
   flex: 1 0 500px !important;
   min-height: 500px !important;
   width: 100% !important;
-  border: none !important;
 }
 
 .rbc-month-row {
   display: flex !important;
-  /* COLUMN, as the vendor ships it. This was wrongly forced to `row`, which
-     broke the week row: the single `.rbc-row-content` child then sized against
-     the cross axis and the date-number strip lost its top padding, pulling the
-     week-1 numbers up against the weekday header rule so they read as a
-     detached label bar. */
+  /* COLUMN, as the vendor ships it. Forcing `row` made the single
+     `.rbc-row-content` child size against the cross axis, so the date-number
+     strip lost its top padding and the week-1 numbers rode up against the
+     weekday rule. */
   flex-direction: column !important;
   flex: 1 0 75px !important;
   min-height: 75px !important;
 }
 
-/* MONTH row geometry — the two `.rbc-row` children per week (measured: exactly
-   2 per `.rbc-row-content` — the date-number strip, then the events strip).
-
-   The vendor does NOT make `.rbc-row-content` a flex container, so a `flex`
+/* The vendor does NOT make `.rbc-row-content` a flex container, so a `flex`
    rule on the events strip would be silently ignored and the strip would keep
-   its content height instead of absorbing the rest of the cell. Making it a
-   column flex container is what turns those children into real flex items. */
+   its content height instead of absorbing the rest of the cell. */
 .rbc-month-view .rbc-row-content {
   position: relative !important;
   display: flex !important;
@@ -261,8 +136,7 @@ div.rbc-overlay .rbc-event.rbc-selected {
      sibling row background paint over the date numbers. */
 }
 
-/* Date-number strip: fixed height at the TOP of the cell with a real top gap, so
-   week 1 sits `6px` clear of the weekday rule instead of butting against it. */
+/* Date-number strip: fixed height at the TOP of the cell with a real top gap. */
 .rbc-month-view .rbc-row-content .rbc-row:first-child {
   display: flex !important;
   flex: 0 0 auto !important;
@@ -279,28 +153,15 @@ div.rbc-overlay .rbc-event.rbc-selected {
   min-height: 0 !important;
 }
 
-/* Day numbers: right-aligned in their own cell, one line, no inner padding —
-   the strip above already supplies the offset. */
+/* Day numbers: right-aligned in their own cell with no inner padding — the
+   strip above already supplies the offset. */
 .rbc-month-view .rbc-date-cell {
   padding: 0 !important;
   text-align: right !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  line-height: 1.2 !important;
-}
-
-/* The app overrides `components.month.dateHeader`, so the stock
-   `button.rbc-button-link` never renders — `MonthDateHeader` emits a div/span.
-   Stock selector kept as a safety net if that override is ever removed. */
-.rbc-month-view .rbc-date-cell button.rbc-button-link {
-  color: inherit !important;
-  padding: 2px 4px !important;
-  font-size: 0.8rem !important;
-  cursor: pointer;
 }
 
 /* -------------------------------------------------------------
-   2. SEMANA, SEMANA LABORAL & DÍA VIEWS (Time-Grid Views)
+   3. SEMANA, SEMANA LABORAL & DIA VIEWS (Time-Grid Views)
    ------------------------------------------------------------- */
 .rbc-time-view {
   display: flex !important;
@@ -308,30 +169,22 @@ div.rbc-overlay .rbc-event.rbc-selected {
   flex: 1 0 550px !important;
   min-height: 550px !important;
   width: 100% !important;
-  border: none !important;
 }
 
-/* Time Grid Content Scroll Area */
 .rbc-time-content {
   display: flex !important;
   flex: 1 0 450px !important;
   min-height: 450px !important;
   overflow-y: auto !important;
-  border-top: none !important;
 }
 
-/* Ensure individual hour slot cells retain height */
+/* Individual hour slot cells retain height. */
 .rbc-timeslot-group {
   min-height: 48px !important; /* Ensures 15/30 min slots are readable */
 }
 
-.rbc-time-gutter .rbc-timeslot-group {
-  font-size: 0.75rem !important;
-  color: #94a3b8 !important;
-}
-
 /* -------------------------------------------------------------
-   3. AGENDA VIEW (Feed / List)
+   4. AGENDA VIEW (Feed / List)
    ------------------------------------------------------------- */
 .rbc-agenda-view {
   display: flex !important;
@@ -347,252 +200,31 @@ div.rbc-overlay .rbc-event.rbc-selected {
   border-collapse: collapse !important;
 }
 
-.rbc-themed .rbc-event:hover {
-  filter: brightness(1.25);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 12px rgba(255, 255, 255, 0.1);
-}
-
-.rbc-themed .rbc-event.rbc-selected {
-  background-color: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 2px var(--rbc-tint-line);
-}
-
-.rbc-themed .rbc-event:focus {
-  outline: 2px solid var(--rbc-tint-line);
-  outline-offset: 1px;
-}
-
-.rbc-themed .rbc-event-label {
-  color: var(--rbc-ink-soft);
-  font-size: 10px;
-  font-weight: 500;
-}
-
-/* ------------------------------------------------------------- grid --- */
-.rbc-themed .rbc-time-gutter,
-.rbc-themed .rbc-header-gutter {
-  color: var(--rbc-ink-faint);
-}
-
-/* Column header bar (month weekday row + time-grid gutter head).
-   FIX 1: this cell renders the WEEKDAY LABEL ONLY — never a date. RBC's
-   default `Header` feeds it `formats.weekdayFormat` (dom…sáb), so no custom
-   header component is passed in month view. Keep it a quiet, centered,
-   uppercase label row: no per-cell borders, no background fill, so the day
-   numbers inside the cells below stay the only numbers on screen. */
-.rbc-themed .rbc-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 10px 0 !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  text-align: center !important;
-  color: var(--rbc-ink-soft) !important; /* slate-400 in dark */
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid var(--rbc-header-line) !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* No vertical rules between header cells (RBC adds one per `.rbc-header +
-   .rbc-header`) — that duplication is what made the bar read as a second
-   grid. The single hairline above the day cells is enough. */
-.rbc-themed .rbc-header + .rbc-header {
-  border-left: none !important;
-}
-
-.rbc-themed .rbc-time-content > * + * > *,
-.rbc-themed .rbc-time-gutter,
-.rbc-themed .rbc-timeslot-group,
-.rbc-themed .rbc-time-header,
-.rbc-themed .rbc-time-content,
-.rbc-themed .rbc-time-header-content > .rbc-row.rbc-time-header-field,
-.rbc-themed .rbc-time-view .rbc-row,
-.rbc-themed .rbc-row-bg .rbc-day-bg,
-.rbc-themed .rbc-header,
-.rbc-themed .rbc-header + .rbc-header,
-.rbc-themed .rbc-month-view,
-.rbc-themed .rbc-time-view,
-.rbc-themed .rbc-month-row + .rbc-month-row,
-.rbc-themed .rbc-day-slot .rbc-time-slot {
-  border-color: var(--rbc-hairline);
-}
-
-.rbc-themed .rbc-day-slot .rbc-time-slot {
-  border-top-color: var(--rbc-hairline-soft);
-}
-
-.rbc-themed .rbc-off-range {
-  color: var(--rbc-ink-faint);
-}
-
-.rbc-themed .rbc-off-range-bg {
-  background-color: rgba(148, 163, 184, 0.06);
-}
-
-.rbc-themed .rbc-allday-cell {
-  background-color: rgba(148, 163, 184, 0.04);
-}
-
-.rbc-themed .rbc-today {
-  background-color: var(--rbc-tint);
-}
-
-.rbc-themed .rbc-date-cell.rbc-now {
-  color: #0d9488;
-}
-
-.dark .rbc-themed .rbc-date-cell.rbc-now {
-  color: #2dd4bf;
-}
-
-.rbc-themed .rbc-current-time-indicator {
-  background-color: #14b8a6;
-  box-shadow: 0 0 10px rgba(20, 184, 166, 0.55);
-  height: 2px;
-}
-
-/* Sticky time header must stay readable while the grid scrolls under it. */
-.rbc-themed .rbc-time-header-content {
-  border-bottom: 1px solid var(--rbc-hairline);
-  background-color: var(--rbc-overlay);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* ------------------------------------------------- selection + slot --- */
-.rbc-themed .rbc-slot-selection {
-  background-color: var(--rbc-tint);
-  border: 1px solid var(--rbc-tint-line);
-  border-radius: 6px;
-  color: inherit;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.rbc-themed .rbc-slot-selection-continues {
-  border-radius: 0;
-}
-
-.rbc-themed .rbc-selected-cell {
-  background-color: rgba(20, 184, 166, 0.12);
-}
-
-/* ------------------------------------------------------- scrollbars --- */
-.rbc-themed .rbc-time-content,
-.rbc-themed .rbc-time-header-content {
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
-  scrollbar-width: thin;
-}
-
-.rbc-themed .rbc-time-content::-webkit-scrollbar,
-.rbc-themed .rbc-time-header-content::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
-}
-
-.rbc-themed .rbc-time-content::-webkit-scrollbar-track,
-.rbc-themed .rbc-time-header-content::-webkit-scrollbar-track {
-  background-color: transparent;
-}
-
-.rbc-themed .rbc-time-content::-webkit-scrollbar-thumb,
-.rbc-themed .rbc-time-header-content::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.3);
-  border-radius: 999px;
-}
-
-.rbc-themed .rbc-time-content::-webkit-scrollbar-thumb:hover,
-.rbc-themed .rbc-time-header-content::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(148, 163, 184, 0.5);
-}
-
-/* ------------------------------------------- agenda feed (card view) --- */
-/* Strip RBC's table fills so the `eventPropGetter` row color never bleeds
-   across all three columns (RBC applies that backgroundColor to the whole
-   `<tr>`). The date/time badges and event cards own the surface instead. */
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table,
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody,
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr,
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr > td,
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-date-cell,
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-time-cell {
-  background-color: transparent !important;
-  border: none !important;
-}
-
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table {
-  border-collapse: separate;
-  border-spacing: 0 6px; /* vertical rhythm between cards */
-}
-
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
-  padding: 4px 8px;
-  vertical-align: middle;
-}
-
-.rbc-themed .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
-  background-color: transparent;
-  border-bottom: 1px solid var(--rbc-hairline);
-  color: var(--rbc-ink-faint);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 4px 8px;
-  text-transform: uppercase;
-}
-
-.rbc-themed .rbc-agenda-empty {
-  background-color: transparent;
-  color: var(--rbc-ink-faint);
-  padding: 12px 8px;
-}
-
 /* --------------------------------------------------------- event pills --- */
 /* DOM, per EventCell.js: `.rbc-event` > `.rbc-event-content` > EventPill root
    (`display:flex`) > [dentist dot, name, procedure badge].
 
    `.rbc-event-content` carries the ellipsis, but its child is a flex ROW, so
-   `text-overflow` never reaches the text: each span has to shrink on its own.
-   Hence `min-w-0` + `flex-1` on the name and `min-w-0` + `max-w` on the badge in
-   EventPill. A pill is a fixed-height box inside a fluid column, so a long
-   procedure label used to spill past the cell edge and force horizontal
-   overflow; clipping plus ellipsis keeps the label on one line at every width
-   and the grid never grows a scrollbar. */
+   `text-overflow` never reaches the text. The overflow clipping here is what
+   stops a long procedure label spilling past the cell edge and forcing
+   horizontal overflow — the pill misalignment symptom. */
 .rbc-event-content {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  font-size: 0.75rem !important;
-  line-height: 1.25 !important;
 }
 
-/* Month-view pills only — NOT `.rbc-event` unscoped.
-   RBC's vendor sheet already sets `.rbc-day-slot .rbc-event` to
-   `display: flex; flex-flow: column wrap; -webkit-box-orient: vertical`, and the
-   time-grid relies on that to stack the time label ABOVE the content. An
-   unscoped `display: flex` / `gap` would put a 4px gutter between the label and
-   the content, and `align-items: center` — which the brief asked for — would
-   shrink `.rbc-event-content` to its content width, making the truncation
-   strictly worse. So the month pills are pinned explicitly and keep
-   `align-items: stretch` so the content still spans the full cell. */
+/* Month-view pills only — NOT `.rbc-event` unscoped. RBC's vendor sheet sets
+   `.rbc-day-slot .rbc-event` to a column flex-wrap, and the time-grid relies on
+   that to stack the time label ABOVE the content. An unscoped rule would put a
+   gutter between them, and `align-items: center` would shrink
+   `.rbc-event-content` to its content width, making truncation worse. */
 .rbc-month-row .rbc-event {
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
-  font-size: 0.7rem !important;
-  line-height: 1 !important;
-  padding: 3px 6px !important;
 }
 
-/* Below `md` the month cells are narrow enough that the label needs the full
-   cell width; the component already truncates, this keeps the flex child from
-   being the thing that overflows. */
 .rbc-month-row .rbc-event-content,
 .rbc-day-slot .rbc-event-content {
   max-width: 100% !important;
@@ -608,32 +240,21 @@ div.rbc-overlay .rbc-event.rbc-selected {
          .rbc-row-content
            .rbc-row
              .rbc-date-cell x 7        <- the date numbers live in HERE
-     (.rbc-date-cell contains <button class="rbc-button-link">)
 
-   There is NO `.rbc-allday-cell` and no second header row anywhere in that tree
-   — both are time-view structures. A server render of MONTH yields 0
-   `.rbc-allday-cell` nodes, so a rule hiding them is a no-op, not a fix.
-
-   So the invariant worth enforcing is structural rather than cosmetic: a bare
-   `.rbc-row` may only appear as the weekday bar. Anything else sitting directly
-   under `.rbc-month-view` is a regression that would render as an extra strip
-   above the first week, and it gets dropped instead of displacing row 1. */
+   So the invariant worth enforcing is structural: a bare `.rbc-row` may only
+   appear as the weekday bar. Anything else sitting directly under
+   `.rbc-month-view` is a regression that would render as an extra strip above
+   the first week. */
 .rbc-month-view > .rbc-row:not(.rbc-month-header) {
   display: none !important;
 }
 
-/* Safety net only. The cell geometry (padding/text-align/font) is owned by the
-   month row geometry block above, which sits closer to the vendor sheet; this
-   block just stops UA button styles from swallowing the day number if the
+/* Safety net: stops UA button styles from swallowing the day number if the
    `components.month.dateHeader` override is ever removed and stock RBC renders
-   its `button.rbc-button-link` again. `color: inherit` keeps the off-range and
-   `.rbc-now` tints applied to the button. */
-
+   its `button.rbc-button-link` again. */
 .rbc-month-view .rbc-date-cell .rbc-button-link,
 .rbc-month-view .rbc-date-cell button {
   color: inherit !important;
-  font: inherit !important;
-  background: none !important;
   padding: 0 !important;
   border: none !important;
 }
