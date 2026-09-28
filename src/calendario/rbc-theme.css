@@ -258,3 +258,82 @@ div.rbc-overlay .rbc-event.rbc-selected {
   padding: 0 !important;
   border: none !important;
 }
+
+/* ===========================================================================
+   DARK MODE SURFACES, GRID LINES & CELL TINTS
+
+   Colour only. Nothing in this section touches height, flex or row
+   constraints — the geometry above is load-bearing and is left untouched.
+
+   Tailwind runs `darkMode: ["class"]` and `app/layout.tsx` puts the `dark`
+   class on <body>, so every rule here is scoped to `.dark` and the surfaces
+   underneath inherit the card's `dark:bg-gray-900`.
+
+   Class sources, verified against react-big-calendar 1.20.0:
+     - `BackgroundCells.js` puts `rbc-today` and `rbc-off-range-bg` on
+       `.rbc-day-bg`
+     - `Month.js:114` puts `rbc-off-range` on the `.rbc-date-cell`
+   =========================================================================== */
+
+/* --- 1. grid lines & borders, every view --------------------------------- */
+.dark .rbc-calendar,
+.dark .rbc-month-view,
+.dark .rbc-time-view,
+/* Scoped to `.dark` deliberately: unscoped, this would also paint the agenda
+   table's borders dark in light mode. */
+.dark .rbc-agenda-view table.rbc-agenda-table {
+  border-color: #1e293b !important;
+}
+
+/* Month grid: week separators and the vertical day dividers. */
+.dark .rbc-month-row,
+.dark .rbc-day-bg,
+.dark .rbc-day-bg + .rbc-day-bg,
+.dark .rbc-header,
+.dark .rbc-header + .rbc-header {
+  border-color: #1e293b !important;
+}
+
+/* Time grid: header, gutter, hour separators and the slot verticals. */
+.dark .rbc-time-header,
+.dark .rbc-time-header-content,
+.dark .rbc-time-content,
+.dark .rbc-time-gutter,
+.dark .rbc-timeslot-group,
+.dark .rbc-day-slot .rbc-time-slot {
+  border-color: #1e293b !important;
+}
+
+/* The vendor draws this one as a `border-top: 2px solid #ddd` on
+   `.rbc-time-content`; recolouring it is what keeps the line above the hours
+   from reading as a bright rule. */
+
+/* Agenda view dividers. */
+.dark .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border-color: #1e293b !important;
+}
+
+/* --- 2. off-range cells (leading/trailing days of the month) ------------- */
+.dark .rbc-off-range-bg {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+.dark .rbc-off-range,
+.dark .rbc-off-range .rbc-button-link {
+  color: #64748b !important;
+}
+
+/* Note on the day numbers: `MonthDateHeader` sets its own colour on the inner
+   span, so the rule above recolours the `.rbc-date-cell` but the number itself
+   keeps the component's muted off-range tone. Both land on roughly the same
+   slate, so week 1 stays visibly dimmed either way. */
+
+/* --- 3. today ----------------------------------------------------------- */
+.dark .rbc-today {
+  background-color: rgba(13, 148, 136, 0.1) !important;
+}
+
+/* The `.rbc-overlay` popover is NOT restyled here. It is portalled to <body>
+   and already carries an unconditional dark surface in the overlays block at
+   the top of this file, which covers this case and also keeps it dark when
+   rendered in light mode. */
