@@ -82,6 +82,30 @@ export const PROCEDURES = [
 
 export const NO_PROCEDURE_COLOR = '#6b7280';
 
+/** Compact badge label per Procedimiento. The event-pill badge and the month
+ *  popup show these so a long name (Endodoncia/Ortodoncia/Blanqueamiento)
+ *  never widens the chip; the full name still lives in the tooltip. */
+export const PROCEDURE_SHORT: Record<string, string> = {
+  Limpieza: 'Limp.',
+  Chequeo: 'Cheq.',
+  Restauraciones: 'Rest.',
+  Endodoncia: 'Endo',
+  Corona: 'Cor.',
+  Extracción: 'Ext.',
+  Blanqueamiento: 'Blanq.',
+  Radiografía: 'Radio',
+  Ortodoncia: 'Orto',
+  Implante: 'Imp.',
+  'Promo 3 tapones': 'Promo',
+  'Limpieza + 3 tapones': 'Limp.+3',
+};
+
+/** Short badge text for a procedure, falling back to the trimmed original. */
+export function shortProcedure(procedure: string | null | undefined): string {
+  const p = (procedure || '').trim();
+  return PROCEDURE_SHORT[p] ?? p;
+}
+
 /** Auto-tint swatch per Procedimiento (click the procedure, the pill adopts its color). */
 export const PROCEDURE_COLORS: Record<string, string> = {
   Limpieza: '#0d9488',

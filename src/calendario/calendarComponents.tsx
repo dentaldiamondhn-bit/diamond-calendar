@@ -13,7 +13,7 @@ import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { RbcEvent } from '@/calendario/rbcAdapter';
 import type { ClinicEvent } from '@/lib/types-calendar';
-import { EVENT_COLORS } from '@/lib/types-calendar';
+import { EVENT_COLORS, shortProcedure } from '@/lib/types-calendar';
 import type { EventStatus } from '@/calendario/event/eventSchema';
 import { STATUS_CHIP, btnSecondary, chipCls, glassBar, glassChip, glassCard } from '@/calendario/glass';
 import { withAlpha } from '@/calendario/eventTint';
@@ -50,20 +50,21 @@ function timeRange(ev: ClinicEvent): string {
 }
 
 /** Dental event pill — dentist dot + patient name, procedure badge on date-wide cells (C21). */
-export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEvent>) {
+export function EventPill({ event, title, slotStart }: EventProps<RbcEvent>) {
   const clinic = event.resource;
-  // RBC passes slotStart/slotEnd only on the month/all-day path (EventCell);
-  // time-grid events arrive with just {event, title} (TimeGridEvent).
-  const fullDay =
-    slotStart && slotEnd
-      ? slotEnd.getTime() - slotStart.getTime() >= 23 * 60 * 60 * 1000
-      : false;
+  // RBC passes slotStart/slotEnd only on the month/all-day path (EventCell)
+  // — where slotStart spans the whole range — and in the month "+N más" popup
+  // (slotStart only; `overlay.end` is undefined there). Time-grid events
+  // arrive with just {event, title} (TimeGridEvent). So `slotStart` presence
+  // is what marks a cell-rendered pill; checking `fullDay` would hide the
+  // badge in the popup because the popup never fills in slotEnd.
+  const showBadge = Boolean(slotStart) && Boolean(clinic.procedure);
   const name = clinic.patient_name || title || 'Evento';
 
   return (
     <div
       className="flex w-full min-w-0 items-center gap-1.5 px-1.5 py-0.5 text-slate-100"
-      title={`${name} · ${timeRange(clinic)}${clinic.dentist ? ` · ${clinic.dentist}` : ''}`}
+      title={`${name} · ${timeRange(clinic)}${clinic.procedure ? ` · ${clinic.procedure}` : ''}${clinic.dentist ? ` · ${clinic.dentist}` : ''}`}
     >
       <span
         className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/40"
@@ -73,9 +74,9 @@ export function EventPill({ event, title, slotStart, slotEnd }: EventProps<RbcEv
       <span className="min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs font-medium">
         {name}
       </span>
-      {fullDay && clinic.procedure ? (
-        <span className="hidden min-w-0 max-w-[45%] shrink truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-white/20 backdrop-blur-[2px] sm:inline">
-          {clinic.procedure}
+      {showBadge ? (
+        <span className="hidden min-w-0 shrink truncate rounded bg-white/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 ring-1 ring-white/20 backdrop-blur-[2px] sm:inline">
+          {shortProcedure(clinic.procedure)}
         </span>
       ) : null}
     </div>
