@@ -246,11 +246,26 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                     {PRIORITY_LABELS[event.priority as EventPriority] ?? event.priority}
                   </span>
                 )}
-                {event.reminder_minutes != null && event.reminder_minutes > 0 && (
-                  <span className={chipCls('amber')}>
-                    <Bell size={11} /> {reminderLabel(event.reminder_minutes)}
-                  </span>
-                )}
+                {(() => {
+                  // Prefer the event's real reminder schedule (loaded rows).
+                  // `event.reminder_minutes` is only the legacy single-value
+                  // column (schema default 30), so it misreports events that
+                  // actually carry several offsets. Fall back to it while the
+                  // rows are still loading, then show the joined schedule.
+                  const active = reminders.filter((m) => m > 0);
+                  const mins =
+                    active.length > 0
+                      ? active
+                      : event.reminder_minutes != null && event.reminder_minutes > 0
+                        ? [event.reminder_minutes]
+                        : [];
+                  if (mins.length === 0) return null;
+                  return (
+                    <span className={chipCls('amber')}>
+                      <Bell size={11} /> {mins.map(reminderLabel).join(' · ')}
+                    </span>
+                  );
+                })()}
               </div>
 
               <Row icon={UserRound} label="Paciente">
