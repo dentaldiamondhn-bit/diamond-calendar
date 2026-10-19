@@ -464,7 +464,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
     // calendar grid stays put while the sidebar scrolls on its own. Below lg the
     // shell keeps the normal stacked/page-scrolled layout (columns flow under
     // the calendar), so mobile behaviour is unchanged.
-    <div className="flex min-h-screen w-full flex-col gap-3 bg-[#0a0f1d] px-3 pb-3 pt-3 sm:px-5 sm:pb-5 sm:pt-5 lg:h-screen lg:overflow-hidden">
+    <div className="flex h-[100dvh] w-full flex-col gap-3 overflow-hidden bg-[#0a0f1d] px-3 pb-3 pt-3 sm:px-5 sm:pb-5 sm:pt-5">
       {queryError ? (
         <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           No se pudieron cargar algunos datos del calendario. Reintentando…
@@ -500,7 +500,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
       </header>
 
       {/* Main workspace: pinned calendar + independently scrolling sidebar. */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 lg:flex-row lg:overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
         {/* 1. Pinned calendar container — RbcCalendar's own card fills this. */}
         <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           <div

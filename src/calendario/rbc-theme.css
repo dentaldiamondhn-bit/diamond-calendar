@@ -104,12 +104,22 @@ div.rbc-overlay .rbc-event.rbc-selected {
 /* -------------------------------------------------------------
    2. MES VIEW (Month Grid)
    ------------------------------------------------------------- */
+/* The month view must FIT the space it is given.
+
+   It used to demand `flex: 1 0 500px` + `min-height: 500px` with `flex-shrink: 0`, while
+   the shell is `lg:h-screen lg:overflow-hidden`. When six weeks did not fit in the height
+   actually available, the excess was CLIPPED rather than compressed -- so the first and
+   last week rows were chopped off. That is the symptom this replaces.
+
+   `flex: 1 1 auto` + `min-height: 0` lets the view take whatever is left, and lets the
+   rows below absorb the difference instead of overflowing. */
 .rbc-month-view {
   display: flex !important;
   flex-direction: column !important;
-  flex: 1 0 500px !important;
-  min-height: 500px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   width: 100% !important;
+  overflow: hidden !important;
 }
 
 /* Week rows must be the SAME HEIGHT and the SAME WIDTH in every month, whatever they
@@ -136,8 +146,13 @@ div.rbc-overlay .rbc-event.rbc-selected {
      strip lost its top padding and the week-1 numbers rode up against the
      weekday rule. */
   flex-direction: column !important;
-  flex: 1 0 75px !important;
-  min-height: 75px !important;
+  /* `flex: 1 0 75px` meant every week REFUSED to shrink, so the total floor
+     (6 x 75px + the weekday bar) exceeded the available height and the outer rows were
+     clipped. `1 1 0` gives every row an equal share of whatever space is left and lets
+     them compress together; the 48px floor keeps a week legible on a very short screen
+     without demanding a height the container may not have. */
+  flex: 1 1 0 !important;
+  min-height: 48px !important;
 }
 
 /* The vendor does NOT make `.rbc-row-content` a flex container, so a `flex`
