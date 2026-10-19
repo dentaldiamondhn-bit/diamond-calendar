@@ -460,10 +460,11 @@ if (eventsQuery.isPending && !eventsQuery.data) {
   }
 
   return (
-    // Pinned split layout: the shell owns the whole viewport on desktop, so the
-    // calendar grid stays put while the sidebar scrolls on its own. Below lg the
-    // shell keeps the normal stacked/page-scrolled layout (columns flow under
-    // the calendar), so mobile behaviour is unchanged.
+    // Pinned split layout: the shell owns the whole viewport at every size (a
+    // definite height is what lets the month rows divide space evenly). At lg+
+    // it splits into calendar + independently scrolling sidebar. Below lg the
+    // columns stack and the workspace itself scrolls: the calendar keeps its
+    // natural height instead of shrinking, and the sidebar flows underneath.
     <div className="flex h-[100dvh] w-full flex-col gap-3 overflow-hidden bg-[#0a0f1d] px-3 pb-3 pt-3 sm:px-5 sm:pb-5 sm:pt-5">
       {queryError ? (
         <div className="flex-none rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -500,9 +501,11 @@ if (eventsQuery.isPending && !eventsQuery.data) {
       </header>
 
       {/* Main workspace: pinned calendar + independently scrolling sidebar. */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
-        {/* 1. Pinned calendar container — RbcCalendar's own card fills this. */}
-        <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden lg:flex-row lg:overflow-hidden">
+        {/* 1. Pinned calendar container — RbcCalendar's own card fills this.
+            Below lg it must not shrink: flex-1 in this column would collapse it
+            to 0 once the taller sidebar claims its content height. */}
+        <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden max-lg:flex-none">
           <div
             className="flex min-h-0 w-full flex-1 flex-col overflow-hidden"
             onTouchStartCapture={onTouchStartCapture}
