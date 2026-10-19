@@ -112,8 +112,25 @@ div.rbc-overlay .rbc-event.rbc-selected {
   width: 100% !important;
 }
 
+/* Week rows must be the SAME HEIGHT and the SAME WIDTH in every month, whatever they
+   contain.
+
+   Two separate leaks did this, and both had to be closed:
+
+   1. `.rbc-row-content` is free to scroll, and a scrollbar CONSUMES WIDTH. A week holding
+      more events grew a scrollbar and rendered narrower than its neighbours, so the 7-column
+      grid visibly stepped in and out across the month. Weeks that spill over from the
+      neighbouring month — typically the first and last — are the ones with the overflow,
+      which is why they were the ones that looked wrong.
+   2. `.rbc-month-row` is `flex: 1 0 75px` — `flex-shrink: 0`. Content is therefore never
+      compressed to fit its share, so a tall week kept its full height and pushed its
+      siblings out of alignment instead.
+
+   `overflow: hidden` on both closes the width leak and stops content driving height; the
+   flex basis keeps distributing the remaining space equally. */
 .rbc-month-row {
   display: flex !important;
+  overflow: hidden !important;
   /* COLUMN, as the vendor ships it. Forcing `row` made the single
      `.rbc-row-content` child size against the cross axis, so the date-number
      strip lost its top padding and the week-1 numbers rode up against the
@@ -128,6 +145,9 @@ div.rbc-overlay .rbc-event.rbc-selected {
    its content height instead of absorbing the rest of the cell. */
 .rbc-month-view .rbc-row-content {
   position: relative !important;
+  /* See the note on `.rbc-month-row`: a scrollbar here is what made event-heavy weeks
+     render narrower than the rest of the month. */
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
