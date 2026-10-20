@@ -74,6 +74,22 @@ function timeSpan(e: ClinicEvent): string {
   return `${formatClock12(e.start_time)} – ${formatClock12(e.end_time || e.start_time)}`;
 }
 
+// Long es-HN date strings for the WhatsApp reminder, hard-coded like DayDetail's
+// labels so the text is deterministic on every ICU (C24).
+const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** `2026-10-20` → `martes, 20 de octubre de 2026` (falls back to the raw key). */
+function longDateEsHN(dateKey: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dateKey || '').trim());
+  if (!m) return dateKey || '';
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const weekday = new Date(Date.UTC(y, mo, d)).getUTCDay();
+  return `${WEEKDAYS_LONG[weekday]}, ${d} de ${MONTHS_LONG[mo]} de ${y}`;
+}
+
 export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDuplicate, onPrev, onNext, position, total, onDeleted }: Props) {
   const { push } = useToast();
   const removeEvent = useCalendarMutations().deleteEvent;
@@ -155,12 +171,24 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
 
   // WhatsApp deep link to the patient's chat (wa.me/<country><digits>), guarded
   // so a phone that already carries its dialing code isn't prepended twice.
-  const waLink = (() => {
+  const waNumber = (() => {
     const digits = (event?.phone || '').replace(/\D/g, '');
-    if (!digits) return '#';
+    if (!digits) return '';
     const country = event?.phone_country || '504';
-    return createWhatsAppUrl(digits.startsWith(country) ? digits : `${country}${digits}`);
+    return digits.startsWith(country) ? digits : `${country}${digits}`;
   })();
+  const waLink = waNumber ? createWhatsAppUrl(waNumber) : '#';
+
+  // Appointment-reminder template, prefilled with the event's date and time so
+  // staff only review and hit send. The `*…*` line renders bold in WhatsApp.
+  const reminderLink = waNumber
+    ? createWhatsAppUrl(
+        waNumber,
+        event
+          ? `Buen dia se le recuerda su cita:\nDia: ${longDateEsHN(event.date)}\nHora: ${timeSpan(event)}\nAgradecemos su puntualidad.\nFavor confirmar su asistencia y de no poder asistir a su cita programada favor informar lo antes posible para poder reprogramar.\n*En caso de no confirmar asistencia se reasignara su cupo a otro paciente.*`
+          : '',
+      )
+    : '#';
 
   return (
     <AnimatePresence>
@@ -318,16 +346,28 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                   )}
                   {event.phone && (
                     <Row icon={Phone} label="Teléfono">
-                      <a
-                        href={waLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Abrir chat de WhatsApp"
-                        className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-700 hover:underline dark:text-green-500 dark:hover:text-green-400"
-                      >
-                        <AnimatedWhatsApp size={18} className="shrink-0" />
-                        {formatPhoneDisplay(event.phone, event.phone_country || '504')}
-                      </a>
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir chat de WhatsApp"
+                          className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-700 hover:underline dark:text-green-500 dark:hover:text-green-400"
+                        >
+                          <AnimatedWhatsApp size={18} className="shrink-0" />
+                          {formatPhoneDisplay(event.phone, event.phone_country || '504')}
+                        </a>
+                        <a
+                          href={reminderLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Enviar recordatorio de cita por WhatsApp"
+                          className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-400/10 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-400/20 dark:border-green-400/30 dark:text-green-400 dark:hover:bg-green-400/15"
+                        >
+                          <Bell size={13} className="shrink-0" />
+                          Recordatorio
+                        </a>
+                      </span>
                     </Row>
                   )}
                 </div>
