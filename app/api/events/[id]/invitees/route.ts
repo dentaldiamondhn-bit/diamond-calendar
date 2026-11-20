@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerServiceClient } from '@/lib/supabase/server';
 import { authorizeCalendar } from '@/lib/calendarAuth';
 import { isEventOwner, isEventVisible } from '@/lib/calendarAccess';
-import { findInviteeConflicts, inviteeConflictMessage } from '@/lib/dentistAvailability';
+import { findInviteeConflicts, inviteeConflictMessage, filterConflictCheckableIds } from '@/lib/dentistAvailability';
 
 export const runtime = 'nodejs';
 
@@ -71,23 +71,28 @@ export async function POST(
       const active =
         event && event.status !== 'cancelled' && event.status !== 'completed';
       if (active) {
-        const inviteeConflicts = await findInviteeConflicts(
-          supabase,
-          [user_id],
-          event.date,
-          event.start_time,
-          event.end_time,
-          Number(id)
-        );
-        if (inviteeConflicts.length > 0) {
-          return NextResponse.json(
-            {
-              error: inviteeConflictMessage(inviteeConflicts),
-              code: 'INVITEE_CONFLICT',
-              conflicts: inviteeConflicts,
-            },
-            { status: 409 }
+        // admin / tech-support invitees always bypass the time-conflict gate
+        // and are added to the event even when double-booked.
+        const checkable = await filterConflictCheckableIds(supabase, [user_id]);
+        if (checkable.length > 0) {
+          const inviteeConflicts = await findInviteeConflicts(
+            supabase,
+            checkable,
+            event.date,
+            event.start_time,
+            event.end_time,
+            Number(id)
           );
+          if (inviteeConflicts.length > 0) {
+            return NextResponse.json(
+              {
+                error: inviteeConflictMessage(inviteeConflicts),
+                code: 'INVITEE_CONFLICT',
+                conflicts: inviteeConflicts,
+              },
+              { status: 409 }
+            );
+          }
         }
       }
     }

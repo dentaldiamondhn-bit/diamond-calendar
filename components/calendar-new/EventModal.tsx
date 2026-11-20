@@ -16,9 +16,11 @@ import {
   Pencil,
   Check,
   CopyPlus,
+  Star,
 } from 'lucide-react';
 import { useForm, useController, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useUser } from '@clerk/nextjs';
 import type { ClinicEvent } from '@/lib/types-calendar';
 import { EVENT_COLORS, NO_PROCEDURE_COLOR, PROCEDURE_COLORS, PROCEDURES } from '@/lib/types-calendar';
 import {
@@ -147,6 +149,26 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
   const [showInviteePicker, setShowInviteePicker] = useState(false);
   const [inviteeQuery, setInviteeQuery] = useState('');
   const [reminders, setReminders] = useState<number[]>([30]);
+
+  // step 3 — favorite invitees (persisted to user_preferences)
+  const { user: clerkUser } = useUser();
+  const [favoriteInvitees, setFavoriteInvitees] = useState<string[]>([]);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+
+  const persistFavorites = useCallback(
+    async (ids: string[]) => {
+      try {
+        await fetch('/api/user-preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ favorite_invitees: ids }),
+        });
+      } catch {
+        // best-effort persistence; UI already updated optimistically
+      }
+    },
+    []
+  );
 
   // drafts (create mode only — C20)
   const [draftAvailable, setDraftAvailable] = useState(false);
@@ -357,7 +379,41 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
     fetch('/api/users')
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => [])
-      .then((users) => setUserPool(users as DraftInvitee[]));
+      .then((users) => {
+        setUserPool(users as DraftInvitee[]);
+
+        if (!isCreate || !clerkUser?.id) return;
+
+        // Preselect default admins (locked) + the user's favorited invitees.
+        fetch('/api/user-preferences')
+          .then((r) => (r.ok ? r.json() : { favorite_invitees: [] }))
+          .then((resp) => {
+            const { favorite_invitees = [] } =
+              (resp as { favorite_invitees?: unknown }) || {};
+            const favs = Array.isArray(favorite_invitees)
+              ? favorite_invitees.filter((v): v is string => typeof v === 'string')
+              : [];
+            setFavoriteInvitees(favs);
+            setFavoritesLoaded(true);
+
+            const admins = users.filter(
+              (u) => (u.role || '').toLowerCase() === 'admin'
+            );
+            const preselected: DraftInvitee[] = [];
+            const seen = new Set<string>();
+            const add = (u: DraftInvitee | null) => {
+              if (!u || seen.has(u.id)) return;
+              seen.add(u.id);
+              preselected.push(u);
+            };
+            admins.forEach(add);
+            favs.forEach((id) => add(users.find((u) => u.id === id) || null));
+            setInvitees(preselected);
+          })
+          .catch(() => {
+            setFavoritesLoaded(true);
+          });
+      });
 
     const draft = dateStr ? loadEventDraft(dateStr) : null;
     setDraftAvailable(!!draft && draft.values.date === dateStr);
@@ -609,6 +665,26 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
       `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
     );
+  });
+
+  const isAdminUser = (u: DraftInvitee) => (u.role || '').toLowerCase() === 'admin';
+  const isInviteeSelected = (u: DraftInvitee) => invitees.some((i) => i.id === u.id);
+  const isInviteeLocked = (u: DraftInvitee) => isAdminUser(u);
+
+  // Order: pinned admins first, then favorited users, then the rest
+  // alphabetically by name.
+  const sortedPool = [...filteredPool].sort((a, b) => {
+    const aAdmin = isAdminUser(a);
+    const bAdmin = isAdminUser(b);
+    if (aAdmin && !bAdmin) return -1;
+    if (!aAdmin && bAdmin) return 1;
+    const aFav = favoriteInvitees.includes(a.id);
+    const bFav = favoriteInvitees.includes(b.id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    const an = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+    const bn = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+    return an.localeCompare(bn);
   });
 
   const selectedCount = invitees.length;
@@ -919,24 +995,69 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                         className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm dark:bg-slate-800 dark:border-slate-700 focus:border-teal-500 outline-none"
                       />
                       <div className="mt-2 max-h-56 overflow-y-auto space-y-1">
-                        {filteredPool.length === 0 ? (
+                        {sortedPool.length === 0 ? (
                           <p className="text-center py-3 text-sm text-slate-400">Sin usuarios</p>
                         ) : (
-                          filteredPool.map((u) => {
-                            const selected = invitees.some((i) => i.id === u.id);
+                          sortedPool.map((u) => {
+                            const selected = isInviteeSelected(u);
+                            const locked = isInviteeLocked(u);
+                            const isFav = favoriteInvitees.includes(u.id);
                             return (
                               <button
                                 key={u.id}
                                 type="button"
-                                onClick={() =>
-                                  setInvitees((prev) => (selected ? prev.filter((i) => i.id !== u.id) : [...prev, u]))
-                                }
+                                onClick={() => {
+                                  if (locked) return;
+                                  setInvitees((prev) =>
+                                    selected
+                                      ? prev.filter((i) => i.id !== u.id)
+                                      : [...prev, u]
+                                  );
+                                }}
                                 className={`w-full text-left p-2.5 rounded-lg border text-sm flex items-center gap-3 ${
                                   selected
                                     ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/30'
                                     : 'border-slate-200 dark:border-slate-700'
                                 }`}
                               >
+                                {/* Favorite star — far left, before avatar/name. */}
+                                {!locked && (
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const next = isFav
+                                          ? favoriteInvitees.filter((id) => id !== u.id)
+                                          : [...favoriteInvitees, u.id];
+                                        setFavoriteInvitees(next);
+                                        void persistFavorites(next);
+                                      }
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const next = isFav
+                                        ? favoriteInvitees.filter((id) => id !== u.id)
+                                        : [...favoriteInvitees, u.id];
+                                      setFavoriteInvitees(next);
+                                      void persistFavorites(next);
+                                    }}
+                                    aria-label={isFav ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                                    className="shrink-0 p-1 rounded-md transition-colors focus:outline-none"
+                                  >
+                                    <Star
+                                      size={16}
+                                      className={cn(
+                                        isFav
+                                          ? 'fill-amber-400 text-amber-400'
+                                          : 'text-slate-400 hover:text-amber-400',
+                                        locked ? 'opacity-50' : ''
+                                      )}
+                                    />
+                                  </span>
+                                )}
                                 <img
                                   src={avatarFor(u)}
                                   alt={`${u.first_name || ''} ${u.last_name || ''}`}
@@ -949,6 +1070,13 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
                                   <span className="block font-medium text-slate-800 dark:text-slate-100 truncate">
                                     {u.first_name || ''} {u.last_name || ''}
                                   </span>
+                                  {locked && (
+                                    <span className="flex items-center gap-1 mt-0.5">
+                                      <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400">
+                                        Administrador (Por defecto)
+                                      </span>
+                                    </span>
+                                  )}
                                   {u.email ? (
                                     <span className="block text-xs text-slate-400 truncate">{u.email}</span>
                                   ) : null}
@@ -964,32 +1092,37 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
 
                   {invitees.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {invitees.map((u) => (
-                        <span
-                          key={u.id}
-                          className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-700 dark:text-slate-200"
-                        >
-                          <img
-                            src={avatarFor(u)}
-                            alt=""
-                            className="h-6 w-6 rounded-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = avatarFor({ ...u, profileImageUrl: '' });
-                            }}
-                          />
-                          <span className="max-w-[120px] truncate">
-                            {u.first_name || ''} {u.last_name || ''}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setInvitees((prev) => prev.filter((i) => i.id !== u.id))}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            aria-label="Quitar"
+                      {invitees.map((u) => {
+                        const locked = isInviteeLocked(u);
+                        return (
+                          <span
+                            key={u.id}
+                            className="inline-flex items-center gap-2 pl-1 pr-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-700 dark:text-slate-200"
                           >
-                            <X size={12} />
-                          </button>
-                        </span>
-                      ))}
+                            <img
+                              src={avatarFor(u)}
+                              alt=""
+                              className="h-6 w-6 rounded-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = avatarFor({ ...u, profileImageUrl: '' });
+                              }}
+                            />
+                            <span className="max-w-[120px] truncate">
+                              {u.first_name || ''} {u.last_name || ''}
+                            </span>
+                            {!locked && (
+                              <button
+                                type="button"
+                                onClick={() => setInvitees((prev) => prev.filter((i) => i.id !== u.id))}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                aria-label="Quitar"
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

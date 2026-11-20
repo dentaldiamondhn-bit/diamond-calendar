@@ -1,5 +1,58 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClerkClient } from '@clerk/backend';
 import { clerkIdentityOf, getClerkUserIdentities } from '@/lib/clerkUsers';
+
+/** Roles that always bypass the invitee time-conflict check when invited. */
+export const CONFLICT_BYPASS_ROLES = new Set(['admin', 'tech_support']);
+
+export function isConflictBypassRole(role: string | undefined): boolean {
+  return CONFLICT_BYPASS_ROLES.has((role || 'staff').toLowerCase());
+}
+
+/**
+ * Resolve each Clerk user's role from public/private metadata so callers can
+ * exclude bypass roles (admin / tech-support) from the invitee conflict gate.
+ * Unknown/unresolvable roles are treated as non-bypass (subject to conflict).
+ */
+export async function getInviteeRoles(
+  userIds: string[]
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  const ids = [...new Set((userIds || []).filter(Boolean))];
+  if (ids.length === 0) return result;
+
+  try {
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
+    const { data } = await clerk.users.getUserList({
+      userId: ids,
+      limit: ids.length,
+    });
+    for (const u of data) {
+      const role =
+        u.publicMetadata?.role ?? u.privateMetadata?.role ?? 'staff';
+      result.set(u.id, String(role).toLowerCase());
+    }
+  } catch {
+    // best effort: leave unresolved ids out of the map (treated as non-bypass)
+  }
+
+  return result;
+}
+
+/**
+ * Return the subset of invitee user ids that are subject to the time-conflict
+ * check (i.e. every role EXCEPT admin / tech-support).
+ */
+export async function filterConflictCheckableIds(
+  supabase: SupabaseClient,
+  inviteeUserIds: string[]
+): Promise<string[]> {
+  const ids = [...new Set((inviteeUserIds || []).filter(Boolean))];
+  if (ids.length === 0) return [];
+
+  const roles = await getInviteeRoles(ids);
+  return ids.filter((id) => !isConflictBypassRole(roles.get(id)));
+}
 
 /** One conflicting dentist booking (server-side availability payload). */
 export interface DentistConflict {

@@ -8,6 +8,7 @@ import {
   dentistConflictMessage,
   findInviteeConflicts,
   inviteeConflictMessage,
+  filterConflictCheckableIds,
 } from '@/lib/dentistAvailability';
 import type { DentistConflict } from '@/lib/dentistAvailability';
 
@@ -253,13 +254,22 @@ export async function PUT(req: Request) {
         }
       }
       if (!conflicts.length && inviteeIds.length > 0) {
-        const inviteeConflicts = await findInviteeConflicts(
-          supabase, inviteeIds, newDate, newStart, newEnd, Number(eventId)
-        );
-        if (inviteeConflicts.length > 0) {
-          code = 'INVITEE_CONFLICT';
-          message = inviteeConflictMessage(inviteeConflicts);
-          conflicts = inviteeConflicts;
+        // admin / tech-support invitees bypass the invitee conflict gate
+        const checkable = await filterConflictCheckableIds(supabase, inviteeIds);
+        if (checkable.length > 0) {
+          const inviteeConflicts = await findInviteeConflicts(
+            supabase,
+            checkable,
+            newDate,
+            newStart,
+            newEnd,
+            Number(eventId)
+          );
+          if (inviteeConflicts.length > 0) {
+            code = 'INVITEE_CONFLICT';
+            message = inviteeConflictMessage(inviteeConflicts);
+            conflicts = inviteeConflicts;
+          }
         }
       }
       if (code) {
