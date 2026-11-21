@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, Phone, LayoutGrid, FilePlus2, ExternalLink, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
-import { formatPhoneDisplay, createWhatsAppUrl } from '@/utils/phoneUtils';
+import { X, Trash2, Pencil, CopyPlus, Loader2, MapPin, UserRound, CalendarDays, Clock, Stethoscope, FileText, Bell, Mail, Phone, LayoutGrid, FilePlus2, ExternalLink, ChevronLeft, ChevronRight, Check, type LucideIcon } from 'lucide-react';
+import { formatPhoneDisplay, createWhatsAppUrl, parsePhoneNumber } from '@/utils/phoneUtils';
 import AnimatedWhatsApp from '@/components/AnimatedWhatsApp';
 import type { ClinicEvent } from '@/lib/types-calendar';
 import { formatClock12 } from '@/calendario/timezone';
+import {
+  buildBirthdayWhatsAppMessage,
+  ACTIVE_BIRTHDAY_PROMO,
+  promoPayload,
+} from '@/calendario/birthdayTemplates';
 import {
   EVENT_TYPE_LABELS,
   STATUS_LABELS,
@@ -44,6 +49,8 @@ interface Props {
   onEdit: (event: ClinicEvent) => void;
   /** Copy this event into a new (still-editable) one — works for shared citas too. */
   onDuplicate: (event: ClinicEvent) => void;
+  /** Schedule a cita pre-filled with this DOB event's patient details ("Agendar cita"). */
+  onScheduleCita?: (event: ClinicEvent) => void;
   /** Step to the previous/next event in the loaded list (wraps). */
   onPrev: () => void;
   onNext: () => void;
@@ -90,7 +97,7 @@ function longDateEsHN(dateKey: string): string {
   return `${WEEKDAYS_LONG[weekday]}, ${d} de ${MONTHS_LONG[mo]} de ${y}`;
 }
 
-export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDuplicate, onPrev, onNext, position, total, onDeleted }: Props) {
+export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDuplicate, onScheduleCita, onPrev, onNext, position, total, onDeleted }: Props) {
   const { push } = useToast();
   const removeEvent = useCalendarMutations().deleteEvent;
   const isOwner = !!event && event.user_id === userId;
@@ -100,6 +107,8 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [sendingWish, setSendingWish] = useState(false);
+  const [attachPromo, setAttachPromo] = useState(ACTIVE_BIRTHDAY_PROMO.enabledByDefault);
 
   useEffect(() => {
     setInvitees([]);
@@ -178,6 +187,47 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
     return digits.startsWith(country) ? digits : `${country}${digits}`;
   })();
   const waLink = waNumber ? createWhatsAppUrl(waNumber) : '#';
+
+  // Birthday-event detection + wish state.
+  const isDobEvent = !!event && (event.is_dob_event || event.event_type === 'dob');
+  const alreadyWished = isDobEvent ? event?.notes === 'Ya felicitado este año' : false;
+
+  const handleSendWish = async () => {
+    if (!event || !waNumber) return;
+    setSendingWish(true);
+    try {
+      const message = buildBirthdayWhatsAppMessage({
+        patientName: event.patient_name,
+        includePromo: attachPromo,
+        promoConfig: ACTIVE_BIRTHDAY_PROMO,
+      });
+      const wishBody: Record<string, unknown> = {
+        patient_id: event.patient_id,
+        wish_year: new Date(event.date).getFullYear(),
+        channel: 'whatsapp',
+        message_template: 'birthday_greeting',
+        ...promoPayload(ACTIVE_BIRTHDAY_PROMO, attachPromo),
+      };
+      // Record the wish (enforces one per patient per year via UNIQUE constraint).
+      const res = await fetch('/api/birthday-wishes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wishBody),
+      });
+      if (res.status === 409) {
+        // Already wished this year — still allow re-send via WhatsApp.
+        window.open(createWhatsAppUrl(waNumber, message), '_blank');
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      // Wish recorded — open WhatsApp with the greeting prefilled.
+      window.open(createWhatsAppUrl(waNumber, message), '_blank');
+    } catch (err) {
+      console.error('[EventDetailDrawer] birthday wish failed', err);
+    } finally {
+      setSendingWish(false);
+    }
+  };
 
   // Appointment-reminder template, prefilled with the event's date and time so
   // staff only review and hit send. The `*…*` line renders bold in WhatsApp.
@@ -259,41 +309,55 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               <div className="flex flex-wrap gap-1.5">
-                {event.event_type && (
-                  <span className={chipCls('teal')}>
-                    {EVENT_TYPE_LABELS[event.event_type as EventType] ?? event.event_type}
-                  </span>
-                )}
-                {event.status && (
-                  <span className={chipCls(STATUS_CHIP[event.status as EventStatus]?.tone ?? 'slate')}>
-                    {STATUS_LABELS[event.status as EventStatus] ?? event.status}
-                  </span>
-                )}
-                {event.priority && (
-                  <span className={chipCls(PRIORITY_CHIP[event.priority as EventPriority]?.tone ?? 'slate')}>
-                    {PRIORITY_LABELS[event.priority as EventPriority] ?? event.priority}
-                  </span>
-                )}
-                {(() => {
-                  // Prefer the event's real reminder schedule (loaded rows).
-                  // `event.reminder_minutes` is only the legacy single-value
-                  // column (schema default 30), so it misreports events that
-                  // actually carry several offsets. Fall back to it while the
-                  // rows are still loading, then show the joined schedule.
-                  const active = reminders.filter((m) => m > 0);
-                  const mins =
-                    active.length > 0
-                      ? active
-                      : event.reminder_minutes != null && event.reminder_minutes > 0
-                        ? [event.reminder_minutes]
-                        : [];
-                  if (mins.length === 0) return null;
-                  return (
-                    <span className={chipCls('amber')}>
-                      <Bell size={11} /> {mins.map(reminderLabel).join(' · ')}
+                {isDobEvent ? (
+                  <>
+                    <span className={chipCls('violet')}>
+                      🎂 Cumpleaños
                     </span>
-                  );
-                })()}
+                    {alreadyWished ? (
+                      <span className={chipCls('emerald')}>
+                        ✓ Felicitado
+                      </span>
+                    ) : (
+                      <span className={chipCls('rose')}>
+                        Pendiente
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {event.event_type && (
+                      <span className={chipCls('teal')}>
+                        {EVENT_TYPE_LABELS[event.event_type as EventType] ?? event.event_type}
+                      </span>
+                    )}
+                    {event.status && (
+                      <span className={chipCls(STATUS_CHIP[event.status as EventStatus]?.tone ?? 'slate')}>
+                        {STATUS_LABELS[event.status as EventStatus] ?? event.status}
+                      </span>
+                    )}
+                    {event.priority && (
+                      <span className={chipCls(PRIORITY_CHIP[event.priority as EventPriority]?.tone ?? 'slate')}>
+                        {PRIORITY_LABELS[event.priority as EventPriority] ?? event.priority}
+                      </span>
+                    )}
+                    {(() => {
+                      const active = reminders.filter((m) => m > 0);
+                      const mins =
+                        active.length > 0
+                          ? active
+                          : event.reminder_minutes != null && event.reminder_minutes > 0
+                            ? [event.reminder_minutes]
+                            : [];
+                      if (mins.length === 0) return null;
+                      return (
+                        <span className={chipCls('amber')}>
+                          <Bell size={11} /> {mins.map(reminderLabel).join(' · ')}
+                        </span>
+                      );
+                    })()}
+                  </>
+                )}
               </div>
 
               <Row icon={UserRound} label="Paciente">
@@ -357,16 +421,40 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                           <AnimatedWhatsApp size={18} className="shrink-0" />
                           {formatPhoneDisplay(event.phone, event.phone_country || '504')}
                         </a>
-                        <a
-                          href={reminderLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Enviar recordatorio de cita por WhatsApp"
-                          className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-400/10 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-400/20 dark:border-green-400/30 dark:text-green-400 dark:hover:bg-green-400/15"
-                        >
-                          <Bell size={13} className="shrink-0" />
-                          Recordatorio
-                        </a>
+                        {isDobEvent ? (
+                          <button
+                            onClick={handleSendWish}
+                            disabled={sendingWish || alreadyWished}
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-full border border-teal-500/30 bg-teal-400/10 px-2.5 py-1 text-xs font-medium text-teal-700 transition-colors hover:bg-teal-400/20 dark:border-teal-400/30 dark:text-teal-300 dark:hover:bg-teal-400/15 disabled:opacity-50 disabled:cursor-not-allowed',
+                              alreadyWished && 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                            )}
+                          >
+                            {sendingWish ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : alreadyWished ? (
+                              <>
+                                <Check size={13} /> Ya felicitado
+                              </>
+                            ) : (
+                              <>
+                                <Bell size={13} className="shrink-0" />
+                                Felicitación
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <a
+                            href={reminderLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Enviar recordatorio de cita por WhatsApp"
+                            className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-400/10 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-400/20 dark:border-green-400/30 dark:text-green-400 dark:hover:bg-green-400/15"
+                          >
+                            <Bell size={13} className="shrink-0" />
+                            Recordatorio
+                          </a>
+                        )}
                       </span>
                     </Row>
                   )}
@@ -447,35 +535,106 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
               </div>
             </div>
 
-            <footer className={cn(glassBar, 'flex items-center justify-between gap-2 border-t border-b-0 p-5')}>
-              <div className="flex-1">
-                {isOwner ? (
-                  <button onClick={() => setConfirmDelete(true)} className={btnDanger}>
-                    <Trash2 size={16} /> Eliminar
-                  </button>
+              <footer className={cn(glassBar, 'flex items-center justify-between gap-2 border-t border-b-0 p-5')}>
+                {isDobEvent ? (
+                  <>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Evento de cumpleaños — solo lectura. Edita la fecha de nacimiento del paciente para modificarlo.
+                      </p>
+                      {!alreadyWished && waNumber && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            id="dob-promo-toggle"
+                            type="checkbox"
+                            checked={attachPromo}
+                            onChange={() => setAttachPromo((v) => !v)}
+                            className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 dark:bg-slate-800 dark:border-slate-600"
+                          />
+                          <label
+                            htmlFor="dob-promo-toggle"
+                            className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none"
+                          >
+                            Adjuntar regalo de cumpleaños
+                          </label>
+                          {attachPromo && (
+                            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
+                              {ACTIVE_BIRTHDAY_PROMO.value} · {ACTIVE_BIRTHDAY_PROMO.code}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={onClose} className={btnSecondary}>
+                        Cerrar
+                      </button>
+                      <button
+                        onClick={handleSendWish}
+                        disabled={sendingWish || alreadyWished || !waNumber}
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg border border-teal-500/60 bg-teal-500/20 px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-500/30 dark:text-teal-300 dark:hover:bg-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed',
+                          alreadyWished && 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                        )}
+                      >
+                        {sendingWish ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : alreadyWished ? (
+                          <>
+                            <Check size={14} /> Ya felicitado
+                          </>
+                        ) : (
+                          <>
+                            <Bell size={14} className="shrink-0" />
+                            Enviar felicitación
+                          </>
+                        )}
+                      </button>
+                      {onScheduleCita && !alreadyWished && (
+                        <button
+                          onClick={() => onScheduleCita(event!)}
+                          className={cn(
+                            btnGhost,
+                            'text-teal-600 hover:bg-teal-400/15 dark:text-teal-300'
+                          )}
+                        >
+                          <CalendarDays size={14} /> Agendar cita
+                        </button>
+                      )}
+                    </div>
+                  </>
                 ) : (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Compartida contigo — solo el propietario puede editarla o eliminarla.
-                  </p>
+                  <>
+                    <div className="flex-1">
+                      {isOwner ? (
+                        <button onClick={() => setConfirmDelete(true)} className={btnDanger}>
+                          <Trash2 size={16} /> Eliminar
+                        </button>
+                      ) : (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          Compartida contigo — solo el propietario puede editarla o eliminarla.
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={onClose} className={btnSecondary}>
+                        Cerrar
+                      </button>
+                      <button
+                        onClick={() => onDuplicate(event!)}
+                        className={cn(btnGhost, 'text-teal-600 hover:bg-teal-400/15 dark:text-teal-300')}
+                      >
+                        <CopyPlus size={15} /> Duplicar
+                      </button>
+                      {isOwner && (
+                        <button onClick={() => onEdit(event!)} className={btnPrimary}>
+                          <Pencil size={15} /> Editar
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={onClose} className={btnSecondary}>
-                  Cerrar
-                </button>
-                <button
-                  onClick={() => onDuplicate(event)}
-                  className={cn(btnGhost, 'text-teal-600 hover:bg-teal-400/15 dark:text-teal-300')}
-                >
-                  <CopyPlus size={15} /> Duplicar
-                </button>
-                {isOwner && (
-                  <button onClick={() => onEdit(event)} className={btnPrimary}>
-                    <Pencil size={15} /> Editar
-                  </button>
-                )}
-              </div>
-            </footer>
+              </footer>
 
             <AnimatePresence>
               {confirmDelete && (

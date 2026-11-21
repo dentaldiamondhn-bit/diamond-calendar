@@ -11,24 +11,71 @@ export interface Database {
     Tables: {
       patients: {
         Row: {
+          paciente_id: string
+          nombre_completo: string
+          numero_identidad: string | null
+          telefono: string | null
+          fecha_nacimiento: string | null
+          created_at: string
+        }
+        Insert: {
+          paciente_id?: string
+          nombre_completo: string
+          numero_identidad?: string | null
+          telefono?: string | null
+          fecha_nacimiento?: string | null
+          created_at?: string
+        }
+        Update: {
+          paciente_id?: string
+          nombre_completo?: string
+          numero_identidad?: string | null
+          telefono?: string | null
+          fecha_nacimiento?: string | null
+          created_at?: string
+        }
+      }
+      patient_birthday_wishes: {
+        Row: {
           id: string
-          name: string
-          email: string | null
-          phone: string | null
+          patient_id: string
+          wish_year: number
+          wish_sent_at: string
+          channel: string
+          message_template: string
+          promotion_code: string | null
+          promotion_type: string | null
+          promotion_value: string | null
+          acknowledged: boolean
+          created_by: string
           created_at: string
         }
         Insert: {
           id?: string
-          name: string
-          email?: string | null
-          phone?: string | null
+          patient_id: string
+          wish_year: number
+          wish_sent_at?: string
+          channel?: string
+          message_template?: string
+          promotion_code?: string | null
+          promotion_type?: string | null
+          promotion_value?: string | null
+          acknowledged?: boolean
+          created_by: string
           created_at?: string
         }
         Update: {
           id?: string
-          name?: string
-          email?: string | null
-          phone?: string | null
+          patient_id?: string
+          wish_year?: number
+          wish_sent_at?: string
+          channel?: string
+          message_template?: string
+          promotion_code?: string | null
+          promotion_type?: string | null
+          promotion_value?: string | null
+          acknowledged?: boolean
+          created_by?: string
           created_at?: string
         }
       }

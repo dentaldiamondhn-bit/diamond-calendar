@@ -53,3 +53,16 @@ export function tintedEventStyle(hex: string | null | undefined): {
     color: '#ffffff',
   };
 }
+
+/** Distinct birthday tint: pink swatch at 18% fill / 45% border, white label. */
+export function tintedDobEventStyle(): {
+  backgroundColor: string;
+  borderColor: string;
+  color: string;
+} {
+  return {
+    backgroundColor: withAlpha('#ec4899', 0.18),
+    borderColor: withAlpha('#ec4899', 0.45),
+    color: '#ffffff',
+  };
+}

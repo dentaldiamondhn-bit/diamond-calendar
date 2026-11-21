@@ -11,6 +11,7 @@ export const EVENT_TYPES = [
   'follow_up',
   'reminder',
   'other',
+  'dob',
 ] as const;
 
 export const STATUSES = ['scheduled', 'confirmed', 'cancelled', 'completed'] as const;
@@ -77,6 +78,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   follow_up: 'Seguimiento',
   reminder: 'Recordatorio',
   other: 'Otro',
+  dob: 'Cumpleaños',
 };
 
 export const STATUS_LABELS: Record<EventStatus, string> = {

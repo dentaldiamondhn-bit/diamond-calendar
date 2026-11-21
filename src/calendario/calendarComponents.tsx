@@ -6,7 +6,6 @@ import type {
   DateHeaderProps,
   EventProps,
   HeaderProps,
-  ToolbarProps,
   View,
 } from 'react-big-calendar';
 import { format, isSameDay } from 'date-fns';
@@ -19,13 +18,15 @@ import { STATUS_CHIP, btnSecondary, chipCls, glassBar, glassChip, glassCard } fr
 import { withAlpha } from '@/calendario/eventTint';
 import { cn } from '@/lib/utils';
 import { formatClock12 } from '@/calendario/timezone';
+import type { CalendarView } from '@/calendario/range';
 
-const VIEW_LABELS: Record<View, string> = {
+const VIEW_LABELS: Record<CalendarView, string> = {
   month: 'Mes',
   week: 'Semana',
   work_week: 'Semana laboral',
   day: 'Día',
   agenda: 'Agenda',
+  birthdays: 'Cumpleaños',
 };
 
 const NAV_ICONS: Record<string, ReactNode> = {
@@ -52,13 +53,14 @@ function timeRange(ev: ClinicEvent): string {
 /** Dental event pill — dentist dot + patient name, procedure badge on date-wide cells (C21). */
 export function EventPill({ event, title, slotStart }: EventProps<RbcEvent>) {
   const clinic = event.resource;
+  const isDob = clinic.is_dob_event || clinic.event_type === 'dob';
   // RBC passes slotStart/slotEnd only on the month/all-day path (EventCell)
   // — where slotStart spans the whole range — and in the month "+N más" popup
   // (slotStart only; `overlay.end` is undefined there). Time-grid events
   // arrive with just {event, title} (TimeGridEvent). So `slotStart` presence
   // is what marks a cell-rendered pill; checking `fullDay` would hide the
   // badge in the popup because the popup never fills in slotEnd.
-  const showBadge = Boolean(slotStart) && Boolean(clinic.procedure);
+  const showBadge = Boolean(slotStart) && Boolean(clinic.procedure) && !isDob;
   const name = clinic.patient_name || title || 'Evento';
 
   return (
@@ -66,11 +68,21 @@ export function EventPill({ event, title, slotStart }: EventProps<RbcEvent>) {
       className="flex w-full min-w-0 items-center gap-1.5 px-1.5 py-0.5 text-slate-100"
       title={`${name} · ${timeRange(clinic)}${clinic.procedure ? ` · ${clinic.procedure}` : ''}${clinic.dentist ? ` · ${clinic.dentist}` : ''}`}
     >
-      <span
-        className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/40"
-        style={{ backgroundColor: dentistColor(clinic.dentist) }}
-        aria-hidden="true"
-      />
+      {isDob ? (
+        <span
+          className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/40"
+          style={{ backgroundColor: '#ec4899' }}
+          aria-hidden="true"
+        >
+          🎂
+        </span>
+      ) : (
+        <span
+          className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/40"
+          style={{ backgroundColor: dentistColor(clinic.dentist) }}
+          aria-hidden="true"
+        />
+      )}
       <span className="min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs font-medium">
         {name}
       </span>
@@ -79,6 +91,11 @@ export function EventPill({ event, title, slotStart }: EventProps<RbcEvent>) {
           {shortProcedure(clinic.procedure)}
         </span>
       ) : null}
+      {isDob && (
+        <span className={chipCls('violet', 'text-[9px] font-semibold uppercase tracking-wide')}>
+          Cumpleaños
+        </span>
+      )}
     </div>
   );
 }
@@ -127,13 +144,14 @@ export function AgendaTimeCell({ label }: { label?: string }) {
 /** Agenda event card — 3px color bar, muted hierarchy, status chip right. */
 export function AgendaEventCard({ event, title }: EventProps<RbcEvent>) {
   const clinic = event.resource;
+  const isDob = clinic.is_dob_event || clinic.event_type === 'dob';
   const status = (clinic.status ?? 'scheduled') as EventStatus;
   const chip = STATUS_CHIP[status] ?? STATUS_CHIP.scheduled;
   const name = clinic.patient_name || title || 'Evento';
   const procedure = clinic.procedure?.trim();
   const dentist = clinic.dentist?.trim();
   const range =
-    clinic.start_time || clinic.end_time
+    !isDob && (clinic.start_time || clinic.end_time)
       ? `${formatClock12(clinic.start_time)} – ${formatClock12(clinic.end_time)}`
       : '';
 
@@ -145,22 +163,36 @@ export function AgendaEventCard({ event, title }: EventProps<RbcEvent>) {
       )}
       style={{
         borderLeftWidth: 3,
-        borderLeftColor: withAlpha(event.color || '#0d9488', 0.85),
+        borderLeftColor: withAlpha(isDob ? '#ec4899' : event.color || '#0d9488', 0.85),
       }}
-      title={`${name}${procedure ? ` · ${procedure}` : ''}${dentist ? ` · ${dentist}` : ''}`}
+      title={`${name}${isDob ? ' · Cumpleaños' : ''}${procedure ? ` · ${procedure}` : ''}${dentist ? ` · ${dentist}` : ''}`}
     >
       <span
         className="h-2 w-2 shrink-0 rounded-full"
-        style={{ backgroundColor: dentistColor(clinic.dentist) }}
+        style={{ backgroundColor: isDob ? '#ec4899' : dentistColor(clinic.dentist) }}
         aria-hidden="true"
-      />
+      >
+        {isDob ? '🎂' : ''}
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{name}</span>
-          <span className={cn(chipCls(chip.tone), 'shrink-0 font-semibold')}>{chip.label}</span>
+          <span className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+            {name}
+          </span>
+          {isDob ? (
+            <span className={chipCls('violet', 'text-[9px] font-semibold uppercase tracking-wide')}>
+              Cumpleaños
+            </span>
+          ) : (
+            <span className={cn(chipCls(chip.tone), 'shrink-0 font-semibold')}>
+              {chip.label}
+            </span>
+          )}
         </div>
         <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-          {[procedure, dentist].filter(Boolean).join(' · ') || 'Cita'}
+          {isDob
+            ? `Cumpleaños · ${clinic.notes || 'Ya felicitado este año' || 'Pendiente'}`
+            : [procedure, dentist].filter(Boolean).join(' · ') || 'Cita'}
         </p>
         {range ? (
           <p className="mt-1 text-xs font-mono tabular-nums text-teal-600 dark:text-teal-300">{range}</p>
@@ -178,8 +210,14 @@ export function AgendaEventCard({ event, title }: EventProps<RbcEvent>) {
  *  two uneven lines that pushed the grid down. Every control also carries a
  *  40px touch target on coarse pointers (h-10 below `sm`, back to h-8 above)
  *  so `Mes/Semana/Día/Agenda` stay comfortably tappable. */
-export function CalendarToolbar({ label, view, views, onNavigate, onView }: ToolbarProps<RbcEvent, object>) {
-  const viewList = (Array.isArray(views) ? views : Object.keys(views)) as View[];
+export function CalendarToolbar({ label, view, views, onNavigate, onView }: {
+  label: string;
+  view: CalendarView;
+  views: CalendarView[];
+  onNavigate: (action: 'TODAY' | 'PREV' | 'NEXT' | Date) => void;
+  onView: (view: CalendarView) => void;
+}) {
+  const viewList = views;
   // 40px (2.5rem) touch height on phones, 32px pill density from `sm` up.
   const touchCls = 'h-10 sm:h-8';
   const activeCls =
@@ -282,7 +320,6 @@ export function MonthWeekdayHeader({ label }: HeaderProps) {
 
 export const calendarComponents: Components<RbcEvent, object> = {
   event: EventPill,
-  toolbar: CalendarToolbar,
   header: WeekdayHeader,
   // `month.dateHeader` is the slot RBC actually reads. `month.header` is dead
   // config, so registering there left RBC to fall back to its own header and

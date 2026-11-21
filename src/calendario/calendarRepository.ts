@@ -112,6 +112,17 @@ export class CalendarRepository {
     );
   }
 
+  /** Projected birthday (DOB) events for a range — read-only, never persisted. */
+  static async getDobEvents(range: EventRange): Promise<ClinicEvent[]> {
+    const params = new URLSearchParams();
+    if (range.from) params.set('date_from', range.from);
+    if (range.to) params.set('date_to', range.to);
+    const qs = params.toString();
+    return readJson<ClinicEvent[]>(
+      await fetch(`/api/dob-events${qs ? `?${qs}` : ''}`, REQUEST)
+    );
+  }
+
   static async createEvent(payload: EventInput): Promise<ClinicEvent> {
     return readJson<ClinicEvent>(
       await fetch('/api/events', {

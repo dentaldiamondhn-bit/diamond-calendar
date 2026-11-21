@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Clock, User, Stethoscope, Calendar as CalIcon, Plus, CopyPlus } from 'lucide-react';
+import { X, Clock, User, Stethoscope, Calendar as CalIcon, Plus, CopyPlus, Cake } from 'lucide-react';
 import type { ClinicEvent } from '@/lib/types-calendar';
 import { clinicDateKey, formatClock12 } from '@/calendario/timezone';
 import { withAlpha } from '@/calendario/eventTint';
@@ -131,6 +131,7 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
               ) : (
                 <div className="space-y-1.5">
                   {dayEvents.map((e) => {
+                    const isDob = e.is_dob_event || e.event_type === 'dob';
                     const chip =
                       STATUS_CHIP[(e.status ?? 'scheduled') as keyof typeof STATUS_CHIP] ?? STATUS_CHIP.scheduled;
                     return (
@@ -145,17 +146,32 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
                               : 'border-slate-200/70 dark:border-slate-700/50'
                           )}
                         >
-                          <span
-                            className="w-1 shrink-0 rounded-full"
-                            style={{ backgroundColor: withAlpha(e.color, 0.85) }}
-                          />
+                          {isDob ? (
+                            <span
+                              className="w-1 shrink-0 rounded-full"
+                              style={{ backgroundColor: '#ec4899' }}
+                            >
+                              🎂
+                            </span>
+                          ) : (
+                            <span
+                              className="w-1 shrink-0 rounded-full"
+                              style={{ backgroundColor: withAlpha(e.color, 0.85) }}
+                            />
+                          )}
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2">
-                              <Clock size={13} className="text-slate-400" />
+                              {isDob ? null : (
+                                <Clock size={13} className="text-slate-400" />
+                              )}
                               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                {formatClock12(e.start_time)} – {formatClock12(e.end_time || e.start_time)}
+                                {isDob ? 'Cumpleaños' : formatClock12(e.start_time) + ' – ' + formatClock12(e.end_time || e.start_time)}
                               </span>
-                              {e.status === 'cancelled' ? (
+                              {isDob ? (
+                                <span className={cn(chipCls('violet', 'text-[9px] font-semibold uppercase tracking-wide'))}>
+                                  Cumpleaños
+                                </span>
+                              ) : e.status === 'cancelled' ? (
                                 <span className={cn(chipCls(chip.tone), 'font-semibold uppercase')}>
                                   {chip.label}
                                 </span>
@@ -164,30 +180,40 @@ export default function DayDetail({ dateStr, events, onClose, onEditEvent, onDup
                             <span className="mt-0.5 block truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                               {e.patient_name}
                             </span>
-                            <span className="mt-1 flex items-center gap-3">
-                              <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                <Stethoscope size={11} /> {e.procedure}
+                            {isDob ? (
+                              <span className="mt-1 block truncate text-xs italic text-slate-400">
+                                {e.notes || 'Felicitación pendiente'}
                               </span>
-                              <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                <User size={11} /> {e.dentist}
-                              </span>
-                            </span>
-                            {e.notes ? (
-                              <span className="mt-1 block truncate text-xs italic text-slate-400">{e.notes}</span>
-                            ) : null}
+                            ) : (
+                              <>
+                                <span className="mt-1 flex items-center gap-3">
+                                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <Stethoscope size={11} /> {e.procedure}
+                                  </span>
+                                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <User size={11} /> {e.dentist}
+                                  </span>
+                                </span>
+                                {e.notes ? (
+                                  <span className="mt-1 block truncate text-xs italic text-slate-400">{e.notes}</span>
+                                ) : null}
+                              </>
+                            )}
                           </span>
                         </button>
-                        <button
-                          onClick={() => onDuplicate(e)}
-                          title="Duplicar cita"
-                          aria-label="Duplicar cita"
-                          className={cn(
-                            'absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg',
-                            'text-slate-400 transition-colors hover:bg-teal-400/15 hover:text-teal-500'
-                          )}
-                        >
-                          <CopyPlus size={14} />
-                        </button>
+                        {!isDob && (
+                          <button
+                            onClick={() => onDuplicate(e)}
+                            title="Duplicar cita"
+                            aria-label="Duplicar cita"
+                            className={cn(
+                              'absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg',
+                              'text-slate-400 transition-colors hover:bg-teal-400/15 hover:text-teal-500'
+                            )}
+                          >
+                            <CopyPlus size={14} />
+                          </button>
+                        )}
                       </div>
                     );
                   })}

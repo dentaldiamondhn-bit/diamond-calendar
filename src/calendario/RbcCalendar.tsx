@@ -12,7 +12,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { RbcEvent } from '@/calendario/rbcAdapter';
 import { calendarComponents } from '@/calendario/calendarComponents';
-import { tintedEventStyle } from '@/calendario/eventTint';
+import { tintedEventStyle, tintedDobEventStyle } from '@/calendario/eventTint';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './rbc-theme.css';
@@ -31,7 +31,6 @@ const messages = {
   next: 'Siguiente',
   month: 'Mes',
   week: 'Semana',
-  work_week: 'Semana laboral',
   day: 'Día',
   agenda: 'Agenda',
   date: 'Fecha',
@@ -91,9 +90,8 @@ export interface RbcCalendarProps {
 
 const eventPropGetter = (event: object) => {
   const rbcEvent = event as RbcEvent;
-  // Tinted glass: 18% fill / 45% border over the dark grid. Vendor
-  // `.rbc-event` supplies the geometry (see rbc-theme.css).
-  return { style: tintedEventStyle(rbcEvent.color) };
+  const isDob = rbcEvent.resource.is_dob_event || rbcEvent.resource.event_type === 'dob';
+  return { style: isDob ? tintedDobEventStyle() : tintedEventStyle(rbcEvent.color) };
 };
 
 const InnerRbcCalendar = memo(function InnerRbcCalendar({
@@ -179,7 +177,8 @@ const InnerRbcCalendar = memo(function InnerRbcCalendar({
         scrollToTime={scrollToTime}
         onView={onView}
         onNavigate={handleNavigate}
-        views={[Views.MONTH, Views.WEEK, Views.WORK_WEEK, Views.DAY, Views.AGENDA]}
+        views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+        toolbar={false}
         selectable="ignoreEvents"
         popup
         onSelectSlot={handleSelectSlot}

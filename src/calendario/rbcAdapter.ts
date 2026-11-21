@@ -18,6 +18,21 @@ function parseTime(time: string): { h: number; m: number } {
 
 export function clinicEventToRbc(ev: ClinicEvent): RbcEvent {
   const [y = '0', mo = '0', d = '0'] = ev.date.split('-');
+  const isDob = ev.is_dob_event || ev.event_type === 'dob';
+
+  if (isDob) {
+    // All-day birthday event: start at 00:00, end exclusive at next day.
+    return {
+      id: String(ev.id),
+      title: ev.patient_name || ev.title || 'Evento',
+      start: new Date(+y, +mo - 1, +d),
+      end: new Date(+y, +mo - 1, +d + 1),
+      allDay: true,
+      color: ev.color || '#ec4899',
+      resource: ev,
+    };
+  }
+
   const startT = parseTime(ev.start_time || '09:00');
   const endT = parseTime(ev.end_time || ev.start_time || '09:30');
 

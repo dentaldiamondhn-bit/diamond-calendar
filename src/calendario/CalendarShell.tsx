@@ -7,7 +7,8 @@ import { Plus, Loader2, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
 import type { View } from 'react-big-calendar';
 import type { ClinicEvent, Task } from '@/lib/types-calendar';
 import { eventsToRbc, dateToDateStr, dateToTimeStr } from '@/calendario/rbcAdapter';
-import { viewToRange } from '@/calendario/range';
+import { viewToRange, type CalendarView } from '@/calendario/range';
+import { CLINIC_TIME_ZONE } from '@/calendario/timezone';
 import { useSwipeNavigation } from '@/calendario/useSwipeNavigation';
 import {
   useCalendarEvents,
@@ -15,6 +16,7 @@ import {
   useCalendarReminders,
   useEventReminders,
   useCalendarMutations,
+  useDobEvents,
 } from '@/calendario/hooks/useCalendarData';
 import { useCalendarRealtime } from '@/calendario/hooks/useCalendarRealtime';
 import CalendarSkeleton from '@/calendario/CalendarSkeleton';
@@ -31,13 +33,15 @@ import { findDentistOverlap, conflictMessage, dragTargetUpdates, resizeTargetUpd
 import { isDentistConflictError } from '@/calendario/calendarRepository';
 import { btnPrimary, btnSecondary } from '@/calendario/glass';
 import { cn } from '@/lib/utils';
+import BirthdaysView from '@/calendario/BirthdaysView';
+import { CalendarToolbar } from '@/calendario/calendarComponents';
 
 const RbcCalendar = dynamic(() => import('@/calendario/RbcCalendar'), {
   ssr: false,
   loading: () => <CalendarSkeleton />,
 });
 
-const VIEWS: View[] = ['month', 'week', 'work_week', 'day', 'agenda'];
+const VIEWS: CalendarView[] = ['month', 'week', 'day', 'agenda', 'birthdays'];
 
 function parseDateStr(s: string | null): Date {
   if (s) {
@@ -47,10 +51,10 @@ function parseDateStr(s: string | null): Date {
   return new Date();
 }
 
-function initialView(): View {
+function initialView(): CalendarView {
   if (typeof window === 'undefined') return 'month';
   const v = new URLSearchParams(window.location.search).get('view');
-  return (VIEWS as string[]).includes(v || '') ? (v as View) : 'month';
+  return (VIEWS as string[]).includes(v || '') ? (v as CalendarView) : 'month';
 }
 
 function initialDateStr(): string {
@@ -59,16 +63,29 @@ function initialDateStr(): string {
   return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : dateToDateStr(new Date());
 }
 
+/** Format YYYY-MM-DD as "mes de YYYY" in es-HN using clinic timezone. */
+function monthLabelEsHN(dateKey: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!m) return dateKey;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  return new Date(Date.UTC(y, mo, 1)).toLocaleDateString('es-HN', {
+    timeZone: CLINIC_TIME_ZONE,
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 /** Period a "next/previous" swipe moves, per view (mirrors RBC's toolbar). */
-function swipeStep(view: View, date: Date, direction: 1 | -1): Date {
+function swipeStep(view: CalendarView, date: Date, direction: 1 | -1): Date {
   switch (view) {
     case 'week':
-    case 'work_week':
       return addDays(date, direction * 7);
     case 'day':
       return addDays(date, direction);
     case 'month':
     case 'agenda':
+    case 'birthdays':
     default:
       return addMonths(date, direction);
   }
@@ -80,7 +97,7 @@ interface Props {
 
 export default function CalendarShell({ userId }: Props) {
   const { push } = useToast();
-  const [view, setView] = useState<View>(initialView);
+  const [view, setView] = useState<CalendarView>(initialView);
   const [date, setDate] = useState<Date>(() => parseDateStr(initialDateStr()));
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDateStr());
   const [modalOpen, setModalOpen] = useState(false);
@@ -122,6 +139,7 @@ export default function CalendarShell({ userId }: Props) {
   };
 
   const eventsQuery = useCalendarEvents(range);
+  const dobEventsQuery = useDobEvents(range);
   const tasksQuery = useCalendarTasks();
   const remindersQuery = useCalendarReminders();
   const mutations = useCalendarMutations();
@@ -137,6 +155,14 @@ export default function CalendarShell({ userId }: Props) {
   }, [view, date, range]);
 
   const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+  const dobEvents = useMemo(() => (view === 'birthdays' ? dobEventsQuery.data ?? [] : []), [
+    dobEventsQuery.data,
+    view,
+  ]);
+
+  // Chronological merge: clinical events + projected read-only birthday events
+  // (only merged when viewing the Cumpleaños tab).
+  const allEvents = useMemo(() => [...events, ...dobEvents], [events, dobEvents]);
 
   // Phase 5 — push deep-link: `?eventId=` (calendar notification tap) opens the
   // event drawer + day view once that event is in the cache, then drops the
@@ -164,7 +190,7 @@ export default function CalendarShell({ userId }: Props) {
   const eventRemindersQuery = useEventReminders(eventIds);
   const eventReminders = eventRemindersQuery.data ?? [];
 
-  const rbcEvents = useMemo(() => eventsToRbc(events), [events]);
+  const rbcEvents = useMemo(() => eventsToRbc(allEvents), [allEvents]);
 
   // Keep the drawer's event in sync with the freshest query data (SSE or refetch).
   // Without this, the drawer shows a frozen snapshot and never live-updates.
@@ -285,6 +311,23 @@ export default function CalendarShell({ userId }: Props) {
     setModalOpen(true);
   };
 
+  /** Open the create modal pre-filled with a DOB event's patient details ("Agendar cita"). */
+  const openScheduleCita = (event: ClinicEvent) => {
+    setModalPrefill({
+      start: '09:00',
+      end: '09:30',
+      patient_id: event.patient_id || '',
+      patient_name: event.patient_name,
+      phone: event.phone,
+      phone_country: event.phone_country,
+    });
+    setEditingEvent(null);
+    setDuplicateOf(null);
+    setDrawerEvent(null);
+    setSelectedDate(event.date);
+    setModalOpen(true);
+  };
+
   const openEditEvent = (event: ClinicEvent) => {
     setEditingEvent(event);
     setModalPrefill(null);
@@ -311,7 +354,7 @@ export default function CalendarShell({ userId }: Props) {
   const handleSelectSlot = (slot: { start: Date; end: Date }) => {
     if (consumeSwipe()) return;
     setSelectedDate(dateToDateStr(slot.start));
-    const timeView = view === 'week' || view === 'work_week' || view === 'day';
+    const timeView = view === 'week' || view === 'day';
     setModalPrefill({
       start: timeView ? dateToTimeStr(slot.start) : '09:00',
       end: timeView ? dateToTimeStr(slot.end) : '09:30',
@@ -500,6 +543,24 @@ if (eventsQuery.isPending && !eventsQuery.data) {
         </div>
       </header>
 
+      {/* View switcher toolbar — Mes | Semana | Día | Agenda | Cumpleaños. */}
+      <CalendarToolbar
+        label={
+          view === 'birthdays'
+            ? `Cumpleaños · ${monthLabelEsHN(dateToDateStr(date))}`
+            : monthLabelEsHN(dateToDateStr(date))
+        }
+        view={view}
+        views={VIEWS}
+        onNavigate={(action) => {
+          if (action === 'TODAY') setDate(new Date());
+          else if (action === 'PREV') setDate((d) => swipeStep(view, d, -1));
+          else if (action === 'NEXT') setDate((d) => swipeStep(view, d, 1));
+          else setDate(action);
+        }}
+        onView={(v) => setView(v)}
+      />
+
       {/* Main workspace: pinned calendar + independently scrolling sidebar. */}
       <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden lg:flex-row lg:overflow-hidden">
         {/* 1. Pinned calendar container — RbcCalendar's own card fills this.
@@ -513,17 +574,25 @@ if (eventsQuery.isPending && !eventsQuery.data) {
             onTouchEndCapture={onTouchEndCapture}
             onTouchCancelCapture={onTouchCancelCapture}
           >
-            <RbcCalendar
-              events={rbcEvents}
-              date={date}
-              view={view}
-              onView={setView}
-              onNavigate={setDate}
-              onSelectSlot={handleSelectSlot}
-              onSelectEvent={handleSelectEvent}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-            />
+            {view === 'birthdays' ? (
+              <BirthdaysView
+                dobEvents={dobEvents}
+                monthKey={dateToDateStr(date).slice(0, 7)}
+                onScheduleCita={openScheduleCita}
+              />
+            ) : (
+              <RbcCalendar
+                events={rbcEvents}
+                date={date}
+                view={view as View}
+                onView={setView}
+                onNavigate={setDate}
+                onSelectSlot={handleSelectSlot}
+                onSelectEvent={handleSelectEvent}
+                onEventDrop={handleEventDrop}
+                onEventResize={handleEventResize}
+              />
+            )}
           </div>
         </main>
 
@@ -592,6 +661,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
         onClose={() => setDrawerEvent(null)}
         onEdit={openEditEvent}
         onDuplicate={openDuplicateEvent}
+        onScheduleCita={openScheduleCita}
         onPrev={() => moveDrawerEvent(-1)}
         onNext={() => moveDrawerEvent(1)}
         position={drawerPosition.position}

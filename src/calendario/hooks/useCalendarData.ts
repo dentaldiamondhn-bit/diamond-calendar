@@ -20,6 +20,7 @@ import {
 export const calendarKeys = {
   all: ['calendario'] as const,
   events: (range: EventRange) => ['calendario', 'events', range] as const,
+  dobEvents: (range: EventRange) => ['calendario', 'dobEvents', range] as const,
   eventsList: ['calendario', 'events'] as const,
   tasks: ['calendario', 'tasks'] as const,
   reminders: ['calendario', 'reminders'] as const,
@@ -33,6 +34,15 @@ export function useCalendarEvents(range: EventRange): UseQueryResult<ClinicEvent
   return useQuery({
     queryKey: calendarKeys.events(range),
     queryFn: () => CalendarRepository.getEvents(range),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Projected birthday (DOB) events inside a date window — cache keyed per range. */
+export function useDobEvents(range: EventRange): UseQueryResult<ClinicEvent[], Error> {
+  return useQuery({
+    queryKey: calendarKeys.dobEvents(range),
+    queryFn: () => CalendarRepository.getDobEvents(range),
     placeholderData: keepPreviousData,
   });
 }

@@ -14,11 +14,13 @@ export interface ClinicEvent {
   notes: string;
   description?: string;
   location?: string;
-  event_type?: 'appointment' | 'consultation' | 'surgery' | 'follow_up' | 'reminder' | 'other';
+  event_type?: 'appointment' | 'consultation' | 'surgery' | 'follow_up' | 'reminder' | 'other' | 'dob';
   status?: 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
   priority?: 'low' | 'medium' | 'high';
   reminder_minutes?: number;
   patient_id?: string;
+  /** True for dynamically-projected birthday events (never persisted to `events`). */
+  is_dob_event?: boolean;
   created_at: string;
 }
 

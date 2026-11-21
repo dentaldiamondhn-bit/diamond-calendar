@@ -4,10 +4,14 @@ import { dateToDateStr } from '@/calendario/rbcAdapter';
 import { clinicDateKey } from '@/calendario/timezone';
 import type { EventRange } from '@/calendario/calendarRepository';
 
+/** Extended view type that includes the dedicated Cumpleaños view. */
+export type CalendarView = View | 'birthdays';
+
 /**
- * Compute the fetch window for a given RBC view anchored on `date`.
+ * Compute the fetch window for a given view anchored on `date`.
  * Month/Week pull the surrounding ISO week so cross-month/day padding renders;
  * agenda (the longest view) looks 90 days ahead.
+ * Birthdays fetch the full clinic-local month containing `date`.
  *
  * Every window is also widened to cover the CURRENT clinic-local week
  * (Monday → Sunday of the week containing today, `America/Tegucigalpa`) so the
@@ -29,7 +33,7 @@ function union(a: EventRange, b: EventRange): EventRange {
   };
 }
 
-export function viewToRange(view: View, date: Date): EventRange {
+export function viewToRange(view: CalendarView, date: Date): EventRange {
   const preview = currentWeekRange();
   switch (view) {
     case 'month': {
@@ -46,6 +50,12 @@ export function viewToRange(view: View, date: Date): EventRange {
     case 'day':
       return union(preview, { from: dateToDateStr(date), to: dateToDateStr(date) });
     case 'agenda':
+      return union(preview, { from: dateToDateStr(date), to: dateToDateStr(addDays(date, 90)) });
+    case 'birthdays':
+      return {
+        from: dateToDateStr(startOfMonth(date)),
+        to: dateToDateStr(endOfMonth(date)),
+      };
     default:
       return union(preview, { from: dateToDateStr(date), to: dateToDateStr(addDays(date, 90)) });
   }

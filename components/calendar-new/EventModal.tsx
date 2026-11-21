@@ -97,6 +97,11 @@ function phoneOnOpen(phone?: string, storedCountry?: string): { country: string;
 export interface ModalPrefill {
   start: string;
   end: string;
+  /** When scheduling from a DOB event ("Agendar cita"), pre-fill patient info. */
+  patient_id?: string;
+  patient_name?: string;
+  phone?: string;
+  phone_country?: string;
 }
 
 interface Props {
@@ -359,6 +364,13 @@ export default function EventModal({ open, onClose, onSaved, dateStr, editingEve
     if (prefill) {
       base.start_time = prefill.start || base.start_time;
       base.end_time = prefill.end || base.end_time;
+      if (prefill.patient_id) {
+        base.patient_id = prefill.patient_id;
+        base.patient_name = prefill.patient_name || '';
+        base.phone = prefill.phone ?? '';
+        base.phone_country = prefill.phone_country || '504';
+        base.title = base.title || `Cita con ${prefill.patient_name}`;
+      }
       autoEndRef.current = false; // respect the exact slot the user drew
     } else {
       // Default window: Fin = Inicio + 30 min (request).
