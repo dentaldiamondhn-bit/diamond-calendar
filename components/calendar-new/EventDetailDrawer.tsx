@@ -110,6 +110,10 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
   const [sendingWish, setSendingWish] = useState(false);
   const [attachPromo, setAttachPromo] = useState(ACTIVE_BIRTHDAY_PROMO.enabledByDefault);
 
+  // Appointment confirmation preference (persisted to user_preferences).
+  const [confirmAppointment, setConfirmAppointment] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   useEffect(() => {
     setInvitees([]);
     setReminders([]);
@@ -146,6 +150,26 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
       cancelled = true;
     };
   }, [event]);
+
+  // Load the user's appointment confirmation preference (user-level, not event-level).
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/user-preferences');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        setConfirmAppointment(typeof json.appointment_confirmation === 'boolean' ? json.appointment_confirmation : false);
+      } catch {
+        // best-effort; default false
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   // a11y — Escape closes the drawer (never while delete-confirm is up);
   // Arrow keys step to the previous/next event in the sequence.
@@ -226,6 +250,21 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
       console.error('[EventDetailDrawer] birthday wish failed', err);
     } finally {
       setSendingWish(false);
+    }
+  };
+
+  // Persist the appointment confirmation preference to user_preferences.
+  const onToggleConfirm = async () => {
+    const next = !confirmAppointment;
+    setConfirmAppointment(next);
+    try {
+      await fetch('/api/user-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointment_confirmation: next }),
+      });
+    } catch {
+      setConfirmAppointment(!next); // rollback on failure
     }
   };
 
@@ -358,6 +397,25 @@ export default function EventDetailDrawer({ event, userId, onClose, onEdit, onDu
                     })()}
                   </>
                 )}
+              </div>
+
+              {/* Appointment confirmation preference (persisted per user). */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="appointment-confirmation-toggle"
+                  type="checkbox"
+                  checked={confirmAppointment}
+                  onChange={onToggleConfirm}
+                  disabled={confirmLoading}
+                  className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 dark:bg-slate-800 dark:border-slate-600"
+                />
+                <label
+                  htmlFor="appointment-confirmation-toggle"
+                  className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer select-none"
+                >
+                  Confirmar asistencia por defecto
+                </label>
+                {confirmLoading && <Loader2 size={13} className="animate-spin" />}
               </div>
 
               <Row icon={UserRound} label="Paciente">
