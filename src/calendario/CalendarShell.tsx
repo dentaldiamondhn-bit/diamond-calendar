@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { addMonths, addDays } from 'date-fns';
+import { addMonths, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { Plus, Loader2, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import type { View } from 'react-big-calendar';
 import type { ClinicEvent, Task } from '@/lib/types-calendar';
 import { eventsToRbc, dateToDateStr, dateToTimeStr } from '@/calendario/rbcAdapter';
 import { viewToRange, type CalendarView } from '@/calendario/range';
-import { CLINIC_TIME_ZONE } from '@/calendario/timezone';
+import { CLINIC_TIME_ZONE, clinicWallClockTimestamp } from '@/calendario/timezone';
 import { useSwipeNavigation } from '@/calendario/useSwipeNavigation';
 import {
   useCalendarEvents,
@@ -63,17 +63,99 @@ function initialDateStr(): string {
   return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : dateToDateStr(new Date());
 }
 
-/** Format YYYY-MM-DD as "mes de YYYY" in es-HN using clinic timezone. */
+/** Format YYYY-MM-DD as "mes de YYYY" in es-HN, anchored at noon clinic time
+ *  so UTC midnight never shifts into the previous month (America/Tegucigalpa = UTC-6). */
 function monthLabelEsHN(dateKey: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
   if (!m) return dateKey;
-  const y = Number(m[1]);
-  const mo = Number(m[2]) - 1;
-  return new Date(Date.UTC(y, mo, 1)).toLocaleDateString('es-HN', {
+  return clinicWallClockTimestamp(dateKey, '12:00').toLocaleDateString('es-HN', {
     timeZone: CLINIC_TIME_ZONE,
     month: 'long',
     year: 'numeric',
   });
+}
+
+/** Format YYYY-MM-DD as "EEEE, d 'de' MMMM 'de' yyyy" in es-HN (day view header). */
+function dayLabelEsHN(dateKey: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!m) return dateKey;
+  return clinicWallClockTimestamp(dateKey, '12:00').toLocaleDateString('es-HN', {
+    timeZone: CLINIC_TIME_ZONE,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/** Format a week range anchored on `date` as "16 – 22 de noviembre de 2026" or
+ *  "30 nov – 6 dic 2026" when crossing months. */
+function weekRangeLabelEsHN(date: Date): string {
+  const from = startOfWeek(date, { weekStartsOn: 1 });
+  const to = endOfWeek(date, { weekStartsOn: 1 });
+  const fromKey = dateToDateStr(from);
+  const toKey = dateToDateStr(to);
+
+  const m1 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fromKey);
+  const m2 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(toKey);
+  if (!m1 || !m2) return `${fromKey} – ${toKey}`;
+
+  const sameMonth = m1[1] === m2[1] && m1[2] === m2[2];
+
+  const dayNum = (key: string) => {
+    const mm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+    if (!mm) return key;
+    return clinicWallClockTimestamp(key, '12:00').toLocaleDateString('es-HN', {
+      timeZone: CLINIC_TIME_ZONE,
+      day: 'numeric',
+    });
+  };
+
+  const monthYear = (key: string) => {
+    const mm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+    if (!mm) return key;
+    return clinicWallClockTimestamp(key, '12:00').toLocaleDateString('es-HN', {
+      timeZone: CLINIC_TIME_ZONE,
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const monthShort = (key: string) => {
+    const mm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+    if (!mm) return key;
+    return clinicWallClockTimestamp(key, '12:00').toLocaleDateString('es-HN', {
+      timeZone: CLINIC_TIME_ZONE,
+      month: 'short',
+    });
+  };
+
+  const d1 = dayNum(fromKey);
+  const d2 = dayNum(toKey);
+
+  if (sameMonth) {
+    return `${d1} – ${d2} de ${monthYear(fromKey)}`;
+  }
+  return `${d1} ${monthShort(fromKey)} – ${d2} ${monthShort(toKey)} ${m2[1]}`;
+}
+
+/** View-aware header label. Always anchored on the active `date`, never on
+ *  `range.from` (which for month grids starts in the previous month). */
+function headerLabel(view: CalendarView, date: Date): string {
+  const dateKey = dateToDateStr(date);
+  switch (view) {
+    case 'day':
+      return dayLabelEsHN(dateKey);
+    case 'week':
+    case 'work_week':
+      return weekRangeLabelEsHN(date);
+    case 'birthdays':
+      return `Cumpleaños · ${monthLabelEsHN(dateKey)}`;
+    case 'agenda':
+    case 'month':
+    default:
+      return monthLabelEsHN(dateKey);
+  }
 }
 
 /** Period a "next/previous" swipe moves, per view (mirrors RBC's toolbar). */
@@ -545,11 +627,7 @@ if (eventsQuery.isPending && !eventsQuery.data) {
 
       {/* View switcher toolbar — Mes | Semana | Día | Agenda | Cumpleaños. */}
       <CalendarToolbar
-        label={
-          view === 'birthdays'
-            ? `Cumpleaños · ${monthLabelEsHN(dateToDateStr(date))}`
-            : monthLabelEsHN(dateToDateStr(date))
-        }
+        label={headerLabel(view, date)}
         view={view}
         views={VIEWS}
         onNavigate={(action) => {
