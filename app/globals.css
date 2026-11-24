@@ -277,6 +277,61 @@ body,
   }
 }
 
+/* ── Clerk UserButton popover / account menu: dark theme ─────────────────
+   Forces Clerk's bubble menu (username · Manage account · Sign out) to use
+   the app's dark popover colors so it is consistent with the UI in dark mode.
+
+   Clerk renders hashed class names (e.g. .cl-dc1d9f19) and hardcodes some
+   backgrounds as literal #fff, so class-name selectors alone don't work.
+   We therefore force the dark color-scheme, override Clerk's theme CSS
+   variables, and target the menu's structural roles as a safety net.
+   ─────────────────────────────────────────────────────────────────────── */
+.dark { color-scheme: dark; }
+
+.dark {
+  --color-background: hsl(var(--popover));
+  --cl-accent-9: hsl(var(--popover-foreground));
+  --cl-gray-2: hsl(var(--secondary));
+  --cl-gray-3: hsl(var(--muted));
+  --cl-gray-surface: hsl(var(--popover));
+  --cl-accent-surface: hsl(var(--secondary));
+}
+
+/* Clerk popover panel / card surface (some Clerk versions hardcode #fff) */
+.dark [role="menu"],
+.dark [role="dialog"],
+.dark [data-popover],
+.dark .cl-dc1d9f19 {
+  background-color: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+}
+
+/* Menu items, links and buttons inside the popover */
+.dark [role="menuitem"],
+.dark [role="menu"] button,
+.dark [role="menu"] a,
+.dark [role="button"] {
+  color: hsl(var(--popover-foreground)) !important;
+}
+
+.dark [role="menuitem"]:hover,
+.dark [role="menu"] button:hover,
+.dark [role="menu"] a:hover,
+.dark [role="button"]:hover {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+/* Dividers inside the popover */
+.dark [role="separator"],
+.dark [role="menu"] hr,
+.dark [role="menu"] div[class*="-divider"],
+.dark .cl-d0f85a65 {
+  border-color: hsl(var(--border)) !important;
+  border-bottom-color: hsl(var(--border)) !important;
+  background-color: hsl(var(--border)) !important;
+}
+
 @layer base {
   * {
     @apply border-border;
